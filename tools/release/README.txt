@@ -62,12 +62,21 @@ stick = Nunchuk, R2 = swing).
 
 5. What works
 -------------
-Boot, save / load, title, the main menu hub, and these games single
+Boot, save / load, title, the main menu hub and these games in single
 player: Pac-N-Roll Remix, Pac-Motos, Galaga Remix, Gator Panic Remix,
-Rally-X Remix, Grobda Remix. Some multiplayer modes are in, but not all.
-Missing / not yet like the original: Mii faces, rumble on some games,
-the Home Button menu, widescreen, some 3D sound positioning. Details:
-docs/JOBS.md (every screen and its status) and docs/OPTIONS.md.
+Rally-X Remix, Grobda Remix. Multiplayer: Gator Panic; Galaga, Grobda
+and Pac-Motos partly; Rally-X not at all.
 
-Options marked "developer switch" in --help / docs/OPTIONS.md are testing
-aids and are not part of the original game.
+Known problems:
+  - Galaga: the BACK button of the stage select leaves an empty screen
+    (restart the game).
+  - Rally-X: the stage select does not show its map or Pac-Man's car.
+  - Pac-Motos: the board is see-through.
+  - Debug menu rows of screens that are not ported (e.g. the save data
+    tools) leave an empty screen too.
+Missing: Mii faces, the Home Button menu (HOME only freezes the game),
+widescreen, some shadows, 3D sound positioning.
+Details: docs/JOBS.md (every screen and its status) and docs/OPTIONS.md.
+
+Options marked "developer switch" / "dev:" in --help and docs/OPTIONS.md
+are testing aids and are not part of the original game.
