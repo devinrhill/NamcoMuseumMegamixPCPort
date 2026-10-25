@@ -1,0 +1,90 @@
+#pragma once
+
+#include "common.hpp"
+#include "kingdom/cKingdomCSV.hpp"
+#include "kingdom/game/g07/MO_CHAR_PARAMS.hpp"
+
+namespace kingdom::game::g07
+{
+
+class cParamEnemy : public cKingdomCSV
+{
+private:
+	enum PL_PARAM
+	{
+		eCSV_ROW_HEAD = 0,
+		eCSV_ROW_ENEMY_LV00 = 1,
+		eCSV_ROW_ENEMY_LV01 = 2,
+		eCSV_ROW_ENEMY_LV02 = 3,
+		eCSV_ROW_ENEMY_LV03 = 4,
+		eCSV_ROW_ENEMY_LV04 = 5,
+		eCSV_ROW_ENEMY_LV05 = 6,
+		eCSV_ROW_ENEMY_LV06 = 7,
+		eCSV_ROW_ENEMY_LV07 = 8,
+		eCSV_ROW_ENEMY_LV08 = 9,
+		eCSV_ROW_ENEMY_LV09 = 10,
+		eCSV_ROW_ENEMY_LV10 = 11,
+		eCSV_ROW_ENEMY_LV11 = 12,
+		eCSV_ROW_ENEMY_LV12 = 13,
+		eCSV_ROW_ENEMY_LV13 = 14,
+		eCSV_ROW_ENEMY_LV14 = 15,
+		eCSV_ROW_ENEMY_LV15 = 16,
+		eCSV_ROW_ENEMY_LV16 = 17,
+		eCSV_ROW_ENEMY_LV17 = 18,
+		eCSV_ROW_ENEMY_LV18 = 19,
+		eCSV_ROW_ENEMY_LV19 = 20,
+		eCSV_ROW_ENEMY_LV20 = 21,
+		eCSV_ROW_ENEMY_LV21 = 22,
+		eCSV_ROW_ENEMY_LV22 = 23,
+		eCSV_ROW_ENEMY_LV23 = 24,
+		eCSV_ROW_ENEMY_LV24 = 25,
+		eCSV_ROW_ENEMY_LV25 = 26,
+		eCSV_ROW_ENEMY_LV26 = 27,
+		eCSV_ROW_MAX = 28,
+		eCSV_COL_ENEMY_ID = eCSV_ROW_HEAD,
+		eCSV_COL_WEIGHT = eCSV_ROW_ENEMY_LV00,
+		eCSV_COL_HERETIC_TIME = eCSV_ROW_ENEMY_LV01,
+		eCSV_COL_MAX_SPEED = eCSV_ROW_ENEMY_LV02,
+		eCSV_COL_ACCEL_SPEED = eCSV_ROW_ENEMY_LV03,
+		eCSV_COL_DECEL_SPEED = eCSV_ROW_ENEMY_LV04,
+		eCSV_COL_HIT_POW = eCSV_ROW_ENEMY_LV05,
+		eCSV_COL_CHARGE_POW = eCSV_ROW_ENEMY_LV06,
+		eCSV_COL_SLOPE_POW = eCSV_ROW_ENEMY_LV07,
+		eCSV_COL_WALL_REF = eCSV_ROW_ENEMY_LV08,
+		eCSV_COL_HIT_SIZE = eCSV_ROW_ENEMY_LV09,
+		eCSV_COL_HIT_WSIZE = eCSV_ROW_ENEMY_LV10,
+		eCSV_COL_POINTS = eCSV_ROW_ENEMY_LV11,
+		eCSV_COL_VS_POINTS = eCSV_ROW_ENEMY_LV12,
+		eCSV_COL_PARAM01 = eCSV_ROW_ENEMY_LV13,
+		eCSV_COL_PARAM02 = eCSV_ROW_ENEMY_LV14,
+		eCSV_COL_PARAM03 = eCSV_ROW_ENEMY_LV15,
+		eCSV_COL_COMMENT = eCSV_ROW_ENEMY_LV16,
+		eCSV_COL_MAX = eCSV_ROW_ENEMY_LV17,
+		eENEMY_LEVEL_MAX = eCSV_ROW_ENEMY_LV25
+	};
+
+	MO_CHAR_PARAMS* m_sParam{};
+
+	int m_nEnemyLevel{};
+
+protected:
+	void Init() override;
+
+	void Term() override;
+
+private:
+	void LoadValue();
+
+public:
+	cParamEnemy();
+
+	cParamEnemy(string key, uint level);
+
+	virtual ~cParamEnemy();
+
+	bool RegistData(string key, uint level);
+
+	MO_CHAR_PARAMS* pMotosParams();
+};
+
+}

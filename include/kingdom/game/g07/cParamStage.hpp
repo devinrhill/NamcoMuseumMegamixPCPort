@@ -1,0 +1,109 @@
+#pragma once
+
+#include "common.hpp"
+#include "kingdom/cKingdomCSV.hpp"
+#include "kingdom/game/g07/MO_METEO_INFO.hpp"
+#include "kingdom/game/g07/MO_SLOPE_INFO.hpp"
+
+namespace kingdom::game::g07
+{
+
+class cParamStage : public cKingdomCSV
+{
+public:
+	enum PL_PARAM
+	{
+		eCSV_COL_STAGE_ID = 0,
+		eCSV_COL_METEO_LIMIT = 1,
+		eCSV_COL_METEO_INTERVAL_MIN = 2,
+		eCSV_COL_METEO_INTERVAL_MAX = 3,
+		eCSV_COL_SLOPE_PAT01 = 4,
+		eCSV_COL_SLOPE_PAT02 = 5,
+		eCSV_COL_SLOPE_PAT03 = 6,
+		eCSV_COL_SLOPE_PAT04 = 7,
+		eCSV_COL_SLOPE_PAT05 = 8,
+		eCSV_COL_COMMENT = 9,
+		eCSV_COL_MAX = 10,
+		eCSV_ROW_STAGE_ID = eCSV_COL_STAGE_ID,
+		eCSV_ROW_MO_STAGE_W0S0 = eCSV_COL_METEO_LIMIT,
+		eCSV_ROW_MO_STAGE_W1S1 = eCSV_COL_METEO_INTERVAL_MIN,
+		eCSV_ROW_MO_STAGE_W1S2 = eCSV_COL_METEO_INTERVAL_MAX,
+		eCSV_ROW_MO_STAGE_W1S3 = eCSV_COL_SLOPE_PAT01,
+		eCSV_ROW_MO_STAGE_W1S4 = eCSV_COL_SLOPE_PAT02,
+		eCSV_ROW_MO_STAGE_W1S5 = eCSV_COL_SLOPE_PAT03,
+		eCSV_ROW_MO_STAGE_W1S6 = eCSV_COL_SLOPE_PAT04,
+		eCSV_ROW_MO_STAGE_W1S7 = eCSV_COL_SLOPE_PAT05,
+		eCSV_ROW_MO_STAGE_W2S1 = eCSV_COL_COMMENT,
+		eCSV_ROW_MO_STAGE_W2S2 = eCSV_COL_MAX,
+		eCSV_ROW_MO_STAGE_W2S3 = 11,
+		eCSV_ROW_MO_STAGE_W2S4 = 12,
+		eCSV_ROW_MO_STAGE_W2S5 = 13,
+		eCSV_ROW_MO_STAGE_W2S6 = 14,
+		eCSV_ROW_MO_STAGE_W2S7 = 15,
+		eCSV_ROW_MO_STAGE_W3S1 = 16,
+		eCSV_ROW_MO_STAGE_W3S2 = 17,
+		eCSV_ROW_MO_STAGE_W3S3 = 18,
+		eCSV_ROW_MO_STAGE_W3S4 = 19,
+		eCSV_ROW_MO_STAGE_W3S5 = 20,
+		eCSV_ROW_MO_STAGE_W3S6 = 21,
+		eCSV_ROW_MO_STAGE_W3S7 = 22,
+		eCSV_ROW_MO_STAGE_W4S1 = 23,
+		eCSV_ROW_MO_STAGE_W4S2 = 24,
+		eCSV_ROW_MO_STAGE_W4S3 = 25,
+		eCSV_ROW_MO_STAGE_W4S4 = 26,
+		eCSV_ROW_MO_STAGE_W4S5 = 27,
+		eCSV_ROW_MO_STAGE_W4S6 = 28,
+		eCSV_ROW_MO_STAGE_W4S7 = 29,
+		eCSV_ROW_MO_STAGE_W5S1 = 30,
+		eCSV_ROW_MO_STAGE_W5S2 = 31,
+		eCSV_ROW_MO_STAGE_W5S3 = 32,
+		eCSV_ROW_MO_STAGE_W5S4 = 33,
+		eCSV_ROW_MO_STAGE_W5S5 = 34,
+		eCSV_ROW_MO_STAGE_W5S6 = 35,
+		eCSV_ROW_MO_STAGE_W5S7 = 36,
+		eCSV_ROW_MO_STAGE_VS01 = 37,
+		eCSV_ROW_MO_STAGE_VS02 = 38,
+		eCSV_ROW_MO_STAGE_VS03 = 39,
+		eCSV_ROW_MO_STAGE_VS04 = 40,
+		eCSV_ROW_MO_STAGE_VS05 = 41,
+		eCSV_ROW_MO_STAGE_VS06 = 42,
+		eCSV_ROW_MO_STAGE_VS07 = 43,
+		eCSV_ROW_MO_STAGE_VS08 = 44,
+		eCSV_ROW_MO_STAGE_VS09 = 45,
+		eCSV_ROW_MO_STAGE_VS10 = 46,
+		eCSV_ROW_MO_STAGE_SVS01 = 47,
+		eCSV_ROW_MO_STAGE_SVS02 = 48,
+		eCSV_ROW_MO_STAGE_SVS03 = 49,
+		eCSV_ROW_MAX = 50
+	};
+
+private:
+	MO_METEO_INFO* m_MeteoInfo{};
+
+	MO_SLOPE_INFO* m_SlopeInfo{};
+
+	uint m_StageNum{};
+
+protected:
+	void Init() override;
+
+	void Term() override;
+
+private:
+	void LoadValue();
+
+public:
+	cParamStage();
+
+	cParamStage(string key, uint StageNum);
+
+	virtual ~cParamStage();
+
+	bool RegistData(string key);
+
+	MO_METEO_INFO* pMeteoInfo();
+
+	MO_SLOPE_INFO* pSlopeInfo();
+};
+
+}

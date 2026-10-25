@@ -1,0 +1,58 @@
+#include "kingdom/game/g07/cAppMotosDebugMenu.hpp"
+
+#include "GamePad.hpp"
+#include "WiiPad.hpp"
+#include "KingdomGlobal.hpp"
+#include <cstring>
+
+#include "gfx/DebugText.hpp"
+#include "kingdom/game/g07/cG07MotosSys.hpp"
+
+namespace kingdom::game::g07
+{
+
+// DOL 0x800a29bc: FUN_800c2404(menu, "Motos", 7, table 0x80394d08)
+cAppMotosDebugMenu::cAppMotosDebugMenu()
+{
+	SetName("Motos Debug Menu");
+	SetMenu("Motos", {
+		{"MENU", 0x11200000u},
+		{"MULTI MENU", 0x11700000u},
+		{"MATCHING", 0x11600000u},
+		{"STAGE", 0x11400000u},
+		{"GAMEOVER", 0x11500000u},
+		{"STAFFROLL", 0x11e00000u},
+		{"EXIT", 0x11f00000u},
+	});
+	m_stageRow = 0;
+	for (size_t i = 0; i < m_entries.size(); i++)
+		if (m_entries[i].job == 0x11400000u) { m_stageRow = (int)i; break; }
+}
+
+// DOL 0x800a36c4
+bool cAppMotosDebugMenu::Execute(cJetTask* pParam)
+{
+	auto* sys = KingdomGlobal::MotosSys;
+	if (sys && m_selected == 0x11400000u)
+	{
+		const GamePad::State& pad = GamePad::Get(0);
+		uint& idx = sys->nStageIdx();
+		if (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_RIGHT)) idx = idx + 1 > 0x2d ? 0 : idx + 1;
+		else if (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_LEFT)) idx = idx == 0 ? 0x2d : idx - 1;
+	}
+	return kingdom::cAppBaseDebugMenu::Execute(pParam);
+}
+
+// DOL 0x800a35a4
+void cAppMotosDebugMenu::Draw(int nStatus, cJetTask* pParam)
+{
+	if (auto* sys = KingdomGlobal::MotosSys; sys && m_stageRow < (int)m_entries.size())
+	{
+		const int x = 0x20 + (int)std::strlen(m_entries[m_stageRow].label) * 0x14, y = 0x30 + m_stageRow * 0x14;
+		if (sys->nStageIdx() == 0) dbgtext::Print(x, y, dbgtext::DEFAULT_COLOR, "wxxsxx");
+		else if (sys->nStageIdx() < 0x24) dbgtext::Print(x, y, dbgtext::DEFAULT_COLOR, "w%02ds%02d", (int)sys->nWorld(), (int)sys->nStage());
+		else dbgtext::Print(x, y, dbgtext::DEFAULT_COLOR, "vs%02d", (int)sys->nStage());
+	}
+	kingdom::cAppBaseDebugMenu::Draw(nStatus, pParam);
+}
+}

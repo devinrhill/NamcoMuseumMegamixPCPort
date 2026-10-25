@@ -1,0 +1,19 @@
+#pragma once
+
+#include "common.hpp"
+
+namespace jet
+{
+
+enum EAnitaLay
+{
+	eANITA_LAY_BLEND_NON = 0,
+	eANITA_LAY_BLEND_MUL = 1,
+	eANITA_LAY_BLEND_ADD = 2,
+	eANITA_LAY_BLEND_MAX = 3,
+	eANITA_LAY_FILTER_NEAREST = eANITA_LAY_BLEND_NON,
+	eANITA_LAY_FILTER_LINER = eANITA_LAY_BLEND_MUL,
+	eANITA_LAY_TEX_NONE = -1
+};
+
+}

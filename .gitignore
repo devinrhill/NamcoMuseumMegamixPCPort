@@ -1,0 +1,46 @@
+# Allow-list: only what a user needs to build, run and modify the port is published.
+# Everything at the top level is ignored unless it is re-included below.
+/*
+
+!/.gitignore
+!/README.md
+!/LICENSE
+!/CMakeLists.txt
+!/cmake/
+!/src/
+!/include/
+!/docs/
+!/tests/
+
+# tools: only the build / release / test helpers (the DOL, Dolphin and Ghidra reversing tools stay private)
+!/tools/
+/tools/*
+!/tools/make_release.sh
+!/tools/release/
+!/tools/check_all.sh
+!/tools/safe_run.sh
+
+# never publish game data (players supply their own disc; see docs/README.md)
+*.dol
+*.arc
+*.lzs
+*.brres
+*.brsar
+*.brstm
+*.thp
+*.bnr
+museum.bin
+banner.bin
+
+# build output, editor / tool caches
+build*/
+dist/
+__pycache__/
+*.pyc
+.clangd
+.cache/
+compile_commands.json
+*~
+*.swp
+*.orig
+*.bak

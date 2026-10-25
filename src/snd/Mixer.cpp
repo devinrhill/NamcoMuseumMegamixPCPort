@@ -1,0 +1,203 @@
+#include "snd/Mixer.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+#include "WiiSystem.hpp"
+#include "audio/PcmOut.hpp"
+#include "snd/Sound.hpp"
+#include "wii/Archive.hpp"
+
+namespace snd
+{
+namespace
+{
+constexpr int kRate = 48000;
+
+struct Voice
+{
+	int id{};
+	std::unique_ptr<Source> src;
+	float volume{1};
+	float fade{0};              // volume change per output frame while fading out
+	bool fading{false};
+	double step{1};             // source frames per output frame
+	double frac{0};
+	std::int16_t a[2]{}, b[2]{};   // the two source frames being interpolated
+	bool primed{false};
+	bool ended{false};
+	std::vector<std::int16_t> chunk;
+	int chunkPos{0}, chunkLen{0};
+};
+
+std::mutex g_mutex;
+std::vector<std::unique_ptr<Voice>> g_voices;
+int g_nextId = 1;
+bool g_tried = false, g_ready = false;
+Archive g_archive;
+std::map<int, std::shared_ptr<Wave>> g_waveCache;
+std::string g_soundDir;
+
+bool PullFrame(Voice& v, std::int16_t out[2])
+{
+	const int ch = v.src->channels();
+	if (v.chunkPos >= v.chunkLen)
+	{
+		v.chunk.resize((std::size_t)256 * ch);
+		v.chunkLen = v.src->Read(v.chunk.data(), 256);
+		v.chunkPos = 0;
+		if (v.chunkLen <= 0) return false;
+	}
+	const std::int16_t* f = &v.chunk[(std::size_t)v.chunkPos * ch];
+	out[0] = f[0];
+	out[1] = ch > 1 ? f[1] : f[0];
+	v.chunkPos++;
+	return true;
+}
+
+void Generate(std::int16_t* out, unsigned frames)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	const float master = WiiSystem::Volume();
+	for (unsigned i = 0; i < frames; i++)
+	{
+		float l = 0, r = 0;
+		for (auto& vp : g_voices)
+		{
+			Voice& v = *vp;
+			if (v.ended) continue;
+			if (!v.primed)
+			{
+				if (!PullFrame(v, v.a) || !PullFrame(v, v.b)) { v.ended = true; continue; }
+				v.primed = true;
+			}
+			const float t = (float)v.frac;
+			l += (v.a[0] + (v.b[0] - v.a[0]) * t) * v.volume;
+			r += (v.a[1] + (v.b[1] - v.a[1]) * t) * v.volume;
+			v.frac += v.step;
+			while (v.frac >= 1.0)
+			{
+				v.frac -= 1.0;
+				v.a[0] = v.b[0]; v.a[1] = v.b[1];
+				if (!PullFrame(v, v.b)) { v.ended = true; break; }
+			}
+			if (v.fading)
+			{
+				v.volume -= v.fade;
+				if (v.volume <= 0) v.ended = true;
+			}
+		}
+		l *= master; r *= master;
+		out[2 * i] = (std::int16_t)std::max(-32768.0f, std::min(32767.0f, l));
+		out[2 * i + 1] = (std::int16_t)std::max(-32768.0f, std::min(32767.0f, r));
+	}
+	g_voices.erase(std::remove_if(g_voices.begin(), g_voices.end(), [](const std::unique_ptr<Voice>& v) { return v->ended; }), g_voices.end());
+}
+}
+
+bool Init()
+{
+	if (g_tried) return g_ready;
+	g_tried = true;
+	if (!WiiSystem::AudioEnabled()) return false;
+	const std::string path = wii::ArchiveStore::ResolvePath("sound/Wii_Wander.brsar");
+	if (path.empty() || !g_archive.Load(path))
+	{
+		std::fprintf(stderr, "sound: Wii_Wander.brsar not found under the data root, running silent\n");
+		return false;
+	}
+	g_soundDir = path.substr(0, path.find_last_of('/') + 1);
+	if (!audio::OpenGenerated(kRate, 2, Generate))
+	{
+		std::fprintf(stderr, "sound: no audio device, running silent\n");
+		return false;
+	}
+	g_ready = true;
+	return true;
+}
+
+void Shutdown()
+{
+	audio::CloseGenerated();
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_voices.clear();
+	g_ready = false;
+}
+
+int Play(const std::string& cue)
+{
+	if (!Init()) return -1;
+	const SoundDef* def = g_archive.Find(cue);
+	if (def == nullptr) { std::fprintf(stderr, "sound: unknown cue '%s'\n", cue.c_str()); return -1; }
+	auto v = std::make_unique<Voice>();
+	v->volume = def->volume;
+	if (def->type == 2)
+	{
+		auto s = std::make_unique<StrmSource>();
+		if (!s->Open(g_soundDir + def->extPath, def->startPosition)) return -1;
+		v->src = std::move(s);
+	}
+	else if (def->type == 3)
+	{
+		std::shared_ptr<Wave> w;
+		{
+			std::lock_guard<std::mutex> lock(g_mutex);
+			auto it = g_waveCache.find(def->id);
+			if (it != g_waveCache.end()) w = it->second;
+		}
+		if (!w)
+		{
+			w = g_archive.LoadWave(*def);
+			if (!w) { std::fprintf(stderr, "sound: cannot decode '%s'\n", cue.c_str()); return -1; }
+			std::lock_guard<std::mutex> lock(g_mutex);
+			g_waveCache[def->id] = w;
+		}
+		v->volume *= w->volume;
+		v->src = std::make_unique<WaveSource>(w);
+	}
+	else { std::fprintf(stderr, "sound: '%s' is a sequence sound (not supported)\n", cue.c_str()); return -1; }
+	v->step = (double)v->src->sampleRate() / kRate;
+	std::lock_guard<std::mutex> lock(g_mutex);
+	v->id = g_nextId++;
+	const int id = v->id;
+	g_voices.push_back(std::move(v));
+	if (std::getenv("MEGAMIX_SND_LOG")) std::fprintf(stderr, "sound: play '%s' (voice %d, %s)\n", cue.c_str(), id, def->type == 2 ? "stream" : "wave");
+	return id;
+}
+
+void Stop(int voice)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices) if (v->id == voice) v->ended = true;
+}
+
+void FadeOut(int voice, int ms)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices)
+		if (v->id == voice)
+		{
+			v->fading = true;
+			v->fade = v->volume / std::max(1.0f, ms * kRate / 1000.0f);
+		}
+}
+
+bool IsPlaying(int voice)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices) if (v->id == voice && !v->ended) return true;
+	return false;
+}
+
+void StopAll()
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices) v->ended = true;
+}
+}

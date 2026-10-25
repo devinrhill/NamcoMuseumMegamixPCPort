@@ -1,0 +1,26 @@
+#pragma once
+
+#include "common.hpp"
+
+enum EScene
+{
+	TITLE = 0,
+	GAMECENTER = 1,
+	DEBUG_TITLE = 2,
+	PACMAN = 3,
+	PACANDPAL = 4,
+	SUPERPACMAN = 5,
+	PACLAND = 6,
+	PACATTACK = 7,
+	PACMANIA = 8,
+	ARRANGEMNT = 9,
+	PACMAN256 = 10,
+	PACINTIME = 11,
+	PACMOTOS = 12,
+	PACNROLL = 13,
+	ARRANGEMENT_AC = 14,
+	BATTLEROYALE = 15,
+	RESULT = 16,
+	PACMAN_CE = 17,
+	LOGIN_XBOX = 18
+};

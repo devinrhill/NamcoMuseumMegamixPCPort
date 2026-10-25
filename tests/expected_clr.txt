@@ -1,0 +1,67 @@
+CLA_PANEL_A CLR0 frames=240 loop=1
+ p11_oku-OPQ1-SIDE2.0 @0 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @1 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @7 mask=ffffff00 rgba=0000009c
+ p11_temae-OPQ1-SIDE2.0 @0 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @1 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @7 mask=00000000 rgba=2314199c
+CLA_PANEL_B CLR0 frames=240 loop=1
+ p11_oku-OPQ1-SIDE2.0 @0 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @1 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @7 mask=ffffff00 rgba=0000009c
+ p11_temae-OPQ1-SIDE2.0 @0 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @1 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @7 mask=00000000 rgba=1f13159c
+CLA_PANEL_C CLR0 frames=240 loop=1
+ p11_oku-OPQ1-SIDE2.0 @0 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @1 mask=ffffff00 rgba=00000078
+ p11_oku-OPQ1-SIDE2.0 @7 mask=ffffff00 rgba=0000009c
+ p11_temae-OPQ1-SIDE2.0 @0 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @1 mask=00000000 rgba=00000078
+ p11_temae-OPQ1-SIDE2.0 @7 mask=00000000 rgba=1f13199c
+CLA_GIMMICK_HATCH CLR0 frames=40 loop=0
+ huta_w5.7 @0 mask=00000000 rgba=00000000
+ huta_w5.7 @1 mask=00000000 rgba=00000000
+ huta_w5.7 @7 mask=00000000 rgba=c40707c4
+CLA_GIMMICK_SWITCH CLR0 frames=40 loop=0
+ red.0 @0 mask=000000ff rgba=f0001400
+ red.1 @0 mask=000000ff rgba=ff969600
+ red.2 @0 mask=000000ff rgba=50000000
+ red.0 @1 mask=000000ff rgba=f0001400
+ red.1 @1 mask=000000ff rgba=ff969600
+ red.2 @1 mask=000000ff rgba=50000000
+ red.0 @7 mask=000000ff rgba=a00b1f00
+ red.1 @7 mask=000000ff rgba=df797900
+ red.2 @7 mask=000000ff rgba=94001c00
+ANM_CHAR_BOSS_5_A02 CLR0 frames=90 loop=0
+ hashira_5.7 @0 mask=000000ff rgba=00000000
+ hashira_5.7 @1 mask=000000ff rgba=00000000
+ hashira_5.7 @7 mask=000000ff rgba=9a650900
+ANM_CHAR_BOSS_5_A03 CLR0 frames=90 loop=1
+ hashira_5.7 @0 mask=000000ff rgba=50008c00
+ hashira_5.7 @1 mask=000000ff rgba=50008c00
+ hashira_5.7 @7 mask=000000ff rgba=56028f00
+ANM_CHAR_BOSS_5_A05 CLR0 frames=90 loop=0
+ hashira_4.7 @0 mask=000000ff rgba=00000000
+ hashira_4.7 @1 mask=000000ff rgba=00000000
+ hashira_4.7 @7 mask=000000ff rgba=9a650900
+ANM_CHAR_BOSS_5_A06 CLR0 frames=90 loop=1
+ hashira_4.7 @0 mask=000000ff rgba=50008c00
+ hashira_4.7 @1 mask=000000ff rgba=50008c00
+ hashira_4.7 @7 mask=000000ff rgba=56028f00
+ANM_CHAR_BOSS_5_A07 CLR0 frames=90 loop=0
+ hashira_4.7 @0 mask=000000ff rgba=00000000
+ hashira_4.7 @1 mask=000000ff rgba=00000000
+ hashira_4.7 @7 mask=000000ff rgba=9a650900
+ANM_CHAR_BOSS_5_A08 CLR0 frames=90 loop=1
+ hashira_4.7 @0 mask=000000ff rgba=50008c00
+ hashira_4.7 @1 mask=000000ff rgba=50008c00
+ hashira_4.7 @7 mask=000000ff rgba=56028f00
+ANM_CHAR_BOSS_5_A09 CLR0 frames=90 loop=0
+ body1_dark.7 @0 mask=000000ff rgba=00000000
+ body1_dark.7 @1 mask=000000ff rgba=00000000
+ body1_dark.7 @7 mask=000000ff rgba=64000000
+ANM_CHAR_BOSS_5_A10 CLR0 frames=150 loop=1
+ body1_dark.7 @0 mask=000000ff rgba=00000000
+ body1_dark.7 @1 mask=000000ff rgba=00000000
+ body1_dark.7 @7 mask=000000ff rgba=00000000

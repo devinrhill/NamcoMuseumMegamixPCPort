@@ -1,0 +1,36 @@
+#pragma once
+
+#include "common.hpp"
+
+// Hoisted out of PadInput so PadDefine and PadInput do not include each other.
+enum class EPadKeyFlag
+{
+	eKEY_CROSS = 1,
+	eKEY_CIRCLE = 2,
+	eKEY_SQUARE = 4,
+	eKEY_TRIANGLE = 8,
+	eKEY_L1 = 0x10,
+	eKEY_R1 = 0x20,
+	eKEY_SELECT = 0x40,
+	eKEY_START = 0x80,
+	eKEY_L3 = 0x100,
+	eKEY_R3 = 0x200,
+	eKEY_UP = 0x400,
+	eKEY_RIGHT = 0x800,
+	eKEY_DOWN = 0x1000,
+	eKEY_LEFT = 0x2000,
+	eKEY_L2 = 0x4000,
+	eKEY_R2 = 0x8000,
+	eKEY_LSTICK_UP = 0x10000,
+	eKEY_LSTICK_RIGHT = 0x20000,
+	eKEY_LSTICK_DOWN = 0x40000,
+	eKEY_LSTICK_LEFT = 0x80000,
+	eKEY_RSTICK_UP = 0x100000,
+	eKEY_RSTICK_RIGHT = 0x200000,
+	eKEY_RSTICK_DOWN = 0x400000,
+	eKEY_RSTICK_LEFT = 0x800000,
+	eKEY_LEFT_SL = 0x1000000,
+	eKEY_LEFT_SR = 0x2000000,
+	eKEY_RIGHT_SL = 0x4000000,
+	eKEY_RIGHT_SR = 0x8000000
+};

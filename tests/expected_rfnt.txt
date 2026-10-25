@@ -1,0 +1,14 @@
+RESIDENT_FONT_FRAME h=40 asc=30 lf=40 cell=35x37 sheets=13 256x512 enc=0
+  U+0041 idx=33 sheet=0 cell=(181,153) w=-1/20/19
+  U+0061 idx=65 sheet=0 cell=(73,343) w=0/19/19
+  U+0030 idx=16 sheet=0 cell=(73,77) w=-1/21/19
+  U+0020 idx=0 sheet=0 cell=(1,1) w=19/0/19
+  U+3042 idx=253 sheet=2 cell=(37,381) w=3/31/38
+  U+20AC idx=65535 sheet=0 cell=(1,1) w=19/0/19
+RESIDENT_FONT_MII h=28 asc=22 lf=28 cell=22x23 sheets=13 256x512 enc=0
+  U+0041 idx=33 sheet=0 cell=(1,73) w=1/14/16
+  U+0061 idx=65 sheet=0 cell=(231,121) w=1/12/13
+  U+0030 idx=16 sheet=0 cell=(116,25) w=2/11/15
+  U+0020 idx=0 sheet=0 cell=(1,1) w=10/0/10
+  U+3042 idx=301 sheet=1 cell=(93,145) w=2/17/22
+  U+20AC idx=259 sheet=1 cell=(139,49) w=1/15/17
