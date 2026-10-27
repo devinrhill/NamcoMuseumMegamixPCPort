@@ -11,6 +11,8 @@
 //
 // NATIVE PLACEMENT (needs from integrator): the DOL keeps this block and the accessors below as plain globals / cG02RallyXSys methods; the
 // port's cG02RallyXSys does not have them yet, so the stage select keeps them here. The integrator may move them into cG02RallyXSys.
+namespace kingdom { class sMatchingData; }
+
 namespace kingdom::game::g02
 {
 
@@ -34,7 +36,7 @@ public:
 	void Reset();                     // DOL 0x800c6024: defaults from CSV_RECORD (stages 1..24), stage 1 and 25 open
 
 	bool IsAllClear() const { return m_nAllClear != 0; }                         // DOL 0x800c61d8
-	bool IsOpen(int idx) const { return Ok(idx) && m_Stage[idx].nOpen != 0; }    // DOL 0x800c61f4
+	bool IsOpen(int idx) const;       // DOL 0x800c61f4
 	u32 GetScore(int idx) const { return Ok(idx) ? m_Stage[idx].nScore : 0u; }  // DOL 0x800c62a8
 	u32 GetTime(int idx) const { return Ok(idx) ? m_Stage[idx].nTime : 0u; }    // DOL 0x800c62c0
 	bool IsNewScore(int idx) const { return Ok(idx) && m_Stage[idx].nNewScore == 1u; }   // DOL 0x800c62d8
@@ -67,6 +69,13 @@ struct cG02RallyXSysExt
 	static int nPadNo[4];          // +0x1c + 0x14 i: the pad of player i (ctor: i; 0x800c5b98)
 	static bool bNewStageApear;    // +0x1b8 a new stage was opened (ctor: 0; 0x800c5c70 / 0x800c5c78)
 	static void Reset();           // the values the sys ctor 0x800c54e0 sets
+	// +0x64 (0x154 bytes): the matching data cAppG02RallyXMatching's term (0x8019a828) copies in. NATIVE: the fields of the converted sMatchingData
+	static int nMatchNum;
+	static uint nMatchCtrl[4];
+	static string szMatchName[4];
+	static void SetMatching(const kingdom::sMatchingData& m);
+	static void ApplyMatching();   // DOL 0x800c5e3c: player count + pads from the matching block (the multiplayer menu app's ctor)
+	static void DebugMatching();   // DOL 0x800c5e90: the same without a matching (entered from the debug menu)
 	static void AttachMenuArc();   // DOL 0x800c5b24: g02_rallyx/g02menu.lzs
 	static void DetachMenuArc();   // DOL 0x800c5b50
 

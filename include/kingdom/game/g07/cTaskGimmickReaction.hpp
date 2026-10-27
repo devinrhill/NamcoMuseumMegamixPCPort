@@ -29,6 +29,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	bool IsAction(cTaskChar* pChar) override;
+
+protected:
+	void ReleaseTerm() override { cTaskGimmickReaction::Term(); cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

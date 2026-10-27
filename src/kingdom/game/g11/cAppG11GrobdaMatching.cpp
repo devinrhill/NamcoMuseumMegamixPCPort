@@ -1,4 +1,5 @@
 #include "kingdom/game/g11/cAppG11GrobdaMatching.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -19,8 +20,8 @@ void cAppG11GrobdaMatching::JobInit()
 cAppG11GrobdaMatching::cAppG11GrobdaMatching()
 {
 	RegistData("BIN_COMMON_ANT_CURSOR", "BIN_COMMON_ANT_MATCHING", "BIN_COMMON_CAMERA_MATCHING", "BIN_COMMON_MDL_MATCHING");
-	nMenuJob() = 0x15200000u;    // +0x280
-	nMultiJob() = 0x15200000u;   // +0x284
+	nMenuJob() = job::GROBDA_MENU;    // +0x280
+	nMultiJob() = job::GROBDA_MENU;   // +0x284
 }
 
 // DOL 0x8014a4a8: +0x29a (confirmed) -> the matching data into the sys (memcpy 0x154 at sys +4, port: player count and the pads' controller types), sys +0x20 = 1;

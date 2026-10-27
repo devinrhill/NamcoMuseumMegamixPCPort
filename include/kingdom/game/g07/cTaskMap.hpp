@@ -115,6 +115,9 @@ public:
 	cTaskGimmickBase* StepOnCntM(Vector4 mtrans);
 
 	cTaskGimmickBase* StepOnCntW(Vector4 wtrans);
+
+protected:
+	void ReleaseTerm() override { cTaskMap::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

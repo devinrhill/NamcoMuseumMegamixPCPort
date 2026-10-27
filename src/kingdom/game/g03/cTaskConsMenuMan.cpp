@@ -186,7 +186,7 @@ void cTaskConsMenuMan::Free()
 {
 	if (pTaskMenuPacman() != nullptr)
 	{
-		pTaskMenuPacman()->Term();
+		pTaskMenuPacman()->TermOnce();
 	}
 }
 
@@ -285,8 +285,11 @@ void cTaskConsMenuMan::AddHitArray()
 	pHitArray(11u) = pTaskConsMenuArrow(1u);
 }
 
+// DOL 0x8005c76c (called by SelectProc 0x8005ce1c on a focus change): every object's WaitState (vtable +0x64), the Back button (+0x1e0) first.
+// The converted C# had no Back button, so it stayed in its pointed look after the focus moved away ("Return stays in focus")
 void cTaskConsMenuMan::AllWaitState()
 {
+	pTaskConsMenuBack()->WaitState();
 	pTaskConsMenuRule()->WaitState();
 	pTaskConsMenuWorld()->WaitState();
 	pTaskConsMenuBar()->WaitState();
@@ -772,7 +775,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 
 void cTaskConsMenuMan::AppearStart()
 {
-	pTaskConsMenuBack()->AppearState(); // DOL 0x8005c76c: Back (+0x1e0) first
+	pTaskConsMenuBack()->AppearState(); // Back (+0x1e0) first, in the order of the DOL's wait-all 0x8005c76c (UNVERIFIED for the appear call)
 	pTaskConsMenuRule()->AppearState();
 	pTaskConsMenuWorld()->AppearState();
 	pTaskConsMenuBar()->AppearState();

@@ -378,6 +378,9 @@ private:
 	int AjustAccelRotate(float minrot);
 
 	int AjustAccelRotate();
+
+protected:
+	void ReleaseTerm() override { cTaskBoss04::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

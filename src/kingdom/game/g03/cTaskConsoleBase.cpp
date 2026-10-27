@@ -1,3 +1,4 @@
+#include "platform/devtools.hpp"
 #include "kingdom/game/g03/cTaskConsoleBase.hpp"
 
 #include "cJetTask.hpp"
@@ -55,7 +56,7 @@ bool cTaskConsoleBase::Execute(cJetTask* pParam)
 
 void cTaskConsoleBase::Draw(int nStatus, cJetTask* pParam)
 {
-	if (IsManagerVisible())
+	if (IsManagerVisible() && !devtools::G03HideHud())   // devtools: the Pac-N-Roll editor's "Hide the HUD" (not 1:1)
 	{
 		cTaskAnita::Draw(nStatus, pParam);
 	}

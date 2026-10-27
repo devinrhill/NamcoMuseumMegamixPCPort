@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cTaskConsMenuMan.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
@@ -121,7 +122,7 @@ void cTaskConsMenuMan::InitStageNo()
 	m_nStageMax = sys->nStageInWorld(open) - 1;
 	if (sys->nStage() == 10) sys->nStage(9);
 	const uint last = KingdomGlobal::SysCore->GetLastJobNo();
-	if (last == 0x08600000u || last == 0x0b300000u)
+	if (last == job::SAVE || last == job::GALAGA_GAME)
 	{
 		if (!sys->bNewStageApear())
 		{

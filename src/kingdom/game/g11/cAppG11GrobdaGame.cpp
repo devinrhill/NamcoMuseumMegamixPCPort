@@ -79,7 +79,7 @@ bool cAppG11GrobdaGame::Execute(cJetTask* pParam)
 				sys->RecordSingle(m_nScore[0]);   // FUN_8000edbc(sys, app +0x280)
 			else
 				for (int i = 0; i < nPlayer; i++) sys->RecordMulti(i, m_nScore[i]);   // FUN_8000ee10
-			Kingdom_SetJobNo(0x15200000u, true, false);
+			Kingdom_SetJobNo(job::GROBDA_MENU, true, false);
 		}
 	}
 	else if (StopWatchState(0)) StopWatchStop(0);

@@ -35,6 +35,9 @@ private:
 
 public:
 	bool Execute(cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskBGEffect::Term(); cTaskPBPtkMan::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -5,6 +5,8 @@
 #include "kingdom/game/g03/cTaskCharPacman.hpp"
 #include "ResNode.hpp"
 #include <Constants.hpp>
+#include "platform/devtools.hpp"
+#include <cmath>
 
 namespace kingdom::game::g03
 {
@@ -53,6 +55,7 @@ void cTaskBgGimmickIronBall::HitCheck()
 	{
 		Vector4 v;
 		::Constants::jetGeoVecTrans(v, pMtx(), this->Model->vTrans());
+		{ const float c[3] = {v[0], v[1], v[2]}; devtools::G03HitSphere(c, std::sqrt(cTaskCharPacman2->fRadius() * cTaskCharPacman2->fRadius() + 4.0f), 0xffffffffu); } // devtools: --g03-show-gimmick-hit (not 1:1): where Pac-Man's centre is hit
 		Vector4 v2;
 		::Constants::jetGeoVecSub(v2, cTaskCharPacman2->vTrans(), v);
 		float num = ::Constants::jetGeoVecInnerProduct(v2, v2);

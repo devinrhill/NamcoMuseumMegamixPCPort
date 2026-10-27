@@ -19,6 +19,9 @@ private:
 	void Init();
 
 	void Term();
+
+protected:
+	void ReleaseTerm() override { cTaskPause::Term(); cTaskGameBasePause::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

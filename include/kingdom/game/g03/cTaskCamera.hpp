@@ -309,6 +309,9 @@ public:
 
 private:
 	bool GetPadCnt(int padNum, cTaskCamera::EKeyType type);
+
+protected:
+	void ReleaseTerm() override { cTaskCamera::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

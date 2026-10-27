@@ -265,7 +265,9 @@ void cTaskEnemyManager::AddRandGroup(u32 mask)
 	m_RandGroup.push_back(mask);
 }
 
-// DOL 0x801af634: a SET_RAND group starts when all its gators wait (state 0xe): one of them, MT() % count, comes out (2), the others skip (4)
+// DOL 0x801af634: a SET_RAND group starts when all its gators wait (state 0xe): one of them, MT() % count, comes out (2), the others skip (4).
+// The DOL's list walk after an erase goes on from next->next (the group after an erased one is skipped this frame; erasing the last group
+// wraps to the first through the sentinel), and a mask without gators 0..3 still draws an MT number and is erased: both kept.
 void cTaskEnemyManager::RandGroups()
 {
 	for (auto it = m_RandGroup.begin(); it != m_RandGroup.end();)
@@ -275,9 +277,10 @@ void cTaskEnemyManager::RandGroups()
 		uint waiting = 0;
 		for (uint i = 0; i < 4; i++)
 			if (m_pEnemy[i]->nState() == 0xe && (mask & (1u << i)) != 0) waiting++;
-		if (waiting == n && n != 0)
+		if (waiting == n)
 		{
-			const uint pick = m_Rand() % n;
+			const u32 r = m_Rand();   // zz_8014146c_(+0x1d0)
+			const uint pick = n != 0 ? r % n : r;   // divwu by 0 (n = 0): no gator matches anyway
 			uint k = 0;
 			for (uint i = 0; i < 4; i++)
 			{
@@ -289,6 +292,8 @@ void cTaskEnemyManager::RandGroups()
 				}
 			}
 			it = m_RandGroup.erase(it);
+			if (it == m_RandGroup.end()) it = m_RandGroup.begin();
+			else ++it;
 		}
 		else
 			++it;

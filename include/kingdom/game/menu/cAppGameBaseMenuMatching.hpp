@@ -14,6 +14,8 @@
 #include "kingdom/game/menu/cTaskScenePerson.hpp"
 #include "kingdom/sMatchingData.hpp"
 
+namespace kingdom { class cTaskCursor; }
+
 namespace kingdom::game::menu
 {
 
@@ -79,6 +81,8 @@ private:
 	int m_nConnectCtrl[4]{};
 
 	int m_nConnectCtrlCt{};
+
+	kingdom::cTaskCursor* m_pCursor[4]{};   // +0x2c4: one pointer per pad (the C# dropped them: Unity drew its own pointer)
 
 	sMatchingData* m_pMatchingData{};
 
@@ -155,6 +159,7 @@ public:
 	int nGetConnectCtrlCt();
 
 	bool IsConfirmDecide();
+	void GuestNames();   // stand-in for the Mii / guest scene (not ported): player i = guest i
 
 private:
 	void Init();

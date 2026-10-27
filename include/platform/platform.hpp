@@ -9,6 +9,8 @@ bool Init(int width, int height, const char* title);
 void SetSmoothing(bool on);
 void Shutdown();
 bool ShouldClose();
+// the game asks to end (job 147, OSReturnToMenu): ShouldClose() is true from the next check on
+void RequestClose();
 void BeginFrame();
 void EndFrame();
 void DrawText(const char* text, int x, int y, int size);

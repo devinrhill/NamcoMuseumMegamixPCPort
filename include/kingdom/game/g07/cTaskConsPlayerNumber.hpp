@@ -39,6 +39,9 @@ private:
 
 public:
 	bool Execute(cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsPlayerNumber::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

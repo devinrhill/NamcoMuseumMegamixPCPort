@@ -28,6 +28,9 @@ public:
 	bool Create(uint no) override;
 
 	void UpdateMatrix() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyBoss04::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

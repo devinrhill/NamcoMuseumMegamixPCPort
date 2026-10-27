@@ -5,6 +5,7 @@
 #include "kingdom/cTaskAnita.hpp"
 #include "kingdom/ResourceDatabase.hpp"
 #include "KingdomGlobal.hpp"
+#include "platform/devtools_g07edit.hpp"
 
 namespace kingdom::game::g07
 {
@@ -72,6 +73,7 @@ bool cTaskConsReady::Execute(cJetTask* pParam)
 			pAnita(0u)->SetAnimNo(142);
 		}
 	}
+	if (devtools::G07SkipItemSet()) Invisible(0u); // devtools: no READY console with "Skip the item settings" (not 1:1)
 	return cTaskConsoleBase::Execute(pParam);
 }
 

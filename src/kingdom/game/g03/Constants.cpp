@@ -52,7 +52,7 @@ string Constants::s_aModelName[5] = {"BIN_BOS_NORMALN_MDL", "BIN_BOS_NORMALB_MDL
 string Constants::s_aAnimeName[34] = {"BIN_BOS_ANM_WAIT", "BIN_BOS_ANM_MOVE", "BIN_BOS_ANM_ESCAPE", "BIN_BOS_ANM_APPEAR", "BIN_BOS_ANM_REBIRTH", "BIN_BOS_ANM_RECOVER", "BIN_BOS_ANM_LAUGH", "BIN_BOS_ANM_DAMAGE", "BIN_BOS_ANM_SUFFER", "BIN_BOS_ANM_PLAY00", "BIN_BOS_ANM_PLAY01", "BIN_BOS_ANM_PLAY02", "BIN_BOS_ANM_INSTRUCT", "BIN_BOS_ANM_KNOCK_H0", "BIN_BOS_ANM_KNOCK_V0", "BIN_BOS_ANM_KNOCK_H1", "BIN_BOS_ANM_KNOCK_V1", "BIN_BOS_ANM_HEADBUTT0", "BIN_BOS_ANM_HEADBUTT1", "BIN_BOS_ANM_HEADBUTT2L", "BIN_BOS_ANM_HEADBUTT3", "BIN_BOS_ANM_FAN_START", "BIN_BOS_ANM_FAN", "BIN_BOS_ANM_FAN_END", "BIN_BOS_ANM_DIZZ", "BIN_BOS_ANM_DOWN", "BIN_BOS_ANM_DOWNNING", "BIN_BOS_ANM_WAKEUP", "BIN_BOS_ANM_BOMB_KNOCK", "BIN_BOS_ANM_BOMB_DRIBBLE", "BIN_BOS_ANM_BIJIKE_MOVE", "BIN_BOS_ANM_BIJIKE_EATEN", "BIN_BOS_ANM_EYE_MOVE", "BIN_DEMO_BOS_ANM_GOL"};
 float Constants::iAttackPermitSubY[15] = {0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 3.0f, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
 sbyte Constants::iCarryGhostSet[18][3] = {{0, -1, -1}, {1, -1, -1}, {2, -1, -1}, {3, -1, -1}, {4, -1, -1}, {5, -1, -1}, {6, -1, -1}, {7, -1, -1}, {8, -1, -1}, {9, -1, -1}, {0, 1, -1}, {2, 3, -1}, {4, 5, -1}, {6, 7, -1}, {8, 9, -1}, {0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
-const Vector4 Constants::CENTER_GEAR_POS{};
+const Vector4 Constants::CENTER_GEAR_POS{0.5f, 0.4f, 3.7f, 0.0f};
 // C# static constructor of Constants: runs once before first use
 
 Constants::sFace::sFace()
@@ -410,7 +410,9 @@ void Constants::_StaticCtor()
 {
 	AllStageArea.resize(26);
 	AllStageArea[13].assign(std::begin(StageArea3_5), std::end(StageArea3_5));
-	CENTER_GEAR_POS = Vector4(0.5f, 0.4f, 3.7f, 0.0f);
 }
+
+// the C# static constructor: in this TU, after every definition above (same-TU dynamic initialisation runs in definition order)
+const bool Constants::s_staticCtorDone = (Constants::_StaticCtor(), true);
 
 }

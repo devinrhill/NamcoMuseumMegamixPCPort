@@ -17,6 +17,7 @@ platform layer on raylib / OpenGL. **No game data is included**: you need your o
 |---|---|
 | [OPTIONS.md](OPTIONS.md) | every command line flag, config key, key binding and environment variable |
 | [JOBS.md](JOBS.md) | every game job (screen / mode) the native build runs, with its `--job` number and status |
+| [GALAGA_STAGES.md](GALAGA_STAGES.md) | how Galaga Remix stages work (course commands, spawns, groups and gates, orbits), for the dev window's Galaga editor |
 | `megamix --help` | the command line flags, printed by the executable itself (same list as OPTIONS.md section 2) |
 
 ## Quick start
@@ -59,17 +60,18 @@ The templates live in `tools/release/`.
 * **Pac-N-Roll Remix**: stage select, all stages, "connect the Nunchuk" card, pause / retry / game over, staff roll, back to the hub.
   Gaps: OPTIONS.md section 9.
 * **Pac-Motos Remix**: stage select, the stages, lives, "Play again?", game over, staff roll, multiplayer matching / menu, back to the hub.
-* **Galaga Remix**: stage select, all ten stages including the boss, result, "Play again?", game over, staff roll; multiplayer result
-  board and records. The stage select's BACK button does not work yet (job 191 is not ported: the screen stays empty).
+* **Galaga Remix**: stage select, all ten stages including the boss, result, "Play again?", game over, staff roll; multiplayer for 2..4
+  players (each player aims with their own pointer: Wiimote 1 = the mouse, Wiimotes 2..4 = their gamepad's right stick), result board and records.
 * **Gator Panic Remix**: single player and multiplayer (2..4 players), tutorial, result, high score.
 * **Rally-X Remix**: single player: every stage incl. the boss stages, items, flags, gimmicks, pause, game over, records. The stage select
   does not show its 3D map or Pac-Man's car yet. No multiplayer.
-* **Grobda Remix**: single player (all enemy kinds, pause, records); multiplayer partial.
+* **Grobda Remix**: single player (all enemy kinds, pause, records); multiplayer rounds with the result board (no Mii faces on the player icons).
 * Sound: sound effects and music from the game's own sound archive (`Wii_Wander.brsar`, `sound/stream/*.brstm`). `--no-audio` turns it off.
-* Saves use the game's real format (`museum.bin`, `banner.bin`; Pac-N-Roll progress in `pacnroll.bin`).
+* Saves use the game's real format (`museum.bin`, `banner.bin`, the same files the Wii writes; they can be copied to and from Dolphin's `Wii/title/00010000/534e4d45/data/`). A `pacnroll.bin` from older builds is imported once.
 
-Not there yet: Mii faces, the Home Button menu (HOME only freezes the game), widescreen, shadows in some scenes, 3D sound positioning,
-Rally-X multiplayer. Known visual bugs: the Pac-Motos board is see-through, the hub's centre stairs are green. See [JOBS.md](JOBS.md)
+The game is 4:3 only (the original has no 16:9 mode: a widescreen Wii stretches it), so the port shows it with black bars.
+Not there yet: Mii faces, the Home Button menu (HOME only freezes the game), shadows in some scenes, 3D sound for more than one listener (split screen),
+Rally-X multiplayer. Known visual bugs: the Pac-Motos board looks see-through (the board's own colour animation makes it translucent; not yet compared with a Wii). See [JOBS.md](JOBS.md)
 for every screen and its status.
 
 ## Keeping these docs current

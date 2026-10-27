@@ -131,19 +131,19 @@ void cTaskMap::Init()
 
 void cTaskMap::Term()
 {
-	m_pTaskPanelMan->Term();
+	m_pTaskPanelMan->TermOnce();
 	for (int i = 0; i < (int)std::size(m_apGimmicks); i++)
 	{
 		if (m_apGimmicks[i] != nullptr)
 		{
-			m_apGimmicks[i]->Term();
+			m_apGimmicks[i]->TermOnce();
 		}
 	}
 	for (int j = 0; j < (int)std::size(m_pStackEnemy); j++)
 	{
 		if (m_pGimmicks[j] != nullptr)
 		{
-			m_pGimmicks[j]->Term();
+			m_pGimmicks[j]->TermOnce();
 		}
 	}
 }

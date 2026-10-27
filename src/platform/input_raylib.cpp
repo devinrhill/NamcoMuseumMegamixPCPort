@@ -1,4 +1,5 @@
 #include "platform/input.hpp"
+#include "platform/devui.hpp"
 #include <raylib.h>
 #include <cctype>
 #include <cstring>
@@ -65,7 +66,7 @@ int PadButtonFromName(const char* name) { return Find(kPadButtons, name); }
 int PadAxisFromName(const char* name) { return Find(kPadAxes, name); }
 int MouseButtonFromName(const char* name) { return Find(kMouse, name); }
 
-bool IsKeyDown(int key) { return key >= 0 && ::IsKeyDown(key); }
+bool IsKeyDown(int key) { return key >= 0 && !devui::Typing() && ::IsKeyDown(key); }   // devtools: not while the dev window has the keyboard
 bool IsPadConnected(int pad) { return ::IsGamepadAvailable(pad); }
 bool IsPadButtonDown(int pad, int button) { return ::IsGamepadAvailable(pad) && ::IsGamepadButtonDown(pad, button); }
 float PadAxis(int pad, int axis) { return ::IsGamepadAvailable(pad) ? ::GetGamepadAxisMovement(pad, axis) : 0.0f; }
@@ -75,7 +76,7 @@ void PadRumble(int pad, float seconds)
 	if (seconds > 0.0f) ::SetGamepadVibration(pad, 1.0f, 1.0f, seconds);
 	else ::SetGamepadVibration(pad, 0.0f, 0.0f, 0.0f);
 }
-bool IsMouseButtonDown(int button) { return ::IsMouseButtonDown(button); }
+bool IsMouseButtonDown(int button) { return !devui::WantsMouse() && ::IsMouseButtonDown(button); }   // devtools: not over the dev window
 void MousePosition(float& x, float& y) { Vector2 p = ::GetMousePosition(); x = p.x; y = p.y; }
-void WindowSize(int& w, int& h) { w = ::GetScreenWidth(); h = ::GetScreenHeight(); }
+void WindowSize(int& w, int& h) { w = ::GetScreenWidth() - devui::ReservedWidth(); h = ::GetScreenHeight(); }   // devtools: the game area (left of the dev window)
 }

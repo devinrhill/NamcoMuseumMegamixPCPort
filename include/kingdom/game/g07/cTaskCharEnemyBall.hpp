@@ -27,6 +27,9 @@ public:
 	bool Create(uint no) override;
 
 	uint Input() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyBall::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -96,7 +96,7 @@ bool cAppTitle::Execute(cJetTask* pParam)
 	if (nModeState(0) != s_lastLogged)
 	{
 		s_lastLogged = nModeState(0);
-		std::printf("cAppTitle: state %u\n", s_lastLogged);
+		// std::printf("cAppTitle: state %u\n", s_lastLogged);
 	}
 	uint& S = nModeState(0);
 	uint& O = nOldState(0);
@@ -160,7 +160,7 @@ bool cAppTitle::Execute(cJetTask* pParam)
 			if (pad.trig & GamePad::TRIG_DECIDE)
 			{
 				WiiSnd::Handle se;                   // 0x80203c54: FUN_80025b6c(se, 0, "m00se_02Kettei", 0)
-				WiiSnd::Play(se, SND_DECIDE);
+				WiiSnd::PlayRemote(se, 0, SND_DECIDE);
 				WiiSnd::Play(se, (std::rand() % 2 == 0) ? SND_START_VOICE_EVEN : SND_START_VOICE_ODD);
 				S = 2;
 				clearProc();
@@ -206,7 +206,7 @@ bool cAppTitle::Execute(cJetTask* pParam)
 			if (m_pFade->IsEnd())
 			{
 				// attract demo (job 136) when idle, otherwise job 138 (0x08a00000)
-				Kingdom_SetJobNo(m_bAttract ? job::ATTRACT : 0x08a00000u, false, false);
+				Kingdom_SetJobNo(m_bAttract ? job::ATTRACT : job::MENU, false, false);
 			}
 			stateChanged();
 		}

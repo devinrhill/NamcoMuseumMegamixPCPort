@@ -46,6 +46,9 @@ protected:
 
 public:
 	void Draw(int nStatus, cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskModel::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -1,6 +1,8 @@
 #include "kingdom/game/g02/cG02RallyXRecord.hpp"
 #include "kingdom/game/g02/cTaskUnit.hpp"
 
+#include "SoundManager.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -19,6 +21,7 @@
 #include "kingdom/game/g02/cTaskConsole.hpp"
 #include "kingdom/game/g02/cTaskMap.hpp"
 #include "snd/Mixer.hpp"
+#include "WiiSnd.hpp"
 #include "wii/Archive.hpp"
 #include "wii/Mdl0.hpp"
 
@@ -146,11 +149,20 @@ bool cTaskUnit::MapRoad(int x, int z) const
 	return map != nullptr && (map->Attr(x, z) & 1u) != 0;
 }
 
+// the call sites test vtable +0x44 (the unit id) & 0x10 first: players only; the handles are detached afterwards
+void cTaskUnit::SeRemote(const char* cue)
+{
+	if ((nUnitId() & 0x10) == 0) return;
+	WiiSnd::Handle h;
+	WiiSnd::PlayRemote(h, SysPad(nIndex()), cue);
+	WiiSnd::Detach(h);
+}
+
 void cTaskUnit::Se(const char* cue)
 {
-	WiiSnd::Handle h;
-	WiiSnd::Play(h, cue);   // FUN_80129d78(h, cue, 0, actor +0x378): the 3D sound actor is NOT PORTED (plain 2D)
-	WiiSnd::Detach(h);
+	// FUN_80129d78(h, cue, 0, actor +0x378) into a local handle, detached; in app state 6 (game over) at volume 0.2 (0x80129db0)
+	const int v = m_SndActor.Play(cue);
+	if (v >= 0 && m_pHost != nullptr && m_pHost->nUnitGameState() == 6) snd::SetVolume(v, 0.2f, 0);
 }
 
 kingdom::cKingdomModel* cTaskUnit::pBody()
@@ -211,8 +223,8 @@ cTaskUnit::cTaskUnit(cRallyUnitHost* pHost, int nColour, int nIndex) : m_pHost(p
 	Models(nColour);
 }
 
-// (the DOL deletes tasks through the deleting dtor 0x8006fbf8 after Term; natively non-app tasks never run Term, so the dtor frees what
-// Term would)
+// (the DOL deletes tasks through the deleting dtor 0x8006fbf8 after Term; natively tasks are never deleted: Term runs through
+// cTaskKingdom::TermOnce, this dtor is kept for completeness)
 cTaskUnit::~cTaskUnit()
 {
 	delete m_pParam;
@@ -305,8 +317,10 @@ void cTaskUnit::CreateCamera(const s32* pScnLayout)
 	if (m_pCamera != nullptr || m_nIndex >= 4) return;
 	m_pCamera = new cCamera(pScnLayout);         // 0xb0 bytes, 0x80127808
 	CameraStart(1, 0);
-	// the 3D sound listener (+0x2f0) from the camera matrix (GetCameraMtx 0x80129d30, cParamCar +0x80 / +0x84 / +0x88, user data = the index):
-	// NOT PORTED
+	// the 3D sound listener (+0x2f0): matrix from GetCameraMtx 0x80129d30 (replaced by Step's look-at every frame), interior size (cParamCar
+	// +0x80, 0x801378d0), unit distance (+0x84, 0x801378d4), max volume distance (+0x88, 0x801378d8), user data = the index (0x801378dc).
+	// Natively one listener: player 1's car (UNVERIFIED for split screen, where nw4r mixes every player's listener)
+	if (m_nIndex == 0) SoundManager::get_SE()->SetListenerParam(m_pParam->fSndInterior, m_pParam->fSndMaxVolDist, m_pParam->fSndUnitDist);
 }
 
 // DOL 0x80081dd0
@@ -339,7 +353,7 @@ void cTaskUnit::SetStart(int nCellX, int nCellZ, int nDir)
 	m_vPos[3] = 1.0f;
 	if (kingdom::cKingdomModel* car = pModel(0)) car->vTrans() = Vector4(m_vPos[0], 0.0f, m_vPos[2], 1.0f);
 	if ((unsigned)nDir < 4u) SetDir(nDir);
-	// the sound actor position (FUN_80026620 / FUN_80026660): NOT PORTED
+	if (kingdom::cKingdomModel* car = pModel(0)) m_SndActor.SetPosition(car->vTrans());   // 0x80078550 (velocity 0: FUN_80026660)
 }
 
 // DOL 0x80087c0c
@@ -716,7 +730,7 @@ void cTaskUnit::Step()
 		break;
 	case 7:
 	case 10:
-		// FUN_80026394(0, +0x36c, 0): the fuel alarm's volume to 0 (NOT PORTED: no volume control)
+		WiiSnd::SetVolume(m_SndFuel, 0.0f, 0);   // 0x80084e78: 0x80026394(0 (FLOAT_8047aa28), +0x36c, 0): the fuel alarm silent
 		[[fallthrough]];
 	case 5:
 	case 6:
@@ -729,7 +743,7 @@ void cTaskUnit::Step()
 		}
 		break;
 	default:
-		// FUN_80026394(0.1, +0x36c, 500): the fuel alarm's volume (NOT PORTED)
+		WiiSnd::SetVolume(m_SndFuel, 0.1f, 500);   // 0x80084eb4: 0x80026394(0.1 (FLOAT_8047aa78), +0x36c, 500)
 		break;
 	}
 	SpinStep();
@@ -808,8 +822,23 @@ void cTaskUnit::Step()
 		Blend(m_pParam->fBlendNormal);
 	}
 	UpdateFrame();                               // 0x8009a478 cTaskModel::UpdateFrame
-	if (m_pCamera != nullptr) m_pCamera->SetSpeedCurve(m_fTurnRest == 0.0f ? 1 : 0);
-	// the 3D sound listener (+0x2f0) from the camera eye to the car (cParamCar +0x8c), the actor position: NOT PORTED
+	kingdom::cKingdomModel* car = pModel(0);
+	if (m_pCamera != nullptr)
+	{
+		m_pCamera->SetSpeedCurve(m_fTurnRest == 0.0f ? 1 : 0);
+		// 0x80085e80: the listener (+0x2f0) at the car, looking away from the camera eye (+0x10) by cParamCar +0x8c, up (0, 1, 0)
+		if (car != nullptr && m_nIndex == 0)
+		{
+			const Vector4 eye = car->vTrans();
+			float d[3] = {eye.x - m_pCamera->vEye()[0], eye.y - m_pCamera->vEye()[1], eye.z - m_pCamera->vEye()[2]};
+			const float l = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+			if (l > 0.0f)
+				for (float& x : d) x /= l;
+			const float r = m_pParam->fListenerRange;
+			SoundManager::get_SE()->SetListener(eye, Vector4(eye.x + d[0] * r, eye.y + d[1] * r, eye.z + d[2] * r, 1.0f), Vector4(0.0f, 1.0f, 0.0f, 0.0f));
+		}
+	}
+	if (car != nullptr) m_SndActor.SetPosition(car->vTrans());   // 0x80085e98: the actor (+0x378) at the car
 }
 
 // DOL 0x800837b4
@@ -1119,7 +1148,7 @@ void cTaskUnit::TurnBack()
 	}
 	if (m_nSpin != 0) m_fSpinRot += 0.0f <= m_fSpinRot ? PI : -PI;
 	Se("m02se_05Break");
-	// players also play it on the remote speaker (FUN_80025b6c with the pad of sys 0x800c5b98): NOT PORTED
+	SeRemote("m02se_05Break");                   // 0x80086de4
 }
 
 // DOL 0x800873e4
@@ -1247,7 +1276,8 @@ bool cTaskUnit::Nitro()
 		m_fFuel -= NitroFuel();                  // vtable +0x98
 		if (m_fFuel < 0.0f) m_fFuel = 0.0f;
 	}
-	Se("m02se_03Nitro");                         // (+ the remote speaker for players: NOT PORTED)
+	Se("m02se_03Nitro");
+	SeRemote("m02se_03Nitro");                   // 0x800876cc
 	return true;
 }
 
@@ -1369,7 +1399,8 @@ bool cTaskUnit::Want(int nDir)
 // DOL 0x80088264
 bool cTaskUnit::Crash()
 {
-	Se("m02se_06Crash");                         // (+ the remote speaker for players: NOT PORTED)
+	Se("m02se_06Crash");
+	SeRemote("m02se_06Crash");                   // 0x800882f8
 	Face(2);
 	const Vector4 pos(m_vPos[0], m_vPos[1], m_vPos[2], m_vPos[3]);
 	FxOff(m_FxCrash, true);
@@ -1838,6 +1869,7 @@ bool FillConsCar(kingdom::cTaskModel* pCar, sConsCar& out)
 	out.n2c8 = u->m_nArmor;           // +0x2c8
 	out.nSmoke = u->m_nSmokeStock;    // +0x2cc
 	out.nFlags = u->m_nFlags;         // +0x2d0
+	out.nNitroState = u->nNitroState();   // 0x80088a40
 	return true;
 }
 

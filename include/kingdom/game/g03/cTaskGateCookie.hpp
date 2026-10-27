@@ -30,6 +30,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	void Invisible();
+
+protected:
+	void ReleaseTerm() override { cTaskGateCookie::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

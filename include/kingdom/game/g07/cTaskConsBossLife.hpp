@@ -50,6 +50,9 @@ public:
 
 private:
 	IEnumerator* WaitOneFramePlaySE();
+
+protected:
+	void ReleaseTerm() override { cTaskConsBossLife::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

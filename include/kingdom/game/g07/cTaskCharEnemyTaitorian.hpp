@@ -24,6 +24,9 @@ public:
 	uint Input() override;
 
 	void SetMMSParam(int para1, int para2, int para3) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyTaitorian::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

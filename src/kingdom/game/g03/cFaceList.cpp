@@ -68,6 +68,16 @@ cFaceList::cFaceList(ResMdl* data)
 	SearchHangEdge();
 }
 
+cFaceList::cFaceList(ResMdl* data, const std::vector<Constants::sFace*> faces[4], const AABB& aabb)
+{
+	Init();
+	m_ResMdl = data;
+	for (int i = 0; i < (int)std::size(m_vecFace); i++) m_vecFace[i] = faces[i];
+	m_AABB = aabb;
+	m_bAABB = true;
+	SearchHangEdge();
+}
+
 cFaceList::~cFaceList()
 {
 	Term();

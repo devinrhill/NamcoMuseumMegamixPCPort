@@ -38,6 +38,11 @@ class cTaskConsResult;
 class cTaskConsLose;
 class cTaskConsBang;
 class cTaskConsWarning;
+class cTaskConsInfoMulti;
+class cTaskConsWinner;
+class cTaskConsDraw;
+class cTaskConsPBMultiNO;
+class cTaskConsPBMultiBG;
 
 // What the console parts read from a car (kingdom::game::g02::cTaskUnit, a cTaskModel; DOL offsets of the unit)
 struct sConsCar
@@ -56,6 +61,7 @@ struct sConsCar
 	int n2c8{};        // +0x2c8 (== 1: 0x800884c8 true; the radar / info icon of that state)
 	int nSmoke{};      // +0x2cc (smoke screens left, 0..5)
 	int nFlags{};      // +0x2d0 (flags taken)
+	int nNitroState{}; // cTaskUnit::nNitroState 0x80088a40 (0 nitro, 1 normal, 2 brake)
 };
 
 class cTaskConsole : public kingdom::cTaskKingdom
@@ -90,7 +96,8 @@ public:
 	explicit cTaskConsole(kingdom::cAppKingdom* pApp);         // DOL 0x80124468 + 0x8006093c
 	virtual ~cTaskConsole();                                   // DOL 0x801275e4 (+ 0x80065d04)
 
-	void SetAppState(const sAppState& s) { m_App = s; }
+	void SetAppState(const sAppState& s) { m_App = s; s_pGameState = s.pState; }
+	static const int* s_pGameState;   // the game app's +0x2e4 for PlaySE (KingSys +0xa40 +0x2e4 in the DOL); cleared by the app's Free
 
 	// ---- called by the app (DOL callers in cAppG02RallyXGame ctor 0x801236bc / Execute 0x80125b1c / cTaskMap 0x80077e48, 0x800780f4) ----
 	void Regist(kingdom::cTaskModel* pCar, int nColour, bool bPlayer);   // DOL 0x80065db0: every car once, player first (colour 6 Pac, 5 red)
@@ -99,6 +106,12 @@ public:
 	bool IsResultEnd() const;                                  // DOL 0x80066584: cTaskConsResult mode == 3
 	bool IsLoseShown() const;                                  // DOL 0x800665fc: cTaskConsLose mode == 2
 	bool IsLoseEnd() const;                                    // DOL 0x80066614: cTaskConsLose mode == 7
+	bool IsWinShown() const;                                   // DOL 0x8006659c: cTaskConsWinner mode == 2
+	bool IsWinEnd() const;                                     // DOL 0x800665b4: cTaskConsWinner mode == 4
+	bool IsDrawShown() const;                                  // DOL 0x800665cc: cTaskConsDraw mode == 2
+	bool IsDrawEnd() const;                                    // DOL 0x800665e4: cTaskConsDraw mode == 4
+	void HitMark(int nPlayer);                                 // DOL 0x800666e8 (the multiplayer car hit: cRallyUnitHost::UnitMultiHit)
+	bool IsMulti() const { return m_bMulti; }                  // +0x1bc
 	bool ShowBang();                                           // DOL 0x8006662c: cTaskConsBang anita 0 anim 0x118, shown
 	bool HideBang();                                           // DOL 0x8006669c
 	void HideBang2();                                          // DOL 0x800667c4 (the same, no result)
@@ -115,7 +128,10 @@ public:
 	int nRest() const { return m_App.pRest ? *m_App.pRest : 0; }
 	float fClearFlagWait() const;                              // app +0x280 -> +0x38 (0 without a parameter block)
 	float fLoseFlagWait() const;                               // app +0x280 -> +0x44
-	static void PlaySE(const char* cue);                       // cRallyXSndHnd + 0x80129d78: play and detach (the game-over volume 0.2 is NOT PORTED)
+	float fWinnerFlagWait() const;                             // app +0x280 -> +0x3c (CSV_GAME WINNER_FLAG_WAIT)
+	float fDrawFlagWait() const;                               // app +0x280 -> +0x40
+	const cParamGame* pParam() const { return m_App.pParam; }  // app +0x280 (the font colours of the players)
+	static void PlaySE(const char* cue);                       // cRallyXSndHnd + 0x80129d78: play (volume 0.2 in game state 6) and detach
 	int nPlayer() const { return m_nPlayer; }                  // +0x1c4
 	int nFlagTotal() const { return m_nFlagTotal; }            // +0x1c0 (flags registered, at most 20)
 	u32 Rand() { return (u32)m_Rand(); }                       // +0x1b8 cKingdomRand genrand (0x8014146c; UNVERIFIED: = std::mt19937)
@@ -145,6 +161,11 @@ private:
 	cTaskConsWarning* m_pWarning{};          // +0x1f4
 	cTaskConsFuel* m_pFuel[4]{};             // +0x1f8 (one per player; single player: [0])
 	cTaskConsMud* m_pMud[4]{};               // +0x208
+	cTaskConsWinner* m_pWinner{};            // +0x1e4 (multiplayer)
+	cTaskConsDraw* m_pDraw{};                // +0x1e8 (multiplayer)
+	cTaskConsInfoMulti* m_pInfoMulti{};      // +0x218 (multiplayer)
+	cTaskConsPBMultiBG* m_pBG{};             // +0x21c (multiplayer, 3 players)
+	cTaskConsPBMultiNO* m_pNO[4]{};          // +0x220 (multiplayer)
 	sAppState m_App;
 };
 }

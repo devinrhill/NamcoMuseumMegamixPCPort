@@ -62,6 +62,9 @@ public:
 
 private:
 	void GetUserData(ResNode* const& node);
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmick::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

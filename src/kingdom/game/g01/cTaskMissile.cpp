@@ -160,6 +160,7 @@ bool cTaskMissile::Execute(cJetTask* pParam)
 	if (m_nState == 1)
 	{
 		Step();
+		m_SndActor.SetPosition(m_v20);   // 0x800f0bc4 (in +0xb4): the sound actor (+0x384) at +0x20
 		float eye[3], aim[3], fovy;
 		kingdom::NativeScene::GetCamera(eye, aim, fovy);
 		const float d[3] = {eye[0] - m_v20.x, eye[1] - m_v20.y, eye[2] - m_v20.z};
@@ -188,7 +189,7 @@ bool cTaskMissile::HitCheck(cObject* other)
 }
 
 // DOL 0x800f07f8: shot by a player: HP - 1, flash, the player's beam spark (slot 0xc + player); at 0 HP the player's small explosion (slot
-// player) and gone. Hitting Pac-Man: gone with PTK_BOMB_SMALL01 (slot 0). Sounds DAT_8047b630 m01se_04hit2 / 634 m01se_05bak1.
+// player) and gone. Hitting Pac-Man: gone with PTK_BOMB_SMALL01 (slot 0). Sounds DAT_8047b630 m01se_04hit2 / 634 m01se_05bak1, all on the missile's actor (+0x384).
 void cTaskMissile::HitCallback(cObject* other)
 {
 	const Vector4 pos(m_v20.x, m_v20.y, m_v20.z, 1.0f);
@@ -203,18 +204,18 @@ void cTaskMissile::HitCallback(cObject* other)
 		{
 			Die();
 			Effect(pl, pos);
-			snd::Play("m01se_05bak1");   // DAT_8047b634
+			m_SndActor.Play("m01se_05bak1");   // DAT_8047b634
 		}
 		else
 		{
-			snd::Play("m01se_04hit2");   // DAT_8047b630
+			m_SndActor.Play("m01se_04hit2");   // DAT_8047b630
 		}
 	}
 	else if (other->nKind() == 3)
 	{
 		Die();
 		Effect(0, pos);
-		snd::Play("m01se_05bak1");
+		m_SndActor.Play("m01se_05bak1");
 	}
 }
 

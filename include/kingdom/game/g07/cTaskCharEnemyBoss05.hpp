@@ -60,6 +60,9 @@ public:
 	void ApearUpdateMatrix();
 
 	void GameMainUpdateMatrix();
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyBoss05::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

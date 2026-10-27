@@ -138,6 +138,9 @@ private:
 	void UpdateDummyDemoCamera();
 
 	float GetDemoCurrentFrameCnt();
+
+protected:
+	void ReleaseTerm() override { cTaskCharGolvis04::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

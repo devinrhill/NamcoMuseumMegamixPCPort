@@ -1,4 +1,5 @@
 #include "kingdom/cAppDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "WiiPad.hpp"
@@ -52,22 +53,38 @@ cAppDebugTopMenu::cAppDebugTopMenu()
 	const uint SEP = 0xffffffffu;
 	SetMenu("Kingdom Final Sep 30 2010 21:51:51", {
 		{"----", SEP},
-		{"BOOT", 0x08400000u},
-		{"ATTRACT", 0x08800000u},
-		{"TITLE", 0x08900000u},
+		{"BOOT", job::BOOT},
+		{"ATTRACT", job::ATTRACT},
+		{"TITLE", job::TITLE},
 		{"----", SEP},
-		{"G01 : GALAGA", 0x0b000000u},
-		{"G02 : RALLY X", 0x0c000000u},
-		{"G03 : PACN ROLL", 0x0d000000u},
-		{"G04 : WANIx2 PANIC", 0x0e000000u},
-		{"G07 : MOTOS", 0x11000000u},
-		{"G11 : GROBDA", 0x15000000u},
-		{"RSO : ORIGINAL", 0x0ae00000u},
+		{"G01 : GALAGA", job::GALAGA_INIT},
+		{"G02 : RALLY X", job::RALLYX_INIT},
+		{"G03 : PACN ROLL", job::PACNROLL_INIT},
+		{"G04 : WANIx2 PANIC", job::WANIWANI_INIT},
+		{"G07 : MOTOS", job::MOTOS_INIT},
+		{"G11 : GROBDA", job::GROBDA_INIT},
+		{"RSO : ORIGINAL", job::RSO_DEBUG_MENU},
 		{"----", SEP},
-		{"Load   Save Data", 0x09000000u},
-		{"Save   Save Data", 0x09100000u},
-		{"Delete Save Data", 0x09200000u},
+		{"Load   Save Data", job::DEBUG_LOAD},
+		{"Save   Save Data", job::DEBUG_SAVE},
+		{"Delete Save Data", job::DEBUG_DELETE},
 		{"----", SEP},
+	});
+}
+
+// DOL 0x800c25c0: new 0x4c, FUN_800c23e0 (cursor 0, selected / chosen -1), FUN_800c2404(menu, "Kingdom Final Sep 30 2010 21:51:53" (0x80370a70),
+// 7, table 0x80438418)
+cAppRootDebugMenu::cAppRootDebugMenu()
+{
+	SetName("cJetTask");
+	SetMenu("Kingdom Final Sep 30 2010 21:51:53", {
+		{"KINGDOM", job::KINGDOM_INIT},
+		{"HOSONO     LABO (-A-)", job::MH_DEBUG_MENU},
+		{"MOURI      LABO\\(^o^)/", job::YM_DEBUG_MENU},
+		{"MIURA      LABO (@-@)", job::SM_DEBUG_MENU},
+		{"KANAZAWA   LABO ('w')", job::KZ_DEBUG_MENU},
+		{"GOTOU      LABO (/-\\)", job::GT_DEBUG_MENU},
+		{"MATSUSHITA LOBO (_ _)", job::JM_DEBUG_MENU},
 	});
 }
 

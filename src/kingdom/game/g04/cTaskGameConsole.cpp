@@ -34,6 +34,14 @@ void Se(const char* cue)
 	WiiSnd::Detach(h);
 }
 
+// kingdom FUN_80025b6c with pad 0: the cue on the TV and a copy on Wiimote 1's speaker
+void SeRemote(const char* cue)
+{
+	WiiSnd::Handle h;
+	WiiSnd::PlayRemote(h, 0, cue);
+	WiiSnd::Detach(h);
+}
+
 uint Digit(uint n, int k)
 {
 	for (int i = 0; i < k; i++) n /= 10u;
@@ -300,6 +308,19 @@ void cTaskConsComboScore::First(uint n)
 	}
 }
 
+// cTaskConsScore::SetMode(7) (0x801a671c) loops cTaskScoreNum::SetMode(3) (0x801b691c) over FIVE pointers from +0x1e8: the fifth is the combo
+// (+0x1f8). On this layout that stores 3 at +0x1cc (the combo's timer) and gives anitas 0..2 the "leave" digit clip of +0x1d0 (the combo
+// count) through table 0x8037d668 (= d * 3 + 2), state bit 2 set. Kept 1:1; what those clip numbers show in the combo's layout is UNVERIFIED.
+void cTaskConsComboScore::ScoreNumMode3()
+{
+	m_nTimer = 3u;
+	for (uint i = 0; i < 3; i++)
+	{
+		pAnita(i)->SetAnimNo((int)(Digit(m_nNum, (int)i) * 3u + 2u), true);
+		pAnita(i)->SetState(2u, true);
+	}
+}
+
 // DOL 0x8019e444
 void cTaskConsComboScore::Set(uint n)
 {
@@ -449,6 +470,7 @@ void cTaskConsScore::SetMode(int mode)
 	else if (mode == 7)
 	{
 		for (cTaskScoreNum* p : m_pNum) p->SetMode(3);
+		m_pCombo->ScoreNumMode3();   // the loop's fifth pointer (+0x1f8)
 		pAnita(0u)->SetAnimNo(0x6e, true);
 		pAnita(1u)->SetAnimNo(0x77, true);
 		pAnita(2u)->SetAnimNo(0x7a, true);
@@ -852,7 +874,11 @@ bool cTaskConsMenu::Keys(int pad)
 	{
 		if (m_nSel != 4)
 		{
-			Se("m00se_02Kettei");   // DAT_8047cb3c (0x80025b6c: also on the remote speaker)
+			{
+				WiiSnd::Handle h;   // 0x8019f1dc: FUN_80025b6c(handles, 0, DAT_8047cb3c, 0)
+				WiiSnd::PlayRemote(h, 0, "m00se_02Kettei");
+				WiiSnd::Detach(h);
+			}
 			SetMode(3);
 			m_bDecided = true;
 		}
@@ -879,7 +905,8 @@ bool cTaskConsMenu::Keys(int pad)
 bool cTaskConsMenu::Pointer(int pad)
 {
 	const GamePad::State& s = GamePad::Get(pad);
-	const Vector4 p(s.pointerX * 640.0f * 0.5f, -s.pointerY * 480.0f * 0.5f, 0.0f, 1.0f);
+	// the DOL converts both to int before the test (fctiwz): render mode fbWidth / efbHeight * 0.5 (FLOAT_8047cb4c)
+	const Vector4 p((float)(int)(s.pointerX * 640.0f * 0.5f), (float)(int)(-s.pointerY * 480.0f * 0.5f), 0.0f, 1.0f);
 	uint i = 0;
 	for (; i < 4; i++)
 		if (pAnita(i)->IsHit(p, MENU_PAT[i])) break;
@@ -894,7 +921,7 @@ bool cTaskConsMenu::Pointer(int pad)
 	bool used = false;
 	if ((s.trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)
 	{
-		Se("m00se_02Kettei");
+		SeRemote("m00se_02Kettei");   // 0x8019f06c: FUN_80025b6c(handles, 0, cue, 0)
 		SetMode(3);
 		m_bDecided = true;
 		used = true;
@@ -904,6 +931,7 @@ bool cTaskConsMenu::Pointer(int pad)
 }
 
 // DOL 0x8019ec48 (TWO without a pointer action: "back" is decided when it is selected, else the cursor jumps to it)
+// (FUN_80199c30, the Nunchuk stick as a direction 1 / 2 / 4 / 8, is stored at +0x1e0, which nothing reads: not ported)
 void cTaskConsMenu::Input()
 {
 	const int pad = 0;
@@ -912,7 +940,7 @@ void cTaskConsMenu::Input()
 	{
 		if (m_nSel == 0)
 		{
-			Se("m00se_03Cancel");   // DAT_8047cb40
+			SeRemote("m00se_03Cancel");   // DAT_8047cb40 (0x8019ecf4: FUN_80025b6c(handles, 0, cue, 0))
 			SetMode(3);
 			m_bDecided = true;
 		}
@@ -965,14 +993,12 @@ cTaskConsMultiMenuTime::cTaskConsMultiMenuTime()
 	pAnita(3u)->SetAnimNo(0x1f, true);
 	pAnita(3u)->SetState(1u, true);
 	pAnita(3u)->SetState(2u, false);
-	const uint lay[4] = {0, 1, 3, 2};   // anita 0 / 1 / 3 / 2 -> layer 0 / 1 / 2 / 3
-	const uint who[4] = {0, 1, 3, 2};
+	const uint who[4] = {0, 1, 3, 2};   // anita 0 / 1 / 3 / 2 -> layer 0 / 1 / 2 / 3 (0x80014408)
 	for (uint k = 0; k < 4; k++)
 	{
 		Vector4 v;
 		if (pAnita(who[k])->GetLayerPos(v, k, 8)) pAnita(who[k])->vTrans() = v;
 	}
-	(void)lay;
 	nDrawPriority(0x80000004u);
 	SetMode(0);
 }
@@ -1005,7 +1031,8 @@ int cTaskConsMultiMenuTime::Time() const
 	return MULTI_TIMES[m_nIndex];
 }
 
-// DOL 0x801a27c0
+// DOL 0x801a27c0 (checked: anim numbers go through the table 0x8037c8c0, which is the identity 0..29, so digit * 3 / i * 3 + 2
+// are used directly; case 5 sets the colon twice like the DOL)
 void cTaskConsMultiMenuTime::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -1051,7 +1078,7 @@ void cTaskConsMultiMenuTime::Left()
 {
 	const uint old = (uint)MULTI_TIMES[m_nIndex];
 	m_nIndex = m_nIndex - 1 < 0 ? 2 : m_nIndex - 1;
-	Se("m00se_02Kettei");   // DAT_8047cbb0
+	SeRemote("m00se_02Kettei");   // DAT_8047cbb0 (0x801a2c5c: FUN_80025b6c(handles, 0, cue, 0))
 	pAnita(2u)->SetAnimNo((int)((old / 0x3c) % 0x3c) * 3 + 2, true);
 	pAnita(0u)->SetAnimNo(2, true);
 	pAnita(1u)->SetAnimNo(2, true);
@@ -1064,7 +1091,7 @@ void cTaskConsMultiMenuTime::Right()
 {
 	const uint old = (uint)MULTI_TIMES[m_nIndex];
 	m_nIndex = m_nIndex + 1 < 3 ? m_nIndex + 1 : 0;
-	Se("m00se_02Kettei");
+	SeRemote("m00se_02Kettei");   // 0x801a2da4: FUN_80025b6c(handles, 0, cue, 0)
 	pAnita(2u)->SetAnimNo((int)((old / 0x3c) % 0x3c) * 3 + 2, true);
 	pAnita(1u)->SetAnimNo(2, true);
 	pAnita(0u)->SetAnimNo(2, true);
@@ -1104,7 +1131,7 @@ cTaskConsMultiMenu::cTaskConsMultiMenu()
 	ConnectChild(m_pTime);
 	Reset();   // vtable +0x74
 	m_bDecided = false;
-	nDrawPriority(0x80000003u);   // UNVERIFIED (set by the console: the single menu uses it)
+	nDrawPriority(0x80000003u);   // the console's builder sets 0x80000003 (checked); kept here for a menu built alone
 }
 
 // DOL 0x801a0480
@@ -1130,19 +1157,20 @@ void cTaskConsMultiMenu::Reset()
 	m_pTime->Reset();
 }
 
+// DOL 0x801a1d3c / 0x801a1d64 / 0x801a1d8c / 0x801a1db4 (interface +0x10..+0x1c: focus 0 / 4 / 1 / 3 and decided, the single menu's IsSel(0 / 3 / 1 / 2))
 bool cTaskConsMultiMenu::IsSel(int i) const
 {
 	static const int FOCUS[4] = {0, 1, 3, 4};   // IsSel(0 back / 1 how to play / 2 start / 3 players)
 	return m_bDecided && m_nFocus == FOCUS[i & 3];
 }
 
-// DOL 0x801a0810
+// DOL 0x801a0810 (checked against the decomp)
 void cTaskConsMultiMenu::SetMode(int mode)
 {
 	m_nMode = mode;
 	cG04WaniWaniSys* sys = KingdomGlobal::WaniWaniSys;
 	const uint n = (uint)sys->nPlayers();
-	auto marks = [&](bool hide) {
+	auto marks = [&] {
 		uint mask = (uint)sys->nWinMask();
 		for (uint p = 0; p < n; p++)
 		{
@@ -1150,7 +1178,6 @@ void cTaskConsMultiMenu::SetMode(int mode)
 			pAnita(p + 11u)->SetState(3u, (mask & 1u) != 0);
 			mask >>= 1;
 		}
-		(void)hide;
 	};
 	if (mode == 0 || mode == 1)
 	{
@@ -1161,7 +1188,7 @@ void cTaskConsMultiMenu::SetMode(int mode)
 			for (uint i = 4; i < 9; i++) pAnita(i)->SetState(3u, true);
 			pAnita(9u)->SetState(3u, true);
 			pAnita(10u)->SetState(3u, true);
-			marks(false);
+			marks();
 			for (uint p = 0; p < 4; p++) pAnita(p)->SetAnimNo(MM_PLAYER[p][0], true);
 			for (uint i = 0; i < 5; i++) pAnita(4u + i)->SetAnimNo(MM_ITEM[i][0], true);
 			pAnita(9u)->SetAnimNo(0x33, true);
@@ -1175,8 +1202,8 @@ void cTaskConsMultiMenu::SetMode(int mode)
 		for (uint i = 4; i < 9; i++) pAnita(i)->SetState(3u, true);
 		pAnita(9u)->SetState(3u, true);
 		pAnita(10u)->SetState(3u, true);
-		marks(false);
-		m_pTime->SetMode(5);
+		marks();
+		m_pTime->SetMode(5);   // 0x801a27b4 = li r4, 5; b SetMode
 		pAnita(5u)->SetAnimNo(0x30, true);
 		pAnita(7u)->SetAnimNo(0x44, true);
 		m_nFocus = 3;
@@ -1195,8 +1222,8 @@ void cTaskConsMultiMenu::SetMode(int mode)
 		}
 	}
 	else if (mode == 3)
-		Se("m00se_02Kettei");   // DAT_8047cb7c
-	else if (mode == 4)
+		SeRemote("m00se_02Kettei");   // DAT_8047cb7c (0x801a0c70: FUN_80025b6c(handles, 0, cue, 0))
+	else if (mode == 4)   // first calls FUN_801a27bc on the time console: an empty blr
 		pAnita((uint)m_nFocus + 4u)->SetAnimNo(MM_ITEM[m_nFocus][3], true);
 }
 
@@ -1236,7 +1263,7 @@ void cTaskConsMultiMenu::Arrow(bool right)
 bool cTaskConsMultiMenu::Pointer(int pad)
 {
 	const GamePad::State& s = GamePad::Get(pad);
-	const Vector4 p(s.pointerX * 640.0f * 0.5f, -s.pointerY * 480.0f * 0.5f, 0.0f, 1.0f);
+	const Vector4 p((float)(int)(s.pointerX * 640.0f * 0.5f), (float)(int)(-s.pointerY * 480.0f * 0.5f), 0.0f, 1.0f);   // int like 0x8019ee04 (fctiwz)
 	int focus = -1;
 	bool right = false;
 	if (pAnita(4u)->IsHit(p, 0xc)) focus = 0;
@@ -1245,7 +1272,6 @@ bool cTaskConsMultiMenu::Pointer(int pad)
 	else if (pAnita(4u)->IsHit(p, 0xe)) focus = 4;
 	else if (pAnita(4u)->IsHit(p, 0xf)) focus = 2;
 	else if (pAnita(4u)->IsHit(p, 0x10)) { focus = 2; right = true; }
-	bool used = false;
 	if (m_nFocus != focus && focus != -1)
 	{
 		if (focus == 2) Focus(2, right ? 0x34 : 0x35, right ? 0x39 : 0x38);
@@ -1253,7 +1279,7 @@ bool cTaskConsMultiMenu::Pointer(int pad)
 		m_nFocus = focus;
 	}
 	else if (focus == -1)
-		used = Keys(pad);
+		Keys(pad);   // its result is dropped
 	if ((s.trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)
 	{
 		if (focus == 2) Arrow(right);
@@ -1265,10 +1291,11 @@ bool cTaskConsMultiMenu::Pointer(int pad)
 			m_bDecided = true;
 		}
 	}
-	return used;   // UNVERIFIED: the DOL returns whatever r3 holds here
+	return true;   // 0x801a1944 li r3, 1 on every path: TWO (back) is never taken while the pointer is on screen (unlike the single menu)
 }
 
 // DOL 0x801a197c
+// (FUN_80199c30, the Nunchuk stick as a direction 1 / 2 / 4 / 8, is stored at +0x1e0, which nothing reads: not ported)
 bool cTaskConsMultiMenu::Keys(int pad)
 {
 	const uint trig = GamePad::Get(pad).trig;
@@ -1319,7 +1346,7 @@ void cTaskConsMultiMenu::Input()
 	{
 		if (m_nFocus == 0)
 		{
-			Se("m00se_03Cancel");   // DAT_8047cb80
+			SeRemote("m00se_03Cancel");   // DAT_8047cb80 (0x801a0e9c: FUN_80025b6c(handles, 0, cue, 0))
 			pAnita(4u)->SetAnimNo(0x41, true);
 			m_bDecided = true;
 			if (onDecide) onDecide();
@@ -1374,7 +1401,7 @@ void DrawName(float x, float y, const char* name, uint color, int size, float wi
 	const int h = gfx::FontHeight("RESIDENT_FONT_MII");
 	if (h <= 0 || name == nullptr) return;
 	gfx::TextStyle st;
-	st.font = "RESIDENT_FONT_MII";   // UNVERIFIED (KingSys +0xa68)
+	st.font = "RESIDENT_FONT_MII";   // KingSys +0xa68 = RESIDENT_FONT_MII (0x5fd151b6, stored by 0x8000aa90)
 	st.color = color;
 	st.vorigin = gfx::TextStyle::VOrigin::Baseline;
 	st.scaleX = st.scaleY = (float)size / (float)h;
@@ -1455,7 +1482,7 @@ void cTaskConsMultiMenu::Draw(int nStatus, cJetTask* pParam)
 
 // DOL 0x801a1ddc: each player's name at layer 0 of SELECT02 anita 4's pattern 4 + i (table 0x8037c748), screen (320 + x, 240 - y), left aligned
 // on the baseline (writer mode 0), size = CSV_GAME row 16 (2 less when the name is 160 px or wider), colour = CSV_GAME rows 4 + i.
-// UNVERIFIED: the font (KingSys +0xa68 taken as RESIDENT_FONT_MII, as in Galaga).
+// The font: KingSys +0xa68 = RESIDENT_FONT_MII (0x5fd151b6, stored by 0x8000aa90).
 void cTaskConsMultiMenu::DrawNames()
 {
 	cG04WaniWaniSys* sys = KingdomGlobal::WaniWaniSys;
@@ -1558,11 +1585,11 @@ cTaskConsMultiScore::cTaskConsMultiScore()
 		for (uint d = 0; d < 3; d++)
 		{
 			Vector4 v;
-			if (m_pNum[i]->pAnita(d)->GetLayerPos(v, d, MULTI_NUM_PAT[i])) m_pNum[i]->SetPos(d, v);   // FUN_801b73fc
+			if (m_pNum[i]->pAnita(d)->GetLayerPos(v, d, MULTI_NUM_PAT[i])) m_pNum[i]->SetPos(d, v);   // = 0x801b73fc, inlined
 		}
 		ConnectChild(m_pNum[i]);
 	}
-	// the cParamGame values read for the name text (+0x2d4 char space): the font writer is NOT PORTED
+	// the cParamGame values read for the name text (+0x2d4 char space): the names are drawn by DrawNames (0x801a3cd8) through gfx::DrawText
 	for (uint i = 0; i < 8; i++) pAnita(i)->SetState(3u, false);
 	nDrawPriority(0x80000003u);
 }
@@ -1698,7 +1725,7 @@ void cTaskConsMultiScore::Refresh(uint p)
 	}
 }
 
-void cTaskConsMultiScore::SetBonus(cTaskPacmanBase* p, int) { Refresh(((cTaskPacmanBase*)p)->nPlayer()); }
+void cTaskConsMultiScore::SetBonus(cTaskPacmanBase*, int) {}   // listener +0x0c = 0x801a42a8 -> 0x801a4274 (blr): the red gator bonus is not counted in a match
 void cTaskConsMultiScore::SetHits(cTaskPacmanBase* p, int n)
 {
 	m_nHits[p->nPlayer()] = n;
@@ -1758,7 +1785,7 @@ cTaskConsResult::cTaskConsResult()
 	kingdom::cKingdomCSV csv;
 	if (csv.RegistData("CSV_RESULT"))   // 0xc95c6d4f (cParamResult)
 		for (int i = 0; i < 5; i++) m_nBorder[i] = csv.S32(i, 1, 0);
-	// the font writer (+0x1e0) for the multiplayer names: NOT PORTED
+	// the font writer (+0x1e0) for the multiplayer names: natively DrawNames (0x801a5e4c) through gfx::DrawText
 	nDrawPriority(0x80000002u);
 }
 
@@ -1789,7 +1816,7 @@ int cTaskConsResult::Rank(uint score) const
 	return 5;
 }
 
-// DOL 0x801a5778 (single player modes; the multiplayer board 4 / 5 is NOT PORTED)
+// DOL 0x801a5778 (modes 0..3 single player, 4 the multiplayer board; checked against the decomp, tables 0x8037cb98 / 0x8037cba8 / 0x8037cbd0)
 void cTaskConsResult::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -1828,6 +1855,7 @@ void cTaskConsResult::SetMode(int mode)
 			static const int ANIM[4] = {0xf, 0x11, 0x13, 0x15};   // DAT_8037cbd0 (every other word)
 			const int* pos = m_nWinCount == 3 ? POS3 : POS4;
 			int k = 0;
+			if (m_nWinCount < 2 || 4 < m_nWinCount) return;   // only 2 / 3 / 4 tied players place faces and pick the board's animation
 			for (uint i = 0; i < 4; i++)
 			{
 				if (m_nWinCount != 4 && ((m_nWinMask >> i) & 1u) == 0) continue;
@@ -1843,7 +1871,7 @@ void cTaskConsResult::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a5194 (single player): the board, the rank message, its voice, then (180 frames or a button) the console is told
+// DOL 0x801a5194 (checked against the decomp, modes 1 / 3 / 4 / 5 / 6): the board, the rank message, its voice, then (180 frames or a button) the console is told
 bool cTaskConsResult::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -1964,8 +1992,9 @@ bool cTaskGameConsole::Execute(cJetTask* pParam)
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
 	if (app->IsPause() || app->IsHome()) return true;
 	const int n = KingdomGlobal::WaniWaniSys->nPlayers();
+	// +0x1e1 of each cursor: modes 1 / 4 off, 2 / 3 / 6 on; mode 5 (and 0 / 7 / 8) leave it as it is
 	const bool on = m_nMode == 2 || m_nMode == 3 || m_nMode == 6;
-	if (m_nMode >= 1 && m_nMode <= 6)
+	if (m_nMode >= 1 && m_nMode <= 6 && m_nMode != 5)
 		for (int i = 0; i < n && i < 4; i++)
 			if (m_pCursor[i] != nullptr) m_pCursor[i]->SetEnable(on);
 	if (m_nMode == 2)

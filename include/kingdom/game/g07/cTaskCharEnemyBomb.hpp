@@ -70,6 +70,9 @@ public:
 	void RefAttacked(int nParts, int nGrobalID) override;
 
 	bool IsFall(Nullable<Vector4> pVec = nullptr) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyBomb::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

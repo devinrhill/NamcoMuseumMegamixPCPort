@@ -402,6 +402,9 @@ protected:
 	virtual bool AttackLandGetMsg(uint& pMes);
 
 	virtual uint AttackName2ID(string pName);
+
+protected:
+	void ReleaseTerm() override { cTaskCharGolvis::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

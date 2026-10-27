@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cAppRallyXDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include <cstring>
 
@@ -13,7 +14,7 @@ namespace kingdom::game::g02
 
 namespace
 {
-constexpr uint STAGE_JOB = 0x0c300000u;
+constexpr uint STAGE_JOB = job::RALLYX_GAME;
 constexpr int STAGE_MAX = 30;
 }
 
@@ -21,13 +22,13 @@ cAppRallyXDebugMenu::cAppRallyXDebugMenu()
 {
 	SetName("Rally-X Debug Menu");
 	SetMenu("Rally-X", {
-		{"MENU", 0x0c200000u},
-		{"MULTI MENU", 0x0c800000u},
-		{"MATCHING", 0x0c700000u},
+		{"MENU", job::RALLYX_MENU},
+		{"MULTI MENU", job::RALLYX_MULTI_MENU},
+		{"MATCHING", job::RALLYX_MATCHING},
 		{"STAGE", STAGE_JOB},
-		{"GAMEOVER", 0x0c600000u},
-		{"STAFFROLL", 0x0ce00000u},
-		{"EXIT", 0x0cf00000u},
+		{"GAMEOVER", job::RALLYX_GAMEOVER},
+		{"STAFFROLL", job::RALLYX_STAFFROLL},
+		{"EXIT", job::RALLYX_TERM},
 	});
 	m_stageRow = 0;
 	for (size_t i = 0; i < m_entries.size(); i++)

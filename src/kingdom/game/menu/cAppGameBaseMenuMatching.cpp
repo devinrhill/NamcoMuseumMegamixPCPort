@@ -1,3 +1,4 @@
+#include "GamePad.hpp"
 #include "kingdom/game/menu/cAppGameBaseMenuMatching.hpp"
 
 #include <limits>
@@ -5,6 +6,7 @@
 #include "cJetTask.hpp"
 #include "CustomKingdomUtil.hpp"
 #include "kingdom/Constants.hpp"
+#include "kingdom/cTaskCursor.hpp"
 #include "kingdom/cTaskFade.hpp"
 #include "kingdom/cTaskScnRoot.hpp"
 #include "kingdom/EFadeKind.hpp"
@@ -17,6 +19,7 @@
 #include "kingdom/game/menu/cTaskSceneConfirm.hpp"
 #include "kingdom/game/menu/cTaskScenePerson.hpp"
 #include "kingdom/sMatchingData.hpp"
+#include "kingdom/MsgTable.hpp"
 #include <ESEKind.hpp>
 #include <InGamePadManager.hpp>
 
@@ -163,6 +166,7 @@ bool cAppGameBaseMenuMatching::IsConfirmDecide()
 
 void cAppGameBaseMenuMatching::Init()
 {
+	GamePad::SetStickDpad(true);   // 0x801cf828 starts with 0x800219d4(1)
 	nState() = 0;
 	nStep() = 0;
 	bErrorFlag() = false;
@@ -195,6 +199,7 @@ void cAppGameBaseMenuMatching::RegistData(string PointKey, string AnitaKey, stri
 		ConnectChild(pTaskFade());
 		pParamMessage() = new cParamMessage();
 		CustomKingdomUtil::Assert(pParamMessage() != nullptr);
+		pParamMessage()->RegistData("RESIDENT_MSG_MATCHING");   // DOL 0x801cf8bc: CRC 0x17855010
 		pTaskConsBg() = new cTaskConsBg(0, AnitaKey);
 		CustomKingdomUtil::Assert(pTaskConsBg() != nullptr);
 		pTaskConsBg()->nDrawPriority(65537u);
@@ -217,8 +222,22 @@ void cAppGameBaseMenuMatching::RegistData(string PointKey, string AnitaKey, stri
 	pTaskFade() = new cTaskFade();
 	CustomKingdomUtil::Assert(pTaskFade() != nullptr);
 	ConnectChild(pTaskFade());
+	// DOL 0x801cf8bc (after the scene camera +0x2b4): a cTaskMenuCursor per pad on the PointKey layout, idle anim 2 i, press anim 2 i + 1 on A B Z
+	// (table 0x8037fd48 = 0..7), disabled (+0x1e1 = 0) until ConnectCursor enables the connected ones, priority 0x80000022
+	for (int i = 0; i < 4; i++)
+	{
+		m_pCursor[i] = new kingdom::cTaskCursor();
+		m_pCursor[i]->nDrawPriority(0x80000000u);
+		m_pCursor[i]->Init(i, PointKey.c_str(), 2 * i);
+		m_pCursor[i]->AddButton(0x860u, 2 * i + 1);
+		m_pCursor[i]->SetEnable(false);
+		m_pCursor[i]->SetPadNo(i);
+		m_pCursor[i]->nDrawPriority(0x80000022u);
+		ConnectChild(m_pCursor[i]);
+	}
 	pParamMessage() = new cParamMessage();
 	CustomKingdomUtil::Assert(pParamMessage() != nullptr);
+	pParamMessage()->RegistData("RESIDENT_MSG_MATCHING");   // DOL 0x801cf8bc: CRC 0x17855010
 	pTaskConsBg() = new cTaskConsBg(0, AnitaKey);
 	CustomKingdomUtil::Assert(pTaskConsBg() != nullptr);
 	pTaskConsBg()->nDrawPriority(65537u);
@@ -246,13 +265,32 @@ void cAppGameBaseMenuMatching::RegistData(string PointKey, string AnitaKey, stri
 
 void cAppGameBaseMenuMatching::Term()
 {
+	GamePad::SetStickDpad(false);   // 0x801d0864 (the dtors) ends with 0x800219d4(0)
 	pMatchingData() = nullptr;
 	pParamMessage() = nullptr;
 }
 
+// Stand-in for the Mii / guest scene (cTaskSceneMii, cTaskMiiWii / cTaskMiiGuest; not ported: it shows RFL Mii faces, out of scope since the
+// 39th session). In the DOL every player picks a Wii Mii or one of the six guests, and the name copied into the matching data is that Mii's
+// (guest k: FUN_801d9b58 copies its name from the guest table). Here player i gets guest i: "Guest A".."Guest D" from RESIDENT_MSG_MII_NAME
+// (rows eMII_DEFAULT_1..6, English column). UNVERIFIED: which guest a player would get without choosing.
+void cAppGameBaseMenuMatching::GuestNames()
+{
+	MsgTable names;
+	const bool ok = names.Load("RESIDENT_MSG_MII_NAME");
+	for (uint i = 0; i < 4; i++)
+	{
+		if (pMatchingData()->Info[i] == nullptr) continue;
+		std::string n = ok ? names.Get((int)i) : std::string();
+		pMatchingData()->Info[i]->Name = n.empty() ? "PLAYER" + std::to_string(i + 1) : n;
+	}
+}
+
+// inlined in DOL 0x801d0a78 (ConnectCtrlCheck): the KPAD status of the pad (get_pad1 +0xb0) reports an error (+0x5d not 0 and not -2 = busy) or
+// no device (+0x5c dev_type 0xfd): natively = the channel is not connected
 bool cAppGameBaseMenuMatching::_IsConnectError(int nCtrl)
 {
-	return false;
+	return !InGamePadManager::IsConnectPad(nCtrl);
 }
 
 bool cAppGameBaseMenuMatching::ErrorProc()
@@ -374,8 +412,16 @@ void cAppGameBaseMenuMatching::ConnectCtrlCheck()
 	nConnectCtrlCt() = num;
 }
 
+// DOL 0x801d0d44 (inlined in Execute after ConnectCtrlCheck 0x801d0a78): cursor i follows controller nConnectCtrl(i) (vtable +0x58 SetPadNo) and is
+// shown only for i < nConnectCtrlCt
 void cAppGameBaseMenuMatching::ConnectCursor()
 {
+	for (int i = 0; i < 4; i++)
+	{
+		if (m_pCursor[i] == nullptr) continue;
+		if (nConnectCtrl(i) != -1) m_pCursor[i]->SetPadNo(nConnectCtrl(i));
+		m_pCursor[i]->SetEnable(i < nConnectCtrlCt());
+	}
 }
 
 bool cAppGameBaseMenuMatching::Execute(cJetTask* pParam)
@@ -752,6 +798,7 @@ bool cAppGameBaseMenuMatching::Execute(cJetTask* pParam)
 				}
 				if (IsConfirmDecide())
 				{
+					GuestNames();
 					Constants::Kingdom_SetJobNo(nMultiJob());
 				}
 				else

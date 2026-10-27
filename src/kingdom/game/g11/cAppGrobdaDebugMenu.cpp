@@ -1,4 +1,5 @@
 #include "kingdom/game/g11/cAppGrobdaDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
@@ -19,7 +20,7 @@ constexpr int ROW_MODE = 1, ROW_STAGE = 2;
 cAppGrobdaDebugMenu::cAppGrobdaDebugMenu()
 {
 	SetName("Grobda Debug Menu");
-	SetMenu("Grobda", {{"MENU", 0x15200000u}, {"MODE", 0x15400000u}, {"STAGE", 0x15300000u}, {"GAMEOVER", 0x15500000u}, {"STAFFROLL", 0x15e00000u}, {"EXIT", 0x15f00000u}});
+	SetMenu("Grobda", {{"MENU", job::GROBDA_MENU}, {"MODE", job::GROBDA_DEBUG_SELECT}, {"STAGE", job::GROBDA_DEBUG_SELECT}, {"GAMEOVER", job::GROBDA_GAMEOVER}, {"STAFFROLL", job::GROBDA_STAFFROLL}, {"EXIT", job::GROBDA_TERM}});
 }
 
 // DOL 0x8000fcf8

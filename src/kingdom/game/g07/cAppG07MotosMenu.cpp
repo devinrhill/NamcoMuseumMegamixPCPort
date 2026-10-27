@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cAppG07MotosMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 
 #include "kingdom/game/g07/cTaskConsMenuMan.hpp"
@@ -54,7 +55,7 @@ void cAppG07MotosMenu::Init()
 	ConnectChild(pTaskConsMenuMan() = new cTaskConsMenuMan(this));
 	// DOL 0x801c490c end: the menu BGM m07bgm_Select unless coming back from the matching screen (0x11600000). The C# started it from a Unity
 	// coroutine (WaitPlayBGM), which never ran natively: the menu was silent.
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 0x11600000u)
+	if (KingdomGlobal::SysCore->GetLastJobNo() != job::MOTOS_MATCHING)
 	{
 		SoundManager::get_BGM()->Stop(0.0f);
 		SoundManager::get_BGM()->Play(EBGMKind::MOTOS_SND_BGM01_SELECT, 0.5f, true, false, true, 0.1f);
@@ -170,7 +171,7 @@ void cAppG07MotosMenu::MainExec()
 			if (pTaskConsMenuMan()->IsStageDecide())
 			{
 				pTaskConsMenuMan()->Uplode();
-				nSetNextJob(0x11800000u); // DOL 0x801c4dec: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
+				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c4dec: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
 			}
 			if (pTaskConsMenuMan()->IsMultiDecide())
 			{

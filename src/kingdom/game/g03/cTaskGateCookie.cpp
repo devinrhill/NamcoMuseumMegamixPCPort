@@ -47,6 +47,7 @@ bool cTaskGateCookie::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8017cb74: unless broken (+0x1d0), each digit sets its pattern frame and its push-back draws itself (vtable +0x54 = 0x8009abe0)
 void cTaskGateCookie::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_bBreak)
@@ -54,10 +55,12 @@ void cTaskGateCookie::Draw(int nStatus, cJetTask* pParam)
 		uint num = m_nCnt % 10;
 		cTaskModel::cPBModel* cPBModel = pPBModel();
 		cPBModel->SetFrameAnmTexPat(0u, num * 10);
+		cPBModel->UpdateMatrix();
 		// TODO(unity): cPBModel.m_Materials[0].SetTexture("_MainTex", ResourceCache.Get<Texture>("g03_pacnroll/gimmick/textures/ww/m03g_gaten" + num + "_c"));
 		num = m_nCnt / 10;
 		cTaskModel::cPBModel* cPBModel2 = pPBModel(1u);
 		cPBModel2->SetFrameAnmTexPat(0u, num * 10);
+		cPBModel2->UpdateMatrix();
 		// TODO(unity): cPBModel2.m_Materials[0].SetTexture("_MainTex", ResourceCache.Get<Texture>("g03_pacnroll/gimmick/textures/ww/m03g_gaten" + num + "_c"));
 	}
 }

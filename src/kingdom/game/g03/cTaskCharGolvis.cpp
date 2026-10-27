@@ -264,7 +264,7 @@ void cTaskCharGolvis::Term()
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE026_KAZE);
 	if (m_pBijikeEyeObj != nullptr)
 	{
-		m_pBijikeEyeObj->Term();
+		m_pBijikeEyeObj->TermOnce();
 	}
 	cTaskCharEnemy::Term();
 }
@@ -893,8 +893,8 @@ void cTaskCharGolvis::AttackProcess()
 	uint anmState = GetAnmState();
 	float frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 	float frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-	frameAnmChr *= 60.0f;
-	frameMaxAnmChr *= 60.0f;
+	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+	// frameMaxAnmChr *= 60.0f;  (same)
 	Vector4 v;
 	::Constants::jetGeoVecCopy(v, cTaskCharPacman2->vTrans());
 	float pOut;
@@ -1349,8 +1349,8 @@ void cTaskCharGolvis::MonsterFrameMove()
 	::Constants::jetGeoVecCopy(v, cTaskCharPacman2->vTrans());
 	float frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 	float frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-	frameAnmChr *= 60.0f;
-	frameMaxAnmChr *= 60.0f;
+	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+	// frameMaxAnmChr *= 60.0f;  (same)
 	if (Constants::IS_NAKAJIMA_PAUSE())
 	{
 		return;
@@ -1426,8 +1426,8 @@ void cTaskCharGolvis::MonsterFrameMove()
 	case 4:
 		frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 		frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-		frameAnmChr *= 60.0f;
-		frameMaxAnmChr *= 60.0f;
+		// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+		// frameMaxAnmChr *= 60.0f;  (same)
 		if (m_iIzikeLevel == 3)
 		{
 			vScale()[0] = 1.0f - 0.55f * frameAnmChr / frameMaxAnmChr;
@@ -1457,7 +1457,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 		{
 			uint anmState = GetAnmState();
 			frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
-			frameAnmChr *= 60.0f;
+			// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
 			if (anmState == 6)
 			{
 				float pOut;

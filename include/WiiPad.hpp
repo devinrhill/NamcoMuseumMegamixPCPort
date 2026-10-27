@@ -67,6 +67,8 @@ bool WriteConfig(const std::string& path);
 void Update();
 
 bool IsConnected(int channel);
+// Channels 0..n-1 count as connected even without a gamepad (the --pads switch: keyboard-only / scripted multiplayer). Channel 0 always is.
+void SetForcedConnected(int n);
 std::uint32_t Held(int channel);
 std::uint32_t Pressed(int channel);  // went down this frame
 std::uint32_t Released(int channel); // went up this frame
@@ -83,8 +85,9 @@ Pointer GetPointer(int channel);
 void InjectHeld(std::uint32_t mask, int channel = 0);
 // Test hook (--stick FRAME X Y): the Nunchuk stick of channel 0 for the next Update (-1..1, y up); cleared after it is read.
 void InjectStick(float x, float y);
-// Test hook: from now on channel 0's pointer is at (x, y) in the 640 x 480 game screen (origin top-left, y down) instead of the mouse. Overrides the mouse until cleared.
-void InjectPointer(float gameX, float gameY);
+// Test hook: from now on the channel's pointer is at (x, y) in the 640 x 480 game screen (origin top-left, y down) instead of the mouse (channel 0)
+// or the gamepad's right stick (channels 1..3). Overrides them until cleared.
+void InjectPointer(float gameX, float gameY, int channel = 0);
 void ClearInjectedPointer();
 
 // Programmatic remapping (the same thing input.cfg does): replaces the sources of one logical input.

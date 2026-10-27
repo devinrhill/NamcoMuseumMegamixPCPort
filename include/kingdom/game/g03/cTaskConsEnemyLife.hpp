@@ -78,6 +78,9 @@ public:
 	void Stay();
 
 	void Dead();
+
+protected:
+	void ReleaseTerm() override { cTaskConsEnemyLife::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -1,4 +1,5 @@
 #include "kingdom/cKingdomSys.hpp"
+#include "platform/devtools.hpp"
 #include "kingdom/cKingdomSave.hpp"
 
 #include "CustomKingdomUtil.hpp"
@@ -52,8 +53,10 @@ bool cKingdomSys::DetachArcData(const string& pArcName)
 sKingdomData* cKingdomSys::SearchDataEx(const string& pKey)
 {
 	CustomKingdomUtil::Assert(!pKey.empty(), "nullpo");
+	if (devtools::G03ExploreHidesData(pKey)) return nullptr; // devtools: --g03-explore hides the stage placement data (not 1:1)
 	std::size_t size = 0;
 	const std::uint8_t* data = wii::ArchiveStore::Find(pKey, size);
+	devtools::G03EditOverride(pKey, data, size); // devtools: the dev window's Pac-N-Roll editor swaps in its edited placement data (not 1:1)
 	if (data == nullptr)
 	{
 		return nullptr;

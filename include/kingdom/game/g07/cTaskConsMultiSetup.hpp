@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common.hpp"
+#include <string>
+#include <vector>
 #include "kingdom/game/g07/cTaskConsoleBase.hpp"
 #include "MotosUIMotosStartText.hpp"
 #include "cJetTask.hpp"
@@ -61,6 +63,17 @@ private:
 
 	static const float FONT_POS_WIN[2];
 
+	// the font writer +0x21c (Init 0x80100e0c: font KingSys +0xa68, size 28): Execute queues the names (0x80016e88, mode 2 = baseline, centred), Draw
+	// 0x80102190 draws the queue. Natively Execute collects them here and Draw prints them.
+	struct sName
+	{
+		float x, y;
+		std::string text;
+		uint color;
+	};
+	std::vector<sName> m_names;
+	void QueueName(float x, float y, const std::string& text, uint color, uint shadow);
+
 public:
 	MotosUIMotosStartText* UnityUIStart{};
 
@@ -79,6 +92,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	void Draw(int nState, cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsMultiSetup::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -16,7 +16,7 @@
 namespace kingdom::game::g01
 {
 
-// cTaskGimmick's Term 0x800eca00 releases the sound actor (+0x328; the 3D sound actor is not ported).
+// cTaskGimmick's Term 0x800eca00 releases the sound actor (+0x328; natively none: no cue plays on it, the hits use FUN_801c15ac).
 
 namespace
 {
@@ -127,12 +127,12 @@ float RandomFrame(float frameMax)
 }
 }
 
-// DOL 0x800ec9a0: kind 9, priority 0x10002, the sound actor (+0x328, 0x801c1680: not ported), active
+// DOL 0x800ec9a0: kind 9, priority 0x10002, the sound actor (+0x328, 0x801c1680: natively none, no cue plays on it), active
 cTaskGimmick::cTaskGimmick()
 {
 	SetName("g01::cTaskGimmick");
 	m_nKind = 9;
-	nDrawPriority(std::getenv("XPRI") ? 0x7fff0000u : 0x10002u);
+	nDrawPriority(0x10002u);
 	m_b08 = true;
 	m_b09 = true;
 }
@@ -208,7 +208,7 @@ void cTaskGimmick::Setup(const wii::Mdl0Node& node, int nIndex, int nFogIdx)
 		m->SetFrameAnmTexSrt(0u, RandomFrame(m->GetFrameMaxAnmTexSrt(0u)));
 	}
 	Place(node);
-	// vtable +0xac (0x800ecff0): the sound actor follows +0x20 (not ported)
+	// vtable +0xac (0x800ecff0): the sound actor follows +0x20 (natively none)
 }
 
 // DOL 0x800ed000: the clips advance while the object is active and the game is not paused

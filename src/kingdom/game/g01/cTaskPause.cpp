@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cTaskPause.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 namespace kingdom::game::g01
 {
@@ -7,7 +8,7 @@ namespace kingdom::game::g01
 cTaskPause::cTaskPause()
 {
 	RegistData("ANT_PAUSE", "ANT_MENU_POINTER", nullptr);   // 0x80147a64(this, 0xdf5903f3, 0xf63671cb, matching)
-	nMenuJob() = 0x0b200000u;
+	nMenuJob() = job::GALAGA_MENU;
 }
 
 cTaskPause::~cTaskPause()

@@ -56,6 +56,9 @@ public:
 	void Update(uint have);
 
 	bool Execute(cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsHaveCookie::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

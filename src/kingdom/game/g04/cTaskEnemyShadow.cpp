@@ -110,4 +110,14 @@ bool cTaskEnemyShadow::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8009aad0 (kingdom::cTaskPBModel::Draw, the task vtable's thunk 0x80088c10): the model's slot +0x18 (= 0x801b0380, run as Execute
+// natively), then when visible (+0x44) the push-back's +0x54 = this frame's submission. The port's engine cTaskPBModel::Draw is empty.
+void cTaskEnemyShadow::Draw(int, cJetTask*)
+{
+	// The ctor pushes this shadow back onto node "wani" of gator model m_nModel (0x8001f798 -> ScnMdlExpand::PushBack): it is drawn
+	// with that model only. Without this gate the other model's shadow (constant WANI_SH_CLA, alpha 100 = visible) always showed.
+	kingdom::cKingdomModel* g = m_pOwner != nullptr ? m_pOwner->pModel(m_nModel) : nullptr;
+	if (Model != nullptr && Model->IsVisible() && g != nullptr && g->IsVisible()) Model->UpdateMatrix();
+}
+
 }

@@ -58,6 +58,9 @@ private:
 
 public:
 	void Update(Vector4 trans);
+
+protected:
+	void ReleaseTerm() override { cTaskConsBomCursor::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

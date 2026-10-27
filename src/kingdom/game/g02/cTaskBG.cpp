@@ -81,6 +81,37 @@ cTaskBG::cTaskBG()
 	add("STAGE_BG_OUT", nullptr, cSet("STAGE_BG_OUT_SET").ByIndex(1));
 }
 
+// DOL 0x8006002c: every handle detaches its particle (vtable +0x10 with 1)
+void cTaskBG::Term()
+{
+	for (auto& h : m_Ptk)
+		if (h != nullptr) h->Detach(true);
+}
+
+// DOL 0x8006016c
+bool cTaskBG::ResetPtk()
+{
+	if (!Exists("STAGE_BG_PTK_POINT")) return false;   // FUN_8000bca0(0xefad9461)
+	cSet set("STAGE_BG_PTK_POINT");                     // FUN_8001e790(.., 0x36f)
+	if (!set.ok) return false;
+	int root = -1;
+	for (const wii::Mdl0Node& n : set.skel.nodes)
+		if (n.name == "ef_butterfly01") { root = n.id; break; }   // ResMdl::GetResNode
+	if (root < 0) return false;
+	// the children through ResNode +0x60 (first child) / +0x64 (next sibling): in the node list order
+	uint i = 0;
+	for (const wii::Mdl0Node& n : set.skel.nodes)
+	{
+		if (n.parent != root) continue;
+		if (m_Ptk.size() < i + 1) m_Ptk.resize(i + 1);
+		if (m_Ptk[i] == nullptr) m_Ptk[i] = std::make_unique<kingdom::cKingdomPtkHnd>();
+		// FUN_80021a9c(delay 0 (FLOAT_8047a8cc), hnd, slot 0x28, onetime 0, depend 0, clipping 1, the node's translation (+0x38), no rotate / scale)
+		m_Ptk[i]->Generate(0x28u, false, false, true, 0.0f, Vector4(n.translate[0], n.translate[1], n.translate[2], 1.0f));
+		i++;
+	}
+	return i != 0;   // UNVERIFIED: the DOL returns 1 only when the node has children
+}
+
 // DOL 0x800600a4 (UNVERIFIED body: the clips run)
 bool cTaskBG::Execute(cJetTask* pParam)
 {

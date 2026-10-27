@@ -44,7 +44,7 @@ public:
 	cTaskGrobdaEnemyFrossor(uint type, bool brown);       // DOL 0x8002bd30 / 0x8002c1b0 + Init
 	void SetStart(int level, int delay, int angleDeg) override;   // DOL 0x8002a840
 	bool HasShots() override;                             // DOL 0x8002ab08
-	bool Execute(cJetTask* pParam) override { return cTaskGrobdaEnemy::Execute(pParam); }   // DOL 0x8002c128 / 0x8002c5a8
+	bool Execute(cJetTask* pParam) override { return cTaskGrobdaEnemy::Execute(pParam); }   // DOL 0x8002a7e0 (Green) / 0x8002c128 / 0x8002c5a8: wrappers whose get_pad1 gate does nothing
 protected:
 	void Phase2() override;   // 0x8002b9a4
 	void Phase3() override;   // 0x8002ba1c

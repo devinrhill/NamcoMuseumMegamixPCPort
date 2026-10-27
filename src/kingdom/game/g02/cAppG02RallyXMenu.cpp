@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cAppG02RallyXMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "WiiSnd.hpp"
@@ -24,8 +25,9 @@ const int s_CursorAnm[2] = {0, 1};
 // m02bgm_Select (PTR 0x8047bf8c), played through a temporary cKingdomSndHnd (FUN_80025988) that lets go at once: the BGM keeps playing
 // into the matching job. NATIVE: the voice is kept here so Free can fade it like the global BGM fade of the base menu (0x8014390c
 // FUN_80025560(KingSys +0xa54, 500), which natively only reaches SoundManager's BGM)
-WiiSnd::Handle s_Bgm;
 }
+
+WiiSnd::Handle g_RallyXMenuBgm;
 
 // DOL 0x800c6504 (job 194, 0x0c200000)
 void cAppG02RallyXMenu::JobInit()
@@ -61,16 +63,16 @@ cAppG02RallyXMenu::cAppG02RallyXMenu()
 	m_pCtlTutorial->nDrawPriority(0x8000000au);
 	ConnectChild(m_pCtlTutorial);
 	// the BGM, unless coming back from the matching (0x0c700000)
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 0x0c700000u) WiiSnd::Play(s_Bgm, "m02bgm_Select");
+	if (KingdomGlobal::SysCore->GetLastJobNo() != job::RALLYX_MATCHING) WiiSnd::Play(g_RallyXMenuBgm, "m02bgm_Select");
 }
 
 void cAppG02RallyXMenu::Free()
 {
 	cG02RallyXSysExt::DetachMenuArc();
-	if (IsSndAllStop())   // NATIVE stand-in for the base menu's global BGM fade (see s_Bgm)
+	if (IsSndAllStop())   // NATIVE stand-in for the base menu's global BGM fade (see g_RallyXMenuBgm)
 	{
-		WiiSnd::FadeOut(s_Bgm, 500);
-		WiiSnd::Detach(s_Bgm);
+		WiiSnd::FadeOut(g_RallyXMenuBgm, 500);
+		WiiSnd::Detach(g_RallyXMenuBgm);
 	}
 	kingdom::NativeScene::Reset();
 	cAppGameBaseMenu::Free();
@@ -142,11 +144,11 @@ void cAppG02RallyXMenu::MainExec()
 			[[fallthrough]];
 		case 1u:
 			m_pConsMan->Select();
-			if (m_pConsMan->IsBackDecide()) nSetNextJob(0x0cf00000u);   // job 207: back to the hub
+			if (m_pConsMan->IsBackDecide()) nSetNextJob(job::RALLYX_TERM);   // job 207: back to the hub
 			if (m_pConsMan->IsStageDecide())
 			{
 				m_pConsMan->SetStage();
-				nSetNextJob(0x0c900000u);   // job 201: the Nunchuk card, then the stage
+				nSetNextJob(job::RALLYX_NUNCHUK);   // job 201: the Nunchuk card, then the stage
 			}
 			if (m_pConsMan->IsRuleDecide())
 			{
@@ -156,7 +158,7 @@ void cAppG02RallyXMenu::MainExec()
 			if (m_pConsMan->IsMultiDecide())
 			{
 				SetSndAllStop(false);
-				nSetNextJob(0x0c700000u);   // job 199: the matching (NOT PORTED)
+				nSetNextJob(job::RALLYX_MATCHING);   // job 199: the matching (NOT PORTED)
 			}
 			if (nOldState(n) == nModeState(n)) break;
 			nModeStep(n) = 2u;

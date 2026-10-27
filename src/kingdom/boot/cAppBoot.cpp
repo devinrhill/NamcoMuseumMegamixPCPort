@@ -110,7 +110,7 @@ bool cAppBoot::Execute(cJetTask* pParam)
 	if (S != s_lastLogged)
 	{
 		s_lastLogged = S;
-		std::printf("cAppBoot: state %u\n", S);
+		// std::printf("cAppBoot: state %u\n", S);
 	}
 
 	if (S < STATE_COUNT)

@@ -56,7 +56,7 @@ protected:
 	void PointExec() override;           // DOL 0x8010644c
 	bool DecideExec() override;          // DOL 0x801064b0
 
-private:
+protected:   // the multiplayer menu's Back (cTaskConsMultiMenuBack) sets the hit pattern itself
 	int m_nHitPat{};                     // +0x1d8 (0x1d)
 };
 
@@ -129,7 +129,7 @@ protected:
 	bool AppearExec() override;          // DOL 0x80107798
 	void PointExec() override;           // DOL 0x801078b8
 
-private:
+protected:   // cTaskConsMultiMenuController
 	int m_nType{};                       // +0x1dc
 	int m_nHitPat{};                     // +0x1e0 (0x16)
 };
@@ -148,7 +148,7 @@ protected:
 	void WaitExec() override;            // DOL 0x80107e00
 	bool AppearExec() override;          // DOL 0x80107e64
 
-private:
+protected:   // cTaskConsMultiMenuCurtain
 	int m_nWorldNo{};                    // +0x1d8
 };
 
@@ -188,7 +188,7 @@ protected:
 	void PointExec() override;           // DOL 0x8010a7dc
 	bool DecideExec() override;          // DOL 0x8010a840
 
-private:
+protected:   // cTaskConsMultiMenuRule
 	int m_nHitPat{};                     // +0x1d8 (0x18)
 };
 

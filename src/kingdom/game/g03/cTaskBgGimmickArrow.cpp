@@ -15,6 +15,8 @@
 #include <SoundManager.hpp>
 #include <SoundSe.hpp>
 #include <SoundSeObject.hpp>
+#include "platform/devtools.hpp"
+#include <cmath>
 
 namespace kingdom::game::g03
 {
@@ -167,6 +169,7 @@ bool cTaskBgGimmickArrow::HitCheck()
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
 	Vector4 v;
 	::Constants::jetGeoVecSub(v, cTaskCharPacman2->vTrans(), this->Model->vTrans());
+	{ const float c[3] = {this->Model->vTrans()[0], this->Model->vTrans()[1], this->Model->vTrans()[2]}; devtools::G03HitSphere(c, std::sqrt(cTaskCharPacman2->fRadius() * cTaskCharPacman2->fRadius() + 0.36f), 0xffffffffu); } // devtools: --g03-show-gimmick-hit (not 1:1): where Pac-Man's centre is hit
 	if (::Constants::jetGeoVecInnerProduct(v, v) <= cTaskCharPacman2->fRadius() * cTaskCharPacman2->fRadius() + 0.36f)
 	{
 		return true;

@@ -54,6 +54,9 @@ public:
 	void Update(uint now);
 
 	bool Execute(cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsGhost::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

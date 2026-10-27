@@ -183,7 +183,7 @@ void cTaskGimmick::FxOnce(uint nSlot, kingdom::cKingdomModel* m)
 void cTaskGimmick::Se(const char* cue)
 {
 	WiiSnd::Handle h;
-	WiiSnd::Play(h, cue);   // FUN_80129d78(h, cue, 0, actor): the 3D sound actor NOT PORTED (plain 2D)
+	WiiSnd::Play(h, cue);   // FUN_80129d78(h, cue, 0, 0): no actor
 	WiiSnd::Detach(h);
 }
 
@@ -245,7 +245,7 @@ const char* cTaskGimmickMud::GetName() const { return MUD_NAME[m_nKind]; }
 cTaskGimmickSmoke::cTaskGimmickSmoke()
 {
 	SetName("g02::cTaskGimmickSmoke");
-	// +0x1f0 cKingdomPtkHnd, +0x244 cKingdomSndActor (FUN_8002654c, NOT PORTED)
+	// +0x1f0 cKingdomPtkHnd, +0x244 cKingdomSndActor (FUN_8002654c: m_SndActor)
 	InitSmoke();   // vtable +0x3c with the smoke vtable
 }
 
@@ -299,9 +299,9 @@ bool cTaskGimmickSmoke::Put(int nOwner, const int pCell[2], int nIndex)
 	m_nOwner = nOwner;
 	m_nX = pCell[0];
 	m_nZ = pCell[1];
-	// the sound actor goes to (x - 4, 0, z - 8) (FUN_80026620 / FUN_80026660): NOT PORTED
+	m_SndActor.SetPosition(Vector4((float)(m_nX - 4), 0.0f, (float)(m_nZ - 8), 1.0f));   // 0x800b2738 (velocity 0: FUN_80026660)
 	Start(nIndex);            // vtable +0x5c
-	Se("m02se_02Smoke");      // DAT_8047afa8, with the actor +0x244
+	m_SndActor.Play("m02se_02Smoke");   // DAT_8047afa8 through FUN_80129d78 on the actor +0x244 (its app-state-6 volume not applied: no app here)
 	return true;
 }
 
@@ -331,7 +331,10 @@ cTaskGimmick* cTaskGimmickMan::Create(int nType, const int* pCell, int nDir)
 	case 35: g = new cTaskItemChameleonPaint(); break;       // FUN_80071028
 	case 36: g = new cTaskItemSmokeTank(); break;            // FUN_80070f14
 	case 37: g = new cTaskItemSpecialArmor(); break;         // FUN_80070e00
-	// 38 cTaskItemMultiFuelBurst (FUN_80070c5c), 39 cTaskItemMultiChameleonPaint (FUN_80070abc): multiplayer, NOT PORTED
+	case 38: g = new cTaskItemMultiFuelBurst(); break;       // FUN_80070c5c
+	case 39: g = new cTaskItemMultiChameleonPaint(); break;  // FUN_80070abc
+	case 40: g = new cTaskItemMultiSmokeTank(); break;       // FUN_8007091c
+	case 41: g = new cTaskItemMultiSpecialArmor(); break;    // FUN_80070708
 	default:
 		if (nType >= 4 && nType <= 10) g = new cTaskGimmickMud(nType);                 // FUN_800732d4 .. FUN_80072d64
 		else if (nType >= 12 && nType <= 31) g = new cTaskItemFlagNumber(nType - 11);   // FUN_80072b20 .. FUN_800714d8
@@ -370,6 +373,14 @@ bool cTaskGimmickMan::Contact(cTaskUnit* pUnit, int x, int z, bool bReact)
 }
 
 // DOL 0x80073af4
+// DOL 0x80073ba0 / 0x80073c24
+bool cTaskGimmickMan::IsTypeActive(int nType) const
+{
+	for (const cTaskGimmick* g : m_vec)
+		if (g != nullptr && g->nType() == nType && g->IsActive()) return true;
+	return false;
+}
+
 bool cTaskGimmickMan::IsCellFree(int x, int z) const
 {
 	for (const cTaskGimmick* g : m_vec)

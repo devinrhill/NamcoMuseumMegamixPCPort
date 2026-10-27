@@ -1,4 +1,5 @@
 #include "kingdom/game/g04/cAppG04WaniWaniNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "WiiPad.hpp"
@@ -18,7 +19,7 @@ void cAppG04WaniWaniNunchuk::JobInit()
 cAppG04WaniWaniNunchuk::cAppG04WaniWaniNunchuk()
 {
 	RegistLayout("COMMON_ANITA_NUNCHUK");   // 0xf44c4825
-	nNextJob() = 0x0e300000u;
+	nNextJob() = job::WANIWANI_GAME;
 	SetName("cAppG04WaniWaniNunchuk");
 }
 

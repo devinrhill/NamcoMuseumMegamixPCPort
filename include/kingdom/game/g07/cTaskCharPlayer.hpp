@@ -251,6 +251,9 @@ private:
 	int GetPadDir(int padNum);
 
 	Vector2 GetPadLStickOrKey(int padNum);
+
+protected:
+	void ReleaseTerm() override { cTaskCharPlayer::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

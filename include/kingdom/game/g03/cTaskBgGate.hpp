@@ -100,6 +100,9 @@ public:
 
 private:
 	bool AreaCheck();
+
+protected:
+	void ReleaseTerm() override { cTaskBgGate::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

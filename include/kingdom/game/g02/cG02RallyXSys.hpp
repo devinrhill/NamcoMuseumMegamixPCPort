@@ -15,6 +15,26 @@ public:
 	static void JobInit();           // DOL 0x800c6444 (job 192)
 	static void JobEnd();            // DOL 0x800c64a8 (job 207)
 
+	// the multiplayer menu's settings (job 200; the DOL's accessors 0x800c5968 / 0x800c5970 / 0x800c5990 / 0x800c5998 / 0x800c5950 / 0x800c5978 / 0x800c58b0)
+	int nFlagIdx() const { return m_n00; }          // +0x00 (0..4 into FLAG_COUNT)
+	void nFlagIdx(int n) { m_n00 = n; }
+	int nTimeIdx() const { return m_n04; }          // +0x04 (0..2 into TIME_MS)
+	void nTimeIdx(int n) { m_n04 = n; }
+	int nFlagCount() const { return FLAG_COUNT[m_n00]; }   // DOL 0x800c5950 (table 0x80371160)
+	int nTimeMs() const { return TIME_MS[m_n04]; }         // DOL 0x800c5978 (table 0x80371178)
+	// +0x10 is the bit mask of the players that won the last multiplayer round (the winner's mark on the menu's number plate)
+	bool IsPlayerActive(int p) const { return (m_n10 & (1 << p)) != 0; }   // DOL 0x800c58b0
+	void ClearWinners() { m_n10 = 0; }                                       // DOL 0x800c5890 (the app's "cAIPad::cAIPad" call)
+	void SetWinner(int p) { m_n10 |= 1 << p; }                               // DOL 0x800c5898
+	int nFirstWinner(int nPlayer) const                                      // DOL 0x800c58d0: the lowest set bit below the player count (0 when none)
+	{
+		for (int i = 0; i < nPlayer; i++)
+			if ((m_n10 & (1 << i)) != 0) return i;
+		return 0;
+	}
+	static const int FLAG_COUNT[6];                 // DOL 0x80371160 {1, 5, 10, 15, 20, 0}
+	static const int TIME_MS[4];                    // DOL 0x80371178 {60000, 180000, 300000, 0}
+
 	int nStageIdx() const { return m_nStageIdx; }   // +0x08 (1..30; 0 = the multiplayer stage g02wxxsxx)
 	void nStageIdx(int n) { m_nStageIdx = n; }
 	bool IsBossStage() const;        // DOL 0x800c5ba8: the 6th stage of a world

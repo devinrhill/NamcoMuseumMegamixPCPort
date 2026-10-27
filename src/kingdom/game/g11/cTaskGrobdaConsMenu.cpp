@@ -272,8 +272,18 @@ cTaskConsMenuMan::cTaskConsMenuMan(kingdom::game::cAppGameBaseMenu* pApp)
 		wii::Brres b;
 		wii::ScnAnim a;
 		wii::CameraResult cam;
-		if (d != nullptr && b.Load(d, size) && a.Load(b) && a.SampleCamera("", 0.0f, cam))
-			kingdom::NativeScene::SetCamera(cam.pos, cam.aimPos, cam.fovy, cam.nearZ, cam.farZ);
+		if (d != nullptr && b.Load(d, size) && a.Load(b))
+		{
+			if (a.SampleCamera("", 0.0f, cam)) kingdom::NativeScene::SetCamera(cam.pos, cam.aimPos, cam.fovy, cam.nearZ, cam.farZ);
+			// the file is bound as the ScnRoot's AnmScn (0x80149f74 -> ResAnmScn::Bind, 0x8014a388 -> ScnRoot SetAnmScn), which also applies its
+			// light set, ambient and fog: natively only the camera was taken, so the menu models had no light set (too dark)
+			wii::LightResult light;
+			if (a.SampleLightSet(0.0f, light))
+			{
+				a.SampleFog(light);
+				kingdom::NativeScene::SetLight(0, light);
+			}
+		}
 	}
 	for (int i = 0; i < 4 && i < sys->nPlayer(); i++)
 	{

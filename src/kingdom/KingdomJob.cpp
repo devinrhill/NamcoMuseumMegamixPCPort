@@ -15,7 +15,7 @@ void Kingdom_SetJobNo(uint jobNo, bool force, bool fade)
 		return;
 	}
 	KingdomGlobal::KingSys->nNextJob() = jobNo;
-	KingdomGlobal::SysCore->SetJobNo(fade ? job::CHANGE_FADE : job::CHANGE);
+	KingdomGlobal::SysCore->SetJobNo(fade ? job::LOAD : job::SAVE);
 }
 
 }

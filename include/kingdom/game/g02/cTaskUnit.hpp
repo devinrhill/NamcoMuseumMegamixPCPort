@@ -6,6 +6,7 @@
 #include "WiiSnd.hpp"
 #include "common.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskModel.hpp"
 
 namespace kingdom { class cKingdomModel; }
@@ -242,6 +243,7 @@ protected:
 	int CellZ() const;                          // (int)(z +- 0.5) + 8
 	int MapCell(int x, int z) const;            // cTaskMap::Cell (MAPOO_MAP value; 0 without a map)
 	bool MapRoad(int x, int z) const;           // FUN_80079aec (cTaskMap::Attr bit 0)
+	void SeRemote(const char* cue);             // a player's unit (id & 0x10): FUN_80025b6c(handles, sys 0x800c5b98(index), cue, 0)
 	void Se(const char* cue);                   // FUN_80129d78(handle, cue, 0, actor +0x378) with a temporary handle (3D actor NOT PORTED)
 	void Effects();                             // the particle part of Execute 0x8007f714
 	Vector4 NodePos(const char* node, const Vector4& add);   // model pos + RotY(rot.y) * (node translation + add) (FUN_8001dd54 + MTX44)
@@ -317,6 +319,7 @@ protected:
 	int m_nFlagChain{};                         // +0x2ec (flags in a row, max 20)
 	WiiSnd::Handle m_SndEngine;                 // +0x360
 	WiiSnd::Handle m_SndFuel;                   // +0x36c (the low fuel alarm)
+	kingdom::cKingdomSndActor m_SndActor;       // +0x378 (the car's 3D sound actor, at the car model)
 	// +0x2f0 the 3D sound listener, +0x378 the sound actor: NOT PORTED
 	kingdom::cKingdomPtkHnd m_FxNitroR;         // +0x380 (slot 2)
 	kingdom::cKingdomPtkHnd m_FxNitroL;         // +0x3d0 (slot 2)
@@ -344,6 +347,9 @@ protected:
 private:
 	friend bool FillConsCar(kingdom::cTaskModel* pCar, sConsCar& out);
 	std::map<std::string, std::string> m_Clip;  // native bookkeeping of IsAttached: "model|slot|kind" -> entry
+
+protected:
+	void ReleaseTerm() override { cTaskUnit::Term(); kingdom::cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 // cTaskConsole::Hooks.CarState for a cTaskUnit (the unit members the console parts read, sConsCar in cTaskConsole.hpp); false (all zero)

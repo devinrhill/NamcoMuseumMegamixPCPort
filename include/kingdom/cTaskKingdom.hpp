@@ -26,6 +26,8 @@ public:
 private:
 	cTaskKingdom::sFlow* m_Flow[8]{};
 
+	bool m_bTermDone{};
+
 	void Init();
 
 	void Term();
@@ -50,6 +52,17 @@ public:
 	void nDrawPriority(uint n) override;
 
 	uint nDrawPriority() override;
+
+	// The DOL destroys a released task (cJetNode::Release 0x8008ff14 -> vtable +0x10, default 0x80009dc8 = delete this): the destructor
+	// chain runs every class's Term, most derived first. The port never deletes tasks: DeleteExecute runs TermOnce instead, and every task
+	// class with a Term overrides ReleaseTerm as `X::Term(); Base::ReleaseTerm();` (the dtor chain). Code that terminated a task by hand
+	// (the C# stand-in for `delete`) calls TermOnce, so a released task never runs its Term twice. cAppKingdom keeps its own DeleteExecute.
+	void TermOnce();
+
+protected:
+	virtual void ReleaseTerm() {}
+
+	void DeleteExecute() override;
 };
 
 }

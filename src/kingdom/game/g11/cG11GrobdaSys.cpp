@@ -61,7 +61,7 @@ void cG11GrobdaSys::JobInit()
 {
 	delete KingdomGlobal::GrobdaSys;
 	KingdomGlobal::GrobdaSys = new cG11GrobdaSys();
-	Kingdom_SetJobNo(0x15200000u, false, 0);
+	Kingdom_SetJobNo(job::GROBDA_MENU, false, 0);
 }
 
 // DOL 0x8000f10c
@@ -69,7 +69,7 @@ void cG11GrobdaSys::JobEnd()
 {
 	delete KingdomGlobal::GrobdaSys;
 	KingdomGlobal::GrobdaSys = nullptr;
-	Kingdom_SetJobNo(0x08a00000u, false, 0);
+	Kingdom_SetJobNo(job::MENU, false, 0);
 }
 
 // DOL 0x8000ed64 (table 0x80476828: stage01, stage02; the words after them are other data)

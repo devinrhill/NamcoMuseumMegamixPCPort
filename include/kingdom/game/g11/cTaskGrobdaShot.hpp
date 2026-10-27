@@ -5,7 +5,7 @@
 #include "kingdom/game/g11/cGrobdaCollision.hpp"
 #include "kingdom/game/g11/cTaskGrobdaModel.hpp"
 
-namespace kingdom { class cKingdomPtkHnd; }
+namespace kingdom { class cKingdomPtkHnd; class cKingdomModel; }
 
 // Grobda Remix (g11) shots: kingdom::game::g11::cTaskGrobdaShot (base, 0xb40 bytes: cGrobdaObject + cTaskKingdom at +0x97c; ctor 0x800aaa0c, Execute 0x800aac50, fire
 // 0x800ab090, move 0x800aadfc, Resolve 0x800ab4b4 / 0x800ab930, hit stop 0x800ab424), cTaskGrobdaShotPlayer (ctor 0x800ac4a8, fire wrapper 0x800ac640 = the sound m11se_laser +
@@ -60,6 +60,7 @@ class cTaskGrobdaShotGrenade : public cTaskGrobdaShot
 {
 public:
 	explicit cTaskGrobdaShotGrenade(uint type);
+	~cTaskGrobdaShotGrenade() override;                                // DOL 0x800abbf0
 	void Throw(float speed, const float pos[3], const float rot[3]);   // DOL 0x800ac050
 	bool Execute(cJetTask* pParam) override;                           // DOL 0x800abddc
 	static float s_fGravity;                                           // FLOAT_804772dc (set by the player's Init)
@@ -68,6 +69,9 @@ protected:
 private:
 	void Explode();                                                    // DOL 0x800ac320
 	bool m_bFlight{};                                                  // +0xb3c
+	// +0xb40: kingdom::game::g11::cGrobdaShadowModel (0x2a0, ctor 0x80193e74: a cKingdomModel with a cTaskPushBack at +0xd8) holding
+	// BIN_MDL_GRENADE_SHADOW; placed at the ball while it flies (Execute), drawn only then (Draw 0x800abfc8)
+	kingdom::cKingdomModel* m_pShadow{};
 };
 
 class cTaskGrobdaShotEnemy : public cTaskGrobdaShot

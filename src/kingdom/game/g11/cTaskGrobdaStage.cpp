@@ -379,7 +379,7 @@ bool cTaskGrobdaStage::LoadWave(const std::string& name)
 }
 
 // DOL 0x80037fcc (camera + state machine): cTaskGrobdaCamera (0x8003027c) takes ScnRoot camera 0 and 0x80191f88 sets it from frame 0 of
-// BIN_SCA_STAGE_CAMERA (aim posture)
+// BIN_SCA_STAGE_CAMERA (aim posture); its Execute (0x80030444, below) runs natively at the end of this Execute
 bool cTaskGrobdaStage::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -434,7 +434,11 @@ bool cTaskGrobdaStage::Execute(cJetTask* pParam)
 	if (d != nullptr && b.Load(d, size) && a.Load(b) && a.SampleCamera("", 0.0f, cam))
 	{
 		float target[3] = {cam.aimPos[0], cam.aimPos[1], cam.aimPos[2]};
-		kingdom::NativeScene::SetCamera(cam.pos, target, cam.fovy, cam.nearZ, cam.farZ);
+		// DOL 0x80030444 cTaskGrobdaCamera::Execute -> FUN_80191d2c (cGrobdaCamera update, every frame): position = Trans(aim +0x20) x RotZ(+0x38)
+		// x RotY(+0x34) x RotX(+0x30) x Trans(pos +0x10) applied to the origin, aim posture unchanged. 0x80191f88 stored the file's pos / aim, the
+		// rotations stay 0 (only the ctor 0x80191c0c writes them), so the drawn camera is aim + pos (w1 stage: y 38.5 / z 31.64, not 38 / 30.84)
+		float pos[3] = {cam.aimPos[0] + cam.pos[0], cam.aimPos[1] + cam.pos[1], cam.aimPos[2] + cam.pos[2]};
+		kingdom::NativeScene::SetCamera(pos, target, cam.fovy, cam.nearZ, cam.farZ);
 	}
 	return true;
 }

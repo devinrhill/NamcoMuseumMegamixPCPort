@@ -76,6 +76,9 @@ public:
 	virtual void SetParam(uint nFlyTime, float fRadius, float max);
 
 	virtual void Shoot();
+
+protected:
+	void ReleaseTerm() override { cTaskCharGhostBomb::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskModel.hpp"
 #include "kingdom/game/g01/cDemoMan.hpp"
 #include "kingdom/game/g01/cObject.hpp"
@@ -50,6 +51,7 @@ public:
 	static cTaskPacman* s_pInstance;                   // the global Pac-Man (r13 - 0x56e0)
 
 protected:
+	kingdom::cKingdomSndActor m_SndActor;   // +0x460: the cGalagaSndActor (0x801c1680, made in 0x800f2e4c), released by Term
 	void LoadModel();          // DOL 0x800f41d4 (vtable +0xac)
 	void SetStartClip();       // DOL 0x800f5ab0
 	virtual void SetCourseClip();   // DOL 0x800f5bf0 (vtable +0xd4)

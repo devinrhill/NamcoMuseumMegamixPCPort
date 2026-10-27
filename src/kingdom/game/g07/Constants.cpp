@@ -1,3 +1,4 @@
+#include "platform/devtools_g07edit.hpp"
 #include "kingdom/game/g07/Constants.hpp"
 
 #include <random>
@@ -592,6 +593,7 @@ bool Constants::IS_CLEARPAUSE()
 
 bool Constants::MOTOS_IS_PAUSE()
 {
+	if (devtools::G07EditFrozen()) return true; // devtools: the Motos editor freezes the stage (not 1:1)
 	if (!kingdom::Constants::IS_PAUSE() && KingdomGlobal::g_pMotosGame->IsGameStart())
 	{
 		return KingdomGlobal::g_pMotosGame->IsPause();

@@ -39,6 +39,9 @@ public:
 	void Draw(int nState, cJetTask* pParam) override;
 
 	void RegistGimmick(cTaskBgGimmick* gim);
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickPistonMan::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

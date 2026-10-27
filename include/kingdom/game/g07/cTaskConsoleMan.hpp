@@ -72,6 +72,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	void ItemSetup();
+
+protected:
+	void ReleaseTerm() override { cTaskConsoleMan::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

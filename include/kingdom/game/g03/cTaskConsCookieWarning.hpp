@@ -54,6 +54,9 @@ public:
 	void EndGate();
 
 	bool Execute(cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsCookieWarning::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -122,12 +122,18 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	void UpdateMatrix();
+	// the CHR slot whose "root" bone moves the collision (-1 = none), and the root fold of DOL 0x80154e64 (m_Mtx *= S * rt, m_MtxRotate *= r)
+	int AnmRootSlot();
+	void ApplyAnmRoot();
 
 	void RegistHitData(string key);
 
 	virtual void HitCallbackWall(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW);
 
 	virtual void HitCallbackFloor(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW);
+
+protected:
+	void ReleaseTerm() override { cTaskBgHit::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

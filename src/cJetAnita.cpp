@@ -217,7 +217,11 @@ bool cJetAnita::DrawLayer(sDatLayP* pLay)
 			pLay->tex, pLay->px, pLay->py, pLay->isx, pLay->isy, pLay->irot, pLay->ocx, pLay->ocy, pLay->osx, pLay->osy, pLay->orot, w, h,
 			xy[0], xy[1], xy[2], xy[3], xy[4], xy[5], xy[6], xy[7]);
 	}
-	const gfx::Blend blend = (pLay->blend == (int)jet::eANITA_LAY_BLEND_ADD) ? gfx::BLEND_ADD : gfx::BLEND_ALPHA;
+	// DOL 0x80142878: layer +0x50 MUL (1) -> GXSetBlendMode(BLEND, SRCALPHA, INVSRCALPHA), ADD (2) -> (BLEND, SRCALPHA, ONE), NON (0) or
+	// anything else -> GX_BM_NONE; the Anita draw setup (FUN_80141eec) sets the alpha compare to ALWAYS, so a NON layer is drawn opaque
+	const gfx::Blend blend = pLay->blend == (int)jet::eANITA_LAY_BLEND_MUL   ? gfx::BLEND_ALPHA
+	                         : pLay->blend == (int)jet::eANITA_LAY_BLEND_ADD ? gfx::BLEND_ADD
+	                                                                         : gfx::BLEND_NONE;
 	if (textured)
 	{
 		gfx::DrawQuad(anitaTex->pBrres->gfxId, xy, uv, pLay->r, pLay->g, pLay->b, pLay->a, blend, true);   // see the NEAREST note above

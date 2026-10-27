@@ -33,6 +33,9 @@ public:
 	bool ActionBoth() override;
 
 	void SetMMSParam(int para1, int para2, int para3) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemyFireBug::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -12,8 +12,10 @@ g++ $FLAGS tests/brres_dump.cpp src/wii/Brres.cpp src/wii/Archive.cpp src/WiiSys
 g++ $FLAGS tests/anim_dump.cpp src/wii/Anim.cpp src/wii/Brres.cpp src/wii/Archive.cpp src/WiiSystem.cpp -o build/tests/anim_dump 2>&1 | grep error
 g++ $FLAGS tests/rfnt_dump.cpp src/wii/Rfnt.cpp src/wii/Brres.cpp src/wii/Archive.cpp src/WiiSystem.cpp -o build/tests/rfnt_dump 2>&1 | grep error
 g++ $FLAGS tests/snd_dump.cpp src/snd/Strm.cpp src/snd/Archive.cpp -o build/tests/snd_dump 2>&1 | grep error
+g++ $FLAGS tests/gotch_z80_test.cpp src/gotch/Z80.cpp src/gotch/RsoModule.cpp src/WiiSystem.cpp -o build/tests/gotch_z80_test 2>&1 | grep error
+g++ $FLAGS tests/gotch_storage_test.cpp src/gotch/DataStorage.cpp -o build/tests/gotch_storage_test 2>&1 | grep error
 rc=0
-for t in wiipad_test archive_test save_test gfx_math_test; do ./build/tests/$t 2>/dev/null | tail -1 || rc=1; done
+for t in wiipad_test archive_test save_test gfx_math_test gotch_z80_test gotch_storage_test; do ./build/tests/$t 2>/dev/null | tail -1 || rc=1; done
 # BRRES texture decoding: every texture of the boot / title / resident archives must match the checksums produced by
 # ~/Code/proj/unpac's Python decoder (tests/expected_textures.txt). Skipped when the disc data is not there.
 M="${MEGAMIX_DATA:-$HOME/Games/Wii/_nmm/DATA/files}/museum"

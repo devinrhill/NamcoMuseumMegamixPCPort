@@ -59,6 +59,9 @@ public:
 	bool ActionOther() override;
 
 	virtual void Setting(int kind);
+
+protected:
+	void ReleaseTerm() override { cTaskCharItem::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

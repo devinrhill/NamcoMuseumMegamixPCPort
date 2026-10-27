@@ -44,8 +44,9 @@ struct TevStage
 	std::int8_t aa, ab, ac, ad, abias, asub, aclamp, ascale, adest;
 	std::int8_t texmap, texcoord, texen, chan, kc, ka;
 	// indirect texturing (BP IND_CMD 0x10 + stage): ind = indirect stage + 1 (0 = this stage does not use one), format (ITF_8..3),
-	// bias bits (s t u), matrix id (1..3 = IND_MTX 0..2, 5..7 / 9..11 = the S / T dynamic ones), wrap s | t << 3, add the previous stage's offset
-	std::int8_t ind, ifmt, ibias, imtx, iwrap, iaddprev;
+	// bias bits (s t u), matrix id (1..3 = IND_MTX 0..2, 5..7 / 9..11 = the S / T dynamic ones), wrap s | t << 3, add the previous stage's offset,
+	// bump alpha select (0 off, 1 s, 2 t, 3 u: the raw indirect value the TEV reads as the "alpha bump" raster input, chan 5 / 6)
+	std::int8_t ind, ifmt, ibias, imtx, iwrap, iaddprev, ibump;
 };
 
 // A material as the GPU needs it: its TEV program and pixel state. Colours are 0..255.
@@ -66,8 +67,14 @@ struct MaterialDraw
 	// channel (attenuation GX_AF_SPEC) = mat * clamp(sceneAmb * amb + sum spec), GX spec attenuation x^2 / (s/2 + (1 - s/2) x^2), x = N.H
 	int numRig{0};
 	float rigDir[4][3]{}, rigCol[4][3]{}, rigSpec[4][4]{};   // dir surface -> light (world), colour, spec rgb + shininess (0 = none)
+	// point / spot lights (rigPos w = 1; w = 0 directional: rigDir): the diffuse direction is pos - surface; GX_AF_SPOT channels attenuate by
+	// max(0, a0 + a1 c + a2 c^2) / (k0 + k1 d + k2 d^2), c = cos to the spot direction (rigSpotDir, light -> aim)
+	float rigPos[4][4]{}, rigSpotDir[4][3]{}, rigAttnA[4][3]{}, rigAttnK[4][3]{};
 	float sceneAmb[3]{1, 1, 1};
 	int envMask{0};              // bit t: texture coordinate t comes from the view space normal (texgen source GX_TG_NRM, env mapping)
+	// depth shadow receiver (textures ramp16_tex / depth_tex, the engine's cKingdomShadow maps): the texture maps holding them (-1 = none).
+	// While a shadow light is set (SetShadowReceiver) those two maps are produced by the shader from the world position and the shadow map.
+	int shadowRampMap{-1}, shadowDepthMap{-1};
 	TexId tex[4]{};              // by texture map
 	Wrap wrapS[4]{}, wrapT[4]{};
 	Cull cull{CULL_BACK};
@@ -85,10 +92,14 @@ struct MaterialDraw
 	int numInd{0};
 	int indMap[4]{}, indCoord[4]{}, indShift[4][2]{};
 	float indMtx[3][2][3]{};
+	float indScale[3]{};   // 2^(scale - 17) of each IND_MTX: the dynamic S / T matrices (ids 5..7 / 9..11) use it alone
 };
 
 // Starts a 3D pass covering the whole window (or the letterboxed 4:3 area when `fit4x3`), clearing depth.
 void Begin3D(const float view[16], const float proj[16], bool fit4x3);
+// Like Begin3D, but only into the rectangle (x, y, w, h) of the 640 x 480 game screen (y down; the split screen's viewports): the viewport and
+// the scissor are that rectangle and only its depth is cleared. End3D restores the whole window.
+void Begin3DRect(const float view[16], const float proj[16], float x, float y, float w, float h);
 // the view matrix (column major) of the open 3D pass (billboards need it)
 const float* CurrentView();
 void DrawTriangles(const Vertex3D* verts, std::size_t vertexCount, const std::uint32_t* indices, std::size_t indexCount, const DrawState& state);
@@ -101,6 +112,21 @@ MeshId CreateMesh(const Vertex3D* verts, std::size_t vertexCount, const std::uin
 void DestroyMesh(MeshId mesh);
 void DrawMaterialMesh(MeshId mesh, const MaterialDraw& m);
 void End3D();
+// Depth shadows (DOL cKingdomShadow, 0x80024ce4: the casters are drawn depth only from the light camera, front faces culled, into a width x height
+// depth map; receivers compare their own light space depth with it). ShadowBeginPass opens the light pass (outside a 3D pass; false when
+// unsupported), the casters are drawn with DrawMaterial / DrawMaterialMesh, ShadowEndPass closes it. SetShadowReceiver(view, proj) makes the
+// receiver materials of the following 3D passes use that map; SetShadowReceiver(nullptr, nullptr) switches it off.
+bool ShadowBeginPass(const float view[16], const float proj[16], int width, int height);
+void ShadowEndPass();
+void SetShadowReceiver(const float view[16], const float proj[16]);
+// Debug lines inside the open 3D pass (vertex pairs, world space, one pixel wide); depthTest = hidden by the scene (drawn slightly towards the
+// camera so lines on a surface win), else drawn over everything. Dev tools only (the hit overlays): nothing in the game draws lines.
+struct LineVertex
+{
+	float pos[3];
+	std::uint8_t rgba[4];
+};
+void DrawLines3D(const LineVertex* verts, std::size_t count, bool depthTest);
 // The share (0..1) of a square facing the camera (centre `c`, half size `half`, world units) that the depth already in the buffer does not
 // hide: an occlusion query, outside a 3D pass (the lens flare's visibility test; the Wii reads the EFB depth back). -1 when unsupported.
 float VisibleShare(const float view[16], const float proj[16], const float c[3], float half);

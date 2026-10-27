@@ -521,6 +521,9 @@ void cTaskPanel::Draw(int nStatus, cJetTask* pParam)
 		if (cPBModel != nullptr) DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 		m_bUpdateMtx = false;
 	}
+	// DOL 0x801fdbdc: the current model's push-back (+0xd8) goes into this frame's scene list (0x8009c3f4). (The DOL rebuilds the matrix
+	// every frame; the C# only when it changed, which gives the same matrix.)
+	if (cTaskModel::cPBModel* cur = pPBModel(m_nCurModelIdx)) cur->UpdateMatrix();
 }
 
 void cTaskPanel::UpdateMatrix()

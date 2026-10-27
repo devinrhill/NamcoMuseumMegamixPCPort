@@ -450,22 +450,19 @@ void PoseNative(cKingdomModelBase::Native* n)
 	static const bool noPose = std::getenv("MEGAMIX_NOPOSE") != nullptr;   // debug: bind pose
 	if (noPose) layers.clear();
 	n->draw->SetPose(layers);
+	// every slot's SRT0 / PAT0 clip (a BG model registers one per "_rtsa" / "_rtpa" user data entry; only the first was drawn: w4 magma, w2s2 pads)
+	n->draw->SetTexSrt(nullptr, 0);
 	for (int i = 0; i < cKingdomModelBase::BLEND_MAX; i++)
-	{
-		if (n->srt[i].anim) { n->draw->SetTexSrt(n->srt[i].anim.get(), n->srt[i].frame); break; }
-		if (i == cKingdomModelBase::BLEND_MAX - 1) n->draw->SetTexSrt(nullptr, 0);
-	}
+		if (n->srt[i].anim) n->draw->AddTexSrt(n->srt[i].anim.get(), n->srt[i].frame);
 	n->draw->SetClrAnim(nullptr, 0);
 	for (int i = 0; i < cKingdomModelBase::BLEND_MAX; i++)
 		if (n->clr[i].anim) { n->draw->SetClrAnim(n->clr[i].anim.get(), n->clr[i].frame); break; }
 	n->draw->SetVisAnim(nullptr, 0);
 	for (int i = 0; i < cKingdomModelBase::BLEND_MAX; i++)
 		if (n->vis[i].anim) { n->draw->SetVisAnim(n->vis[i].anim.get(), n->vis[i].frame); break; }
+	n->draw->SetTexPat(nullptr, 0);
 	for (int i = 0; i < cKingdomModelBase::BLEND_MAX; i++)
-	{
-		if (n->pat[i].anim) { n->draw->SetTexPat(n->pat[i].anim.get(), n->pat[i].frame); break; }
-		if (i == cKingdomModelBase::BLEND_MAX - 1) n->draw->SetTexPat(nullptr, 0);
-	}
+		if (n->pat[i].anim) n->draw->AddTexPat(n->pat[i].anim.get(), n->pat[i].frame);
 }
 
 bool PosedNode(cKingdomModelBase::Native* n, const std::string& name, float m[12])
@@ -494,6 +491,23 @@ void DrawNativeModel(cKingdomModelBase::Native* n, const float world[16], int li
 
 bool NativeNodeMatrix(cKingdomModelBase::Native* n, const std::string& node, float m[12]) { return PosedNode(n, node, m); }
 bool cKingdomModelBase::NodeMatrix(const std::string& node, float m3x4[12]) { return PosedNode(m_native, node, m3x4); }
+
+bool cKingdomModelBase::PosedSkin(std::vector<float>& out)
+{
+	out.clear();
+	if (m_native == nullptr || !m_native->draw) return false;
+	PoseNative(m_native);
+	out = m_native->draw->Skin();
+	return true;
+}
+
+bool cKingdomModelBase::HasChrPose() const
+{
+	if (m_native == nullptr) return false;
+	for (int i = 0; i < BLEND_MAX; i++)
+		if (m_native->chr[i].anim && m_native->chr[i].weight > 0.0f && m_native->chr[i].anim->numFrame > 0) return true;
+	return false;
+}
 bool NativeHasModel(const cKingdomModelBase::Native* n) { return n != nullptr && n->draw != nullptr; }
 
 }

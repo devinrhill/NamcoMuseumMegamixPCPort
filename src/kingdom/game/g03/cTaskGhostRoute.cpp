@@ -42,7 +42,7 @@ void cTaskGhostRoute::Term()
 {
 	if (m_pTaskCharRouteGhost != nullptr)
 	{
-		m_pTaskCharRouteGhost->Term();
+		m_pTaskCharRouteGhost->TermOnce();
 	}
 }
 

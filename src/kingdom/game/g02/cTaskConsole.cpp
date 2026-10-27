@@ -8,6 +8,7 @@
 #include "kingdom/game/g02/cG02RallyXSys.hpp"
 #include "kingdom/game/g02/cParamGame.hpp"
 #include "kingdom/game/g02/cTaskConsMud.hpp"
+#include "kingdom/game/g02/cTaskConsMulti.hpp"
 #include "kingdom/game/g02/cTaskConsParts.hpp"
 #include "kingdom/game/g02/cTaskConsRadar.hpp"
 
@@ -25,9 +26,38 @@ cTaskConsole::cTaskConsole(kingdom::cAppKingdom* pApp) : m_pApp(pApp)
 	m_bMulti = KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsMulti();   // 0x800c5ca0
 	m_nFlagTotal = 0;
 	m_nPlayer = SysPlayerNum();                                                               // 0x800c5c68 (sys +0x0c)
-	// NOT PORTED: the multiplayer set (m_bMulti). The single-player set is built in every case so the stage has a HUD.
 	m_pRadar = new cTaskConsRadar(this);
 	ConnectChild(m_pRadar);
+	if (m_bMulti)
+	{
+		// the multiplayer set (DOL 0x8006093c, console +0x1bc == 1): per player the fuel gauge, the mud and the number plate, then the
+		// multiplayer info, the start lamp, the time, the winner, the draw and (3 players) the filler of the fourth viewport
+		for (int i = 0; i < m_nPlayer && i < 4; i++)
+		{
+			m_pFuel[i] = new cTaskConsFuel(this);
+			ConnectChild(m_pFuel[i]);
+			m_pMud[i] = new cTaskConsMud(this, i);
+			ConnectChild(m_pMud[i]);
+			m_pNO[i] = new cTaskConsPBMultiNO(this, i);
+			ConnectChild(m_pNO[i]);
+		}
+		m_pInfoMulti = new cTaskConsInfoMulti(this);
+		ConnectChild(m_pInfoMulti);
+		m_pSignal = new cTaskConsSignal(this);
+		ConnectChild(m_pSignal);
+		m_pTime = new cTaskConsTime(this);
+		ConnectChild(m_pTime);
+		m_pWinner = new cTaskConsWinner(this);
+		ConnectChild(m_pWinner);
+		m_pDraw = new cTaskConsDraw(this);
+		ConnectChild(m_pDraw);
+		if (m_nPlayer == 3)
+		{
+			m_pBG = new cTaskConsPBMultiBG(this, 3);
+			ConnectChild(m_pBG);
+		}
+		return;
+	}
 	m_pInfo = new cTaskConsInfo(this);
 	ConnectChild(m_pInfo);
 	m_pFuel[0] = new cTaskConsFuel(this);
@@ -87,6 +117,17 @@ void cTaskConsole::Regist(kingdom::cTaskModel* pCar, int nColour, bool bPlayer)
 		if (m_pInfo != nullptr) m_pInfo->m_pCar = pCar;
 		if (m_pMud[0] != nullptr) m_pMud[0]->SetCar(pCar);
 	}
+	else if ((c.nKind & 0x10) != 0)
+	{
+		// multiplayer: the parts of the car's player index (the unit +0x1cc = the low bits of its id)
+		const int idx = (int)(c.nKind & 0xf);
+		if ((uint)idx < 4u)
+		{
+			if (m_pFuel[idx] != nullptr) m_pFuel[idx]->SetCar(pCar, idx);
+			if (m_pInfoMulti != nullptr) m_pInfoMulti->SetCar(idx, pCar);
+			if (m_pMud[idx] != nullptr) m_pMud[idx]->SetCar(pCar);
+		}
+	}
 	if ((c.nKind & 0x20) != 0 && KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsBossStage())
 	{
 		if (m_pInfo != nullptr) m_pInfo->m_pCar = pCar;
@@ -111,6 +152,18 @@ bool cTaskConsole::IsSignalGo() const
 bool cTaskConsole::IsResultEnd() const
 {
 	return m_pResult != nullptr && m_pResult->m_nMode == 3;
+}
+
+// DOL 0x8006659c / 0x800665b4 / 0x800665cc / 0x800665e4
+bool cTaskConsole::IsWinShown() const { return m_pWinner != nullptr && m_pWinner->m_nMode == 2; }
+bool cTaskConsole::IsWinEnd() const { return m_pWinner != nullptr && m_pWinner->m_nMode == 4; }
+bool cTaskConsole::IsDrawShown() const { return m_pDraw != nullptr && m_pDraw->m_nMode == 2; }
+bool cTaskConsole::IsDrawEnd() const { return m_pDraw != nullptr && m_pDraw->m_nMode == 4; }
+
+// DOL 0x800666e8
+void cTaskConsole::HitMark(int nPlayer)
+{
+	if (m_pInfoMulti != nullptr) m_pInfoMulti->ShowHit(nPlayer);
 }
 
 // DOL 0x800665fc
@@ -155,12 +208,24 @@ float cTaskConsole::fLoseFlagWait() const
 	return m_App.pParam != nullptr ? m_App.pParam->m_fLoseFlagWait : 0.0f;
 }
 
-// a local cRallyXSndHnd + 0x80129d78 (play the cue; in app state 6 (game over) also SetVolume 0.2 = FLOAT_8047c040, NOT PORTED: the
-// mixer has no per-voice volume), then DetachSound
+float cTaskConsole::fWinnerFlagWait() const
+{
+	return m_App.pParam != nullptr ? m_App.pParam->m_fWinnerFlagWait : 0.0f;
+}
+
+float cTaskConsole::fDrawFlagWait() const
+{
+	return m_App.pParam != nullptr ? m_App.pParam->m_fDrawFlagWait : 0.0f;
+}
+
+// a local cRallyXSndHnd + 0x80129d78 (play the cue; in app state 6 (game over) also SetVolume 0.2 = FLOAT_8047c040 at once), then DetachSound
+const int* cTaskConsole::s_pGameState = nullptr;
+
 void cTaskConsole::PlaySE(const char* cue)
 {
 	WiiSnd::Handle h;
 	WiiSnd::Play(h, cue);
+	if (s_pGameState != nullptr && *s_pGameState == 6) WiiSnd::SetVolume(h, 0.2f, 0);   // 0x80129db0
 	WiiSnd::Detach(h);
 }
 

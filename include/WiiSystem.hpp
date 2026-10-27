@@ -33,6 +33,9 @@ const std::string& DolPath();
 bool AudioEnabled();
 void SetAudioEnabled(bool on);
 float Volume();                      // master volume 0..1
+// `remote_speaker = 0..127` in megamix.cfg: the Wii's Wiimote speaker volume setting (WPADGetSpeakerVolume); 0 (default) = the remote copies
+// of sounds (kingdom 0x80025b6c) are not played. A PC has no Wiimote speaker: the copies are mixed into the main output (as Dolphin does).
+int RemoteSpeakerVolume();
 
 // Language directory used under museum/ ("en", ...).
 const std::string& LanguageDir();

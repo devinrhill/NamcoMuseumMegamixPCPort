@@ -39,7 +39,7 @@ cTaskPlayer::cTaskPlayer(cRallyUnitHost* pHost, int nColour, int nIndex) : cTask
 	InitPlayer();
 }
 
-// (the DOL deleting dtor 0x8007bc68 runs after Term; natively non-app tasks never run Term, so the dtor frees what Term would)
+// (the DOL deleting dtor 0x8007bc68 runs after Term; natively tasks are never deleted: Term runs through cTaskKingdom::TermOnce, this dtor is kept for completeness)
 cTaskPlayer::~cTaskPlayer()
 {
 	delete m_pPlayerParam;
@@ -106,10 +106,10 @@ bool cTaskPlayer::Execute(cJetTask* pParam)
 			if ((GamePad::Get(0).hold & GamePad::PAD_HOME) != 0) return true;
 			if (host->IsUnitPause())
 			{
-				// FUN_80026394(0.0, +0x9dc, 500) while the count sound plays: the volume fade is NOT PORTED (no volume control in WiiSnd)
+				if (m_SndCount.voice >= 0 && snd::IsPlaying(m_SndCount.voice)) WiiSnd::SetVolume(m_SndCount, 0.0f, 500);   // 0x8007a5fc (FLOAT_8047a9c8)
 				return true;
 			}
-			// FUN_80026394(1.0, +0x9dc, 500) while it plays: NOT PORTED (volume)
+			if (m_SndCount.voice >= 0 && snd::IsPlaying(m_SndCount.voice)) WiiSnd::SetVolume(m_SndCount, 1.0f, 500);   // 0x8007a624 (FLOAT_8047a9d0)
 			const int step = m_nCount;
 			if (step == 0)
 			{
@@ -178,7 +178,7 @@ void cTaskPlayer::Decide()
 		{
 			BrakeOn();                           // 0x800879a4
 			Se("m02se_05Break");                 // FUN_80129d78(handle, cue, 0, actor +0x378)
-			// + the remote speaker FUN_80025b6c(handle, sys 0x800c5b98(index), cue, 0): NOT PORTED
+			SeRemote("m02se_05Break");           // 0x8007aa94
 		}
 		else if ((pad.hold & mask) != 0) BrakeOn();
 		else BrakeOff();                         // 0x80087a3c

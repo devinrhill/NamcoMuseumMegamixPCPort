@@ -9,6 +9,7 @@
 
 #include "KingdomGlobal.hpp"
 #include "platform/devtools.hpp"
+#include "platform/devtools_g01edit.hpp"
 #include "cJetCSV.hpp"
 #include "kingdom/cKingdomCSV.hpp"
 #include "kingdom/game/g01/cG01GalagaSys.hpp"
@@ -150,6 +151,7 @@ void cOrbitDataMan::Load(int nStage)
 		}
 		m_Orbit.push_back(std::move(orbit));
 	}
+	devtools::G01EditOrbits(nStage, m_Orbit);   // devtools: the Galaga editor's applied orbits replace the table (not 1:1)
 }
 
 cOrbit* cOrbitDataMan::pOrbit(u32 n)
@@ -207,7 +209,7 @@ const sEmyNode* cTaskEnemy::pOrbitNode(u32 n) const
 	return (m_pOrbit != nullptr && n < m_pOrbit->nNumNode()) ? &m_pOrbit->nodes[n] : nullptr;
 }
 
-// DOL 0x800e1f88. The EnemyParam row (0x800e3800: +0x258 kind, life, +0x84, size +0x260, +0x264), the sound actor and the AABB are not ported.
+// DOL 0x800e1f88. The EnemyParam row (0x800e3800: +0x258 kind, life, +0x84, size +0x260, +0x264), the AABB are not ported; the sound actor's velocity reset (0x80026660) has no native effect (no Doppler).
 void cTaskEnemy::SetupOrbit(const sScnRecord* pRec, int nType, int nOrbit, u32 nGroup)
 {
 	m_nState = 0;
@@ -242,13 +244,13 @@ void cTaskEnemy::SetupOrbit(const sScnRecord* pRec, int nType, int nOrbit, u32 n
 	UpdateModel();
 }
 
-// DOL 0x800e2da8 (the appear sound DAT_8047b518 = m01se_12hirai on the enemy's sound actor; the native mixer has no 3D actors)
+// DOL 0x800e2da8 (the appear sound DAT_8047b518 = m01se_12hirai on the enemy's sound actor)
 void cTaskEnemy::Start()
 {
 	m_nState = 1;
 	m_nStep = 0;
 	m_bKilled = false;
-	snd::Play("m01se_12hirai");
+	m_SndActor.Play("m01se_12hirai");
 }
 
 // DOL 0x800e22c4 (hand-reversed in the old tree, checked against the DOL structure): false at the end of the orbit
@@ -345,7 +347,7 @@ void cTaskEnemy::FireBullet()
 	if (cTaskBullet* b = cTaskEnemyMan::s_pInstance->GetBullet(false))
 	{
 		b->Setup(m_fBulletSpeed, m_vWorldPos);   // 0x800d2174, then slot 49
-		snd::Play("m01se_09shot");               // DAT_8047b544
+		m_SndActor.Play("m01se_09shot");         // DAT_8047b544 on the actor (+0x344)
 	}
 	m_nFirePattern = -1;
 }
@@ -370,7 +372,7 @@ void cTaskEnemy::FireSignBullet()
 			if (cTaskBullet* b = cTaskEnemyMan::s_pInstance->GetBullet(true))
 			{
 				b->Setup(m_fBulletSpeed, m_vWorldPos);
-				snd::Play("m01se_09shot");   // DAT_8047b544
+				m_SndActor.Play("m01se_09shot");   // DAT_8047b544 on the actor (the warning above is unpositioned)
 			}
 			m_nFireStep = 0;
 			m_nFirePattern = -1;
@@ -398,7 +400,7 @@ void cTaskEnemy::FireMissile()
 			{
 				mi->Setup(m_fMissileSpeed, m_vWorldPos, m_vLaunch);
 				mi->Launch();   // vtable +0xcc
-				snd::Play("m01se_11missile");   // DAT_8047b54c
+				m_SndActor.Play("m01se_11missile");   // DAT_8047b54c on the actor
 			}
 			m_nFireStep = 0;
 			m_nFirePattern = -1;
@@ -446,6 +448,7 @@ void cTaskEnemy::UpdateModel()
 	m->SetNativeScale(1.0f, 1.0f, 1.0f);
 	m_v20 = Vector4(m_vWorldPos[0], m_vWorldPos[1], m_vWorldPos[2], 1.0f);   // cObject +0x20 / +0x30 (0x800e40cc copies them to the model)
 	m_v30 = Vector4(m_vRot[0], m_vRot[1], m_vRot[2], 0.0f);
+	m_SndActor.SetPosition(m_v20);   // 0x800e41ec: the sound actor (+0x344) at +0x20
 	UpdateWorldAABB();   // 0x801c1950 at the end of the exec
 }
 
@@ -613,7 +616,7 @@ bool cTaskEnemy::Execute(cJetTask* pParam)
 
 // The small enemy slots, inlined: +0xb4 0x800e2d88 (state / step 0), +0xb8 0x800e2d98 (state == 0), +0xc0 0x800e2dcc (state == 1), +0xc8
 // 0x800e2df8 (state == 2); cTaskEnemyBase's Execute 0x800e4790 (the model task) and Draw 0x800e47e4 (only while shown), Term 0x800e369c (the
-// sound actor +0x344 is released: the 3D sound actor is not ported).
+// sound actor +0x344 is released: natively the member's destructor, its cues play on where it was).
 // DOL 0x800e47b8: only while active (+8) and shown (+9; the fighter waits hidden)
 void cTaskEnemy::Draw(int nStatus, cJetTask* pParam)
 {

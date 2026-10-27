@@ -61,6 +61,14 @@ bool Archive::Load(const std::string& path)
 		s.fileId = (int)U32(o + 4);
 		s.playerId = (int)U32(o + 8);
 		s.volume = m_d[o + 20] / 127.0f;
+		const Ref p3d = R(o + 12);
+		if (p3d.value)
+		{
+			const std::size_t q = m_info + p3d.value;
+			s.flags3d = U32(q);
+			s.decayCurve3d = m_d[q + 4];
+			s.decayRatio3d = m_d[q + 5] / 256.0f;
+		}
 		s.type = m_d[o + 22];
 		const std::size_t sinfo = m_info + R(o + 24).value;
 		if (s.type == 2)

@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cAppG07MotosNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "InGamePadManager.hpp"
 #include "KingdomGlobal.hpp"
@@ -14,7 +15,7 @@ cAppG07MotosNunchuk::cAppG07MotosNunchuk()
 {
 	KingdomGlobal::KingSys->AttachArcData("g07_motos/g07menu.lzs");
 	RegistLayout("ANT_NUNCHUK");
-	nNextJob() = 0x11300000u;
+	nNextJob() = job::MOTOS_GAME;
 	SetName("cAppG07MotosNunchuk");
 }
 

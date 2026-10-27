@@ -1,4 +1,5 @@
 #include "kingdom/cKingdomModel.hpp"
+#include "SoundManager.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -95,6 +96,7 @@ void cKingdomModel::Term()
 {
 	for (int i = 0; i < (int)std::size(m_ExpandObjs); i++)
 		if (m_ExpandObjs[i] != nullptr && m_ExpandObjs[i]->isInnerCreate) { delete m_ExpandObjs[i]->model; m_ExpandObjs[i]->model = nullptr; }
+	if (m_pScnMdl != nullptr) SoundManager::get_SE()->ForgetTarget(m_pScnMdl);   // 3D sounds placed at this model keep its last position
 	delete m_pScnMdl;
 	m_pScnMdl = nullptr;
 	m_Materials.clear();
@@ -193,8 +195,8 @@ void cKingdomModel::DrawNative(const float eye[3])
 {
 	float w[16];
 	CalcWorld(w);
-	// sky domes follow the camera (the title / stage sky models sit at the eye)
-	if (m_native != nullptr && m_native->key.find("sky") != std::string::npos) { w[12] = eye[0]; w[13] = eye[1]; w[14] = eye[2]; }
+	// no "sky follows the camera" rule: g03 cTaskBg::Initialize (see its DOL tag) sets the BG matrix once from its placement node (w4s2's m03b_42_sky
+	// slid along with Pac-Man while the port moved every "sky" model to the eye)
 	DrawNativeAt(w, eye);
 }
 

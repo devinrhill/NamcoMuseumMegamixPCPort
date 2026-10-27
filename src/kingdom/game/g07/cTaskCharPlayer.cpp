@@ -205,7 +205,7 @@ void cTaskCharPlayer::Term()
 	}
 	if (m_pHoipoi != nullptr)
 	{
-		m_pHoipoi->Term();
+		m_pHoipoi->TermOnce();
 	}
 	cTaskChar::Term();
 }

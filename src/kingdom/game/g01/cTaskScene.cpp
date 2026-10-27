@@ -1,4 +1,5 @@
 #include "platform/devtools.hpp"
+#include "platform/devtools_g01edit.hpp"
 #include "kingdom/game/g01/cTaskScene.hpp"
 
 #include <algorithm>
@@ -64,6 +65,7 @@ cTaskScene::cTaskScene(int nStage, void* pEnemyMan, float fSpeed)
 	std::snprintf(name, sizeof name, "scn_s%xp%d.scn", nStage, KingdomGlobal::GalagaSys->nPlayer());
 	std::size_t size = 0;
 	const u8* d = wii::ArchiveStore::Find(name, size);
+	devtools::G01EditOverride(name, d, size);   // devtools: the dev window's Galaga editor swaps in its applied scn (not 1:1)
 	if (!m_Scn.SetData(d, size)) std::fprintf(stderr, "g01::cTaskScene: %s not found\n", name);
 	// DOL 0x800f6b40 (scene reset): need masks 0, cleared mask word 0 = 1 (group 0 counts as cleared from the start). Group 1 is the
 	// enemy gate's (GateGalaga_s%xp%d.csv column 3, cTaskEnemyGate 0x800e4814): it clears when the gate leaves (shot down or its clip ran out).

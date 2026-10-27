@@ -40,7 +40,7 @@ bool RayAABB(const float org[3], const float dir[3], const float mn[3], const fl
 }
 
 // DOL 0x800c9e04: kind 0xb, index, state 0, the shoot marker child, the model (+0x64 = 0x800ca35c: CHAR_ENEMY_SHELL_MDL, light set 1,
-// fog 0, expanded onto the boss model at the node, CalcAABB), active, ShellParam_%dp.csv HP, the sound actor (not ported), +0x5c
+// fog 0, expanded onto the boss model at the node, CalcAABB), active, ShellParam_%dp.csv HP, the sound actor (natively none: the hit cues go through FUN_801c15ac, unpositioned), +0x5c
 cTaskShell::cTaskShell(int nIndex, cTaskBoss* pBoss, cKingdomModel* pBossModel, const char* node) : m_nIndex(nIndex), m_pBoss(pBoss)
 {
 	SetName("g01::cTaskShell");

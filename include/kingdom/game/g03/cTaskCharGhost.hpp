@@ -78,6 +78,9 @@ private:
 
 public:
 	void Term() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharGhost::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

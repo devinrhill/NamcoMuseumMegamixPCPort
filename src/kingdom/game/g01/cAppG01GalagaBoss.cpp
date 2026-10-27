@@ -219,14 +219,14 @@ bool cAppG01GalagaBoss::Execute(cJetTask* pParam)
 			for (cTaskConsolePlayer* p : m_pPlayer) if (p != nullptr) p->StartResult();
 			if (m_pTaskResult != nullptr) m_pTaskResult->Start();
 			if (m_pTaskResultMulti != nullptr) m_pTaskResultMulti->Start();
-			SoundManager::get_BGM()->Stop(0.1f);
+			SoundManager::get_BGM()->SetVolume(0.25f, 0.1f);   // 0x801bab1c: 0x80026394(0.25, BGM +0x284, 100): ducked under the jingle
 			snd::Play("m01se_15clear");   // DAT_8047cdbc
 			[[fallthrough]];
 		case 1:
 			if ((m_pTaskResult == nullptr || m_pTaskResult->IsEnd()) && (m_pTaskResultMulti == nullptr || m_pTaskResultMulti->IsEnd()))
 			{
 				// the staff roll (job 183) when not everything was open yet, else the menu
-				m_nNextJob = KingdomGlobal::GalagaSys->bAllOpen() ? 0x0b200000u : 0x0b700000u;
+				m_nNextJob = KingdomGlobal::GalagaSys->bAllOpen() ? job::GALAGA_MENU : job::GALAGA_STAFFROLL;
 				NextMode(n, ePROC_EXIT);
 			}
 			if (nOldState(n) == nModeState(n)) break;
@@ -247,8 +247,8 @@ bool cAppG01GalagaBoss::Execute(cJetTask* pParam)
 			m_pTaskRetry->Start();
 			[[fallthrough]];
 		case 1:
-			if (m_pTaskRetry->IsYes()) { m_nNextJob = 0x0b300000u; NextMode(n, ePROC_EXIT); }
-			else if (m_pTaskRetry->IsNo()) { m_nNextJob = 0x0b500000u; NextMode(n, ePROC_EXIT); }
+			if (m_pTaskRetry->IsYes()) { m_nNextJob = job::GALAGA_GAME; NextMode(n, ePROC_EXIT); }
+			else if (m_pTaskRetry->IsNo()) { m_nNextJob = job::GALAGA_GAMEOVER; NextMode(n, ePROC_EXIT); }
 			if (nOldState(n) == nModeState(n)) break;
 			nModeStep(n) = 2;
 			[[fallthrough]];
@@ -268,7 +268,7 @@ bool cAppG01GalagaBoss::Execute(cJetTask* pParam)
 			[[fallthrough]];
 		case 1:
 			// the staff roll is entered without force (0x0b700000), the others with
-			if (m_pTaskFade->IsEnd()) Kingdom_SetJobNo(m_nNextJob, m_nNextJob != 0x0b700000u, false);
+			if (m_pTaskFade->IsEnd()) Kingdom_SetJobNo(m_nNextJob, m_nNextJob != job::GALAGA_STAFFROLL, false);
 			if (nOldState(n) == nModeState(n)) break;
 			nModeStep(n) = 2;
 			[[fallthrough]];

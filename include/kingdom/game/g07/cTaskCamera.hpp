@@ -83,6 +83,9 @@ private:
 
 public:
 	void SetPan(Vector4 vPos, float fSpeed = 0.0f);
+
+protected:
+	void ReleaseTerm() override { cTaskCamera::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

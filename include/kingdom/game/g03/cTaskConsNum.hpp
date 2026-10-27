@@ -72,6 +72,9 @@ private:
 	int nGetAnimNoStay(uint num);
 
 	int nGetAnimNoOut(uint num);
+
+protected:
+	void ReleaseTerm() override { cTaskConsNum::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

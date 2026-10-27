@@ -327,6 +327,7 @@ void cTaskBossMissile::UpdateModel()
 		m->vRotate() = Vector4(m_v30.x, m_v30.y, m_v30.z, 0.0f);
 	}
 	if (m_bSp && m_Spark.IsValid()) m_Spark.vSetTrans(Vector4(m_v20.x, m_v20.y, m_v20.z, 1.0f));
+	m_SndActor.SetPosition(m_v20);   // 0x800f1f40 / 0x800f25ec: the sound actor (+0x384) at +0x20
 }
 
 // DOL 0x800f1b84 (active, not paused, Pac-Man has not missed)
@@ -407,7 +408,7 @@ bool cTaskBossMissile::HitCheck(cObject* other)
 	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
 }
 
-// DOL 0x800f1820 (normal) / 0x800f2764 (SP). Sounds DAT_8047b630 m01se_04hit2, 634 m01se_05bak1, 638 m01se_07bak3.
+// DOL 0x800f1820 (normal) / 0x800f2764 (SP). Sounds DAT_8047b630 m01se_04hit2, 634 m01se_05bak1, 638 m01se_07bak3, all on the missile's actor (+0x384).
 void cTaskBossMissile::HitCallback(cObject* other)
 {
 	const Vector4 pos(m_v20.x, m_v20.y, m_v20.z, 1.0f);
@@ -427,10 +428,10 @@ void cTaskBossMissile::HitCallback(cObject* other)
 				m_bBroken = true;
 				Die();
 				Effect((uint)(pl + 4), pos);
-				snd::Play("m01se_05bak1");
+				m_SndActor.Play("m01se_05bak1");
 			}
 			else
-				snd::Play("m01se_04hit2");
+				m_SndActor.Play("m01se_04hit2");
 			return;
 		}
 		// SP: more damage carried, a stop of (STOP_BASE - damage) frames (at least STOP_UNDER), at most STOP_MAX in all
@@ -467,7 +468,7 @@ void cTaskBossMissile::HitCallback(cObject* other)
 	{
 		Die();
 		Effect(FX_BOMB, pos);
-		snd::Play(m_bSp ? "m01se_07bak3" : "m01se_05bak1");
+		m_SndActor.Play(m_bSp ? "m01se_07bak3" : "m01se_05bak1");
 	}
 	else if (kind == 0xd)
 	{
@@ -475,7 +476,7 @@ void cTaskBossMissile::HitCallback(cObject* other)
 		if (m_bSp)
 		{
 			Effect(FX_BOMB, pos);
-			snd::Play("m01se_07bak3");
+			m_SndActor.Play("m01se_07bak3");
 		}
 	}
 }

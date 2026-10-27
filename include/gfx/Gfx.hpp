@@ -19,9 +19,10 @@ constexpr TexId NO_TEX = 0;
 
 enum Blend
 {
-	BLEND_ALPHA = 0,        // normal alpha blending (Anita "none" and "multiply" layers)
+	BLEND_ALPHA = 0,        // normal alpha blending (Anita "multiply" layers)
 	BLEND_ADD = 1,          // additive (Anita "add" layers)
-	BLEND_SUBTRACT = 2      // GX_BM_SUBTRACT: destination - source (3D draws only)
+	BLEND_SUBTRACT = 2,     // GX_BM_SUBTRACT: destination - source (3D draws only)
+	BLEND_NONE = 3          // GX_BM_NONE: the source replaces the destination (Anita "none" layers; 2D quads only)
 };
 
 // Uploads RGBA8 pixels (row 0 = top). Returns NO_TEX on failure.
@@ -39,6 +40,10 @@ bool DecodeJpeg(const std::uint8_t* data, std::size_t size, int& width, int& hei
 void DrawQuad(TexId tex, const float xy[8], const float uv[8], std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
               Blend blend, bool linearFilter);
 
+// A transform applied to the corners of every following DrawQuad (x' = x * sx + tx, y' = y * sy + ty, game space): the push-back layers of
+// the split screen are drawn scaled into one camera's viewport. Reset2DTransform() = identity.
+void Set2DTransform(float sx, float sy, float tx, float ty);
+void Reset2DTransform();
 // Flushes queued quads and closes any blend state; the platform calls this once per frame before presenting.
 void EndFrameFlush();
 // Paints the window outside the 640 x 480 game rectangle black (after the game drew: layouts / effects wider than the screen spill there)

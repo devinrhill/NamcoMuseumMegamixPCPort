@@ -91,11 +91,11 @@ void cTaskConsoleMan::Term()
 {
 	if (m_pTaskConsStageName != nullptr)
 	{
-		m_pTaskConsStageName->Term();
+		m_pTaskConsStageName->TermOnce();
 	}
 	if (m_pTaskConsCookieWarning != nullptr)
 	{
-		m_pTaskConsCookieWarning->Term();
+		m_pTaskConsCookieWarning->TermOnce();
 	}
 }
 
@@ -220,7 +220,7 @@ bool cTaskConsoleMan::Execute(cJetTask* pParam)
 			m_pTaskConsHaveCookie->Update(cTaskItem2->nHaveCookie());
 		}
 		m_pTaskConsPacLife->Update(m_pPac->nMaxHP(), m_pPac->nHP());
-		if (m_pPac->IsState(4u))
+		if (m_pPac->IsState(cTaskCharPacman::STATE_EAT_POWER_COOKIE))
 		{
 			m_pTaskConsCombo->Update(m_pPac->nEatComboCnt());
 		}

@@ -25,6 +25,9 @@ private:
 
 	Vector4 m_vTrans{};
 
+	// the cTaskFontWriter child (+0x1f0) stand-in: its visible byte +0x268 (set when the window has appeared, cleared when it starts closing)
+	bool m_bTextVisible{};
+
 protected:
 	cParamMessage*& pParamMessage();
 
@@ -50,6 +53,8 @@ protected:
 
 public:
 	bool Execute(cJetTask* pParam) override;
+
+	void Draw(int nStatus, cJetTask* pParam) override;
 };
 
 }

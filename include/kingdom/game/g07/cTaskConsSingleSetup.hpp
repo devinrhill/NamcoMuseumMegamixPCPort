@@ -76,6 +76,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	void Draw(int nState, cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsSingleSetup::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

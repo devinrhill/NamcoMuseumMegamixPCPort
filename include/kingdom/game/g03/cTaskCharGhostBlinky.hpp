@@ -26,6 +26,9 @@ public:
 	string GetSRTAnmKey() override;
 
 	uint GetPushOutLevel() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharGhostBlinky::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

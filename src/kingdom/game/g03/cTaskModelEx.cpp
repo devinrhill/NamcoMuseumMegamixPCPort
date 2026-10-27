@@ -1,3 +1,4 @@
+#include "platform/devtools.hpp"
 #include "kingdom/game/g03/cTaskModelEx.hpp"
 #include "DummyNW4R.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
@@ -7,6 +8,9 @@
 #include "kingdom/cKingdomModelBase.hpp"
 #include "kingdom/cTaskPushBack.hpp"
 #include "kingdom/game/g03/Constants.hpp"
+#include "kingdom/game/g03/cTaskCamera.hpp"
+#include "KingdomGlobal.hpp"
+#include "kingdom/cKingdomSys.hpp"
 
 namespace kingdom::game::g03
 {
@@ -202,14 +206,23 @@ bool cTaskModelEx::Execute(cJetTask* pParam)
 	return cTaskModelBase::Execute(m_vecPBModel);
 }
 
+// DOL 0x80187270: every visible model inside the camera's view volume (sys app +0x294, 0x80159428 with radius 0.38) computes its matrix
+// (vtable +0x18 = 0x8001df9c), its blob shadow follows it, and its push-back (+0xd8) goes into this frame's scene list (0x8009c3f4)
 void cTaskModelEx::Draw(int nStatus, cJetTask* pParam)
 {
-	Constants::PACN_APP()->pTaskCamera();
+	cAppG03PacnRollGame* app = dynamic_cast<cAppG03PacnRollGame*>(KingdomGlobal::KingSys->pAppMain());
+	cTaskCamera* camera = app != nullptr ? app->pTaskCamera() : nullptr;
 	for (cTaskModelEx::cPBModel* item : m_vecPBModel)
 	{
 		if (item != nullptr)
 		{
-			item->EnableGarbageModel();
+			item->EnableGarbageModel();   // 0x8001e594
+			// (no camera = an app the DOL never runs this in: drawn unclipped)
+			if (item->IsVisible() && (camera == nullptr || devtools::G03EditNoCull() || camera->HitViewVolume(item->vTrans(), 0.38f)))   // devtools: the editor draws everything (not 1:1)
+			{
+				item->UpdateMatrix();
+				item->UpdateShadowModelMtx();   // the shadow's ScnObj options 2 / 3 / 4 off (vtable +0x20) are not modelled
+			}
 		}
 	}
 	EnableGarbageModel();

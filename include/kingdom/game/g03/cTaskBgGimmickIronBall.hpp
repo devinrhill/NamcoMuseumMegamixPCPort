@@ -29,6 +29,9 @@ public:
 
 private:
 	void HitCheck();
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickIronBall::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

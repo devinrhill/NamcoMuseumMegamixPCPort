@@ -1,3 +1,4 @@
+#include "GamePad.hpp"
 #include "kingdom/game/cAppGameBaseMenu.hpp"
 
 #include <limits>
@@ -94,10 +95,13 @@ void cAppGameBaseMenu::Init()
 	SetSndAllStop(true);
 	m_bTutorial = false;
 	pTaskTutorial() = nullptr;
+	GamePad::SetStickDpad(true);   // 0x801434f8 starts with 0x800219d4(1)
 }
 
+// DOL 0x801436ec (the menus' dtors): the stick no longer doubles as the dpad
 void cAppGameBaseMenu::Term()
 {
+	GamePad::SetStickDpad(false);
 }
 
 // DOL 0x801436f4 (the tutorial's +0x5c)

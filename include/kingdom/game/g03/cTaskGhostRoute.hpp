@@ -63,6 +63,9 @@ public:
 	void DeadRouteGhost();
 
 	int nRouteNum();
+
+protected:
+	void ReleaseTerm() override { cTaskGhostRoute::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

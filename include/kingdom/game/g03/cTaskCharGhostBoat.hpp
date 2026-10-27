@@ -32,6 +32,9 @@ public:
 	uint GetEffectType0() override;
 
 	uint GetEffectType1() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharGhostBoat::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

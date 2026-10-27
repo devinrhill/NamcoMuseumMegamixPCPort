@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "kingdom/NativeScene.hpp"
+#include "platform/devtools.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 
 #include <numbers>
@@ -273,12 +274,13 @@ void cTaskCamera::Update()
 	}
 	// native: the camera of the 3D pass (Wii space, no X mirror; Unity's camera was fov 40, near 0.1, far 32768)
 	{
-		const float eye[3] = {m_vPos.x, m_vPos.y, m_vPos.z}, target[3] = {m_vTarget.x, m_vTarget.y, m_vTarget.z};
+		const float eye[3] = {m_vPos.x, m_vPos.y, m_vPos.z}, target[3] = {m_vTarget.x, m_vTarget.y + devtools::G03FreecamTargetY(m_fDistance), m_vTarget.z};   // devtools: --g03-freecam
 		kingdom::NativeScene::SetCamera(eye, target, 40.0f, 0.1f, 32768.0f);
 	}
 	Vector4 v = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 	Vector4 v2;
 	::Constants::jetGeoVecSub(v2, m_vTarget, m_vPos);
+	v2[1] += devtools::G03FreecamTargetY(m_fDistance);   // devtools: --g03-freecam
 	::Constants::jetGeoVecOuterProduct(m_vClipVecOut, v2, v);
 	if (Constants::IsVecNormalize(m_vClipVec))
 	{
@@ -841,7 +843,7 @@ void cTaskCamera::FrameMovePurSuit()
 		DistanceLerp();
 	}
 	m_bNowFrameCameraHit = 0u;
-	HitProcess();
+	if (!devtools::G03Freecam()) HitProcess();   // devtools: --g03-freecam (no wall escape turns)
 	MakeCamPositionRT();
 }
 
@@ -849,7 +851,7 @@ void cTaskCamera::FrameMoveCameraOpe()
 {
 	float pAngle = m_fThetaAngle;
 	int pad1No = InGamePadManager::GetPad1No();
-	if (m_bPrevFrameCameraHit != 2)
+	if (m_bPrevFrameCameraHit != 2 || devtools::G03Freecam())   // devtools: --g03-freecam
 	{
 		if (!Constants::PACN_APP()->pTaskConsRetry()->IsVisible())
 		{
@@ -863,13 +865,13 @@ void cTaskCamera::FrameMoveCameraOpe()
 				pAngle -= ::Constants::JET_DEG2RAD(2.4f);
 			}
 			Vector4 _discard3;
-			if (GetPadCnt(pad1No, cTaskCamera::EKeyType::eLEFT_RIGHT) && CheckBGHit(pAngle, _discard3))
+			if (!devtools::G03Freecam() && GetPadCnt(pad1No, cTaskCamera::EKeyType::eLEFT_RIGHT) && CheckBGHit(pAngle, _discard3))   // devtools: --g03-freecam
 			{
 				pAngle = m_fOldThetaAngle;
 				m_bCameraKeepOut = true;
 			}
 			float _discard4;
-			if (GetPadCnt(pad1No, cTaskCamera::EKeyType::eLEFT_RIGHT) && CheckExRange(_discard4, pAngle, ::Constants::JET_DEG2RAD(2.4f)))
+			if (!devtools::G03Freecam() && GetPadCnt(pad1No, cTaskCamera::EKeyType::eLEFT_RIGHT) && CheckExRange(_discard4, pAngle, ::Constants::JET_DEG2RAD(2.4f)))
 			{
 				pAngle = m_fOldThetaAngle;
 				m_bCameraKeepOut = true;
@@ -880,7 +882,7 @@ void cTaskCamera::FrameMoveCameraOpe()
 	{
 		m_bCameraKeepOut = true;
 	}
-	if (0 == 0 && CheckExRange(pAngle, pAngle, ::Constants::JET_DEG2RAD(2.4f)))
+	if (!devtools::G03Freecam() && CheckExRange(pAngle, pAngle, ::Constants::JET_DEG2RAD(2.4f)))   // devtools: --g03-freecam
 	{
 		m_bCameraKeepOut = true;
 	}
@@ -1042,6 +1044,7 @@ bool cTaskCamera::HitProcess()
 	return true;
 }
 
+// DOL 0x80159428 (fRadius unused, as in the DOL)
 bool cTaskCamera::HitViewVolume(Vector4 vCenter, float fRadius)
 {
 	float fClipFarDist = m_fClipFarDist;
@@ -1119,9 +1122,28 @@ void cTaskCamera::FrameMoveInitGame()
 
 // DOL 0x80158b08 (FrameMoveCameraOpe) and friends read get_pad1(0)->hold: bit 0x4 (LEFT) / 0x8 (RIGHT), 0xc for either. The C# read the right stick
 // (eKEY_RSTICK_*), which a Wii pad does not have (and the port does not bind): the camera turns with the D-pad (arrows).
+// Native addition (not in the DOL): a gamepad's right stick pushed past half travel counts as the D-pad direction it points to, so the camera
+// turns with either (stick right = RIGHT, stick up = UP).
 bool cTaskCamera::GetPadCnt(int padNum, cTaskCamera::EKeyType type)
 {
-	const unsigned hold = GamePad::Get(padNum).hold;
+	unsigned hold = GamePad::Get(padNum).hold;
+	const Vector2 rstick = InGamePadManager::GetStick(padNum, PadDefine::scRSTICK, false);
+	if (rstick.x <= -0.5f)
+	{
+		hold |= GamePad::PAD_LEFT;
+	}
+	if (rstick.x >= 0.5f)
+	{
+		hold |= GamePad::PAD_RIGHT;
+	}
+	if (rstick.y >= 0.5f)
+	{
+		hold |= GamePad::PAD_UP;
+	}
+	if (rstick.y <= -0.5f)
+	{
+		hold |= GamePad::PAD_DOWN;
+	}
 	switch (type)
 	{
 	case cTaskCamera::EKeyType::eUP:

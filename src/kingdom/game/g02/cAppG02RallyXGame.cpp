@@ -1,6 +1,9 @@
 #include "kingdom/game/g02/cAppG02RallyXGame.hpp"
 
+#include "SoundManager.hpp"
+
 #include <algorithm>
+#include <cstdlib>
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -83,6 +86,9 @@ cAppG02RallyXGame::cAppG02RallyXGame()
 {
 	SetName("cAppG02RallyXGame");
 	KingdomGlobal::RallyXSys->AttachStageArc();   // FUN_800c5a1c
+	// started from the debug menu (0x0c100000): a multiplayer stage gets its players from the connected pads (0x800c5e90; the single-player
+	// counterpart 0x800c5da0 is the debug menu's own business here)
+	if (KingdomGlobal::SysCore->GetLastJobNo() == job::RALLYX_DEBUG_MENU && KingdomGlobal::RallyXSys->IsMulti()) cG02RallyXSysExt::DebugMatching();
 	kingdom::cKingdomModelBase::ClearAssetCache();
 	m_pPause = new cTaskPause();   // +0x2ac
 	ConnectChild(m_pPause);
@@ -134,15 +140,18 @@ cAppG02RallyXGame::cAppG02RallyXGame()
 	m_pTaskMap = new cTaskMap();   // +0x298 (0x22c bytes; the DOL passes it the console task +0x2a8)
 	ConnectChild(m_pTaskMap);
 	m_pTaskMap->RegistFlags(m_pConsole);   // FUN_800662c8 per flag (the DOL's map does it while it places them)
-	ConnectChild(new cTaskBG());   // +0x2c0
+	m_pTaskBG = new cTaskBG();   // +0x2c0
+	ConnectChild(m_pTaskBG);
 	cG02RallyXSys* sys = KingdomGlobal::RallyXSys;
 	const bool boss = sys->IsBossStage();   // 0x800c5ba8
 	const int nPlayer = nPlayers();
-	// the players: colour 6 (Pac-Man), 5 (red) on the boss stage; multiplayer colours (table 0x80378a48) NOT PORTED
+	// the players: colour 6 (Pac-Man), 5 (red) on the boss stage; multiplayer: colour i + 1 (table 0x80378a48 {1, 2, 3, 4}: blue, green, yellow, white)
 	int n = 0;
 	for (int i = 0; i < nPlayer && n < 7; i++, n++)
 	{
-		const int colour = boss ? 5 : 6;
+		static const int MULTI_COLOUR[4] = {1, 2, 3, 4};
+		int colour = sys->IsMulti() ? MULTI_COLOUR[i & 3] : 6;
+		if (boss) colour = 5;
 		m_pCars[n] = CreatePlayer(this, colour, i, boss);   // 0x80124e54 / 0x80124ac4
 		m_pTaskMap->PlaceCar(m_pCars[n], 0, i + 1, false);   // 0x800780e4(map, car, 0, i + 1)
 		m_pCars[n]->CreateCamera(&m_nScnLayout);              // 0x80081cec
@@ -163,20 +172,22 @@ cAppG02RallyXGame::cAppG02RallyXGame()
 	// FUN_80126930(app, table 0x80378a58[players]): the screen layout and every ScnRoot camera's fovy from car 0's camera
 	static const s32 LAYOUT[5] = {0, 0, 4, 7, 7};   // DOL 0x80378a58
 	m_nScnLayout = LAYOUT[nPlayer < 5 ? nPlayer : 4];
+	kingdom::NativeScene::SetLayout(m_nScnLayout);   // cTaskScnRoot +0x1b8: the split screen
 	if (m_pCars[0] != nullptr && m_pCars[0]->pCamera() != nullptr)
 	{
 		cCamera* cam = m_pCars[0]->pCamera();
 		for (int i = 0; i < 4; i++) cCamera::SetScnCameraFovy(i, cam->GetFovy(cG02RallyXSysExt::nCtrlType[i]));   // 0x80128e4c(cam, 0x800c5b88(i))
 		cam->ModeChange(0);   // 0x80128c54
 	}
-	m_nNextJob = 0xc100000;   // +0x30c
+	m_nNextJob = job::RALLYX_DEBUG_MENU;   // +0x30c
 	m_pRetry = new kingdom::game::cTaskConsRetry("COMMON_ANITA_RETRY", "COMMON_ANITA_POINTER", 1u);   // +0x310 (0x97668b20 / 0x1a3f6a03)
 	ConnectChild(m_pRetry);
 	m_pRetry->nDrawPriority(0x80000008u);
 	// the ctor tail: +0x31c = 0; +0x318 = 0 single player, the multiplayer time limit (FUN_800c5978, table 0x80371178) otherwise; +0x32c = CSV_GAME
-	// PLAYER_LIFE (FUN_80126a08). NOT PORTED: the multiplayer limit, FUN_80125948 (BGM handle setup)
+	// PLAYER_LIFE (FUN_80126a08). NOT PORTED: FUN_80125948 (BGM handle setup)
 	m_fCount = 0.0f;
-	m_fPlayTime = 0.0f;
+	m_fPlayTime = sys->IsMulti() ? (float)sys->nTimeMs() : 0.0f;
+	if (sys->IsMulti()) if (const char* e = std::getenv("MEGAMIX_G02_TIME")) m_fPlayTime = 1000.0f * (float)std::atof(e);   // devtools: a short multiplayer match (seconds)
 	m_nRest = m_pParam->m_nLife;
 }
 
@@ -188,6 +199,8 @@ void cAppG02RallyXGame::Free()
 	m_pParam = nullptr;
 	KingdomGlobal::RallyXSys->DetachStageArc();
 	kingdom::NativeScene::Reset();
+	SoundManager::get_SE()->ClearListener();   // the cars' listeners (+0x2f0) go with the tree
+	cTaskConsole::s_pGameState = nullptr;
 	cAppKingdom::Free();
 }
 
@@ -226,7 +239,13 @@ bool cAppG02RallyXGame::UnitStageEnd(bool b, int unitId)
 void cAppG02RallyXGame::UnitRedCrash()
 {
 	NextState(7);
-	// FUN_80026394(0.5, +0x28c, 500): the BGM volume to 0.5, NOT PORTED
+	WiiSnd::SetVolume(m_SndBgm, 0.5f, 500);   // 0x80126b00: 0x80026394(0.5 (FLOAT_8047c00c), +0x28c, 500)
+}
+
+// DOL 0x801272c0: a car clash of the multiplayer match shows the hit mark of the player
+void cAppG02RallyXGame::UnitMultiHit(int nIndex)
+{
+	if (m_pConsole != nullptr) m_pConsole->HitMark(nIndex);
 }
 
 // DOL 0x8006cfa0 (via the car's FUN_800881dc)
@@ -257,11 +276,12 @@ void cAppG02RallyXGame::PlayBgm(const char* cue)
 	m_bBgmFading = false;
 }
 
-// DOL 0x80125a14: effects clear (0x8008a814), BG reset (FUN_8006016c, single player; NOT PORTED), every car reset (vtable +0x48) and back
+// DOL 0x80125a14: effects clear (0x8008a814), BG reset (0x8006016c, cTaskBG::ResetPtk), every car reset (vtable +0x48) and back
 // on its start (0x800780ec)
 void cAppG02RallyXGame::ResetCars()
 {
 	if (m_pEffect != nullptr) m_pEffect->Clear();
+	if (m_pTaskBG != nullptr) m_pTaskBG->ResetPtk();   // UNVERIFIED gate: the DOL calls it between 0x800c6428 / 0x800c5ca0 and the cars
 	const int nPlayer = nPlayers();
 	int n = 0;
 	for (int i = 0; i < nPlayer && n < 7; i++, n++)
@@ -292,7 +312,9 @@ void cAppG02RallyXGame::Draw(int nStatus, cJetTask* pParam)
 	m_nStep = m_nNextStep;
 }
 
-// DOL 0x80125b1c
+// DOL 0x80125b1c. Its state switch (+0x2e4) jumps through the table at 0x804410ec, right after cTaskRallyAnitaBase's secondary vtable, so
+// vtable_audit read the case labels as that class's slots: 0x80125c18 0x80125ca0 0x80125e50 0x80126028 0x8012613c 0x80126488 0x801265b8 0x801266ec
+// 0x801266f8 0x80126704 0x80126710 0x80126860 0x8012682c (all inside this function)
 bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -351,7 +373,7 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 				if (w >= 1 && w <= 4) PlayBgm(BGM[w - 1]);
 			}
 			else PlayBgm("m02bgm_RedCar");
-			// FUN_80026394(1.0, +0x28c, 500): the volume, NOT PORTED
+			WiiSnd::SetVolume(m_SndBgm, 1.0f, 500);   // 0x80126020: 0x80026394(1.0 (FLOAT_8047c000), +0x28c, 500)
 		}
 		break;
 	case 3:   // retry after a miss
@@ -371,8 +393,20 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 	case 4:   // play
 	{
 		cTaskUnit::Up(99999.0f, 1.0f, m_fCount);   // 0x800c541c
-		if (!sys->IsMulti()) cTaskUnit::Up(3599999.0f, 16.0f, m_fPlayTime);   // 0x800c53c0 (FLOAT_8047bfb8, FLOAT_8047c004 ms a frame)
-		// multiplayer: the time counts down with the alarm below 10 s (FLOAT_8047c008) NOT PORTED (no multiplayer stage start)
+		if (!sys->IsMulti())
+		{
+			cTaskUnit::Up(3599999.0f, 16.0f, m_fPlayTime);   // 0x800c53c0 (FLOAT_8047bfb8, FLOAT_8047c004 ms a frame)
+		}
+		else
+		{
+			// multiplayer: the time counts down; the alarm plays in the last 10 s (FLOAT_8047c008), until the time is up
+			const float before = m_fPlayTime;
+			cTaskUnit::Down(0.0f, -16.0f, m_fPlayTime);   // 0x800c5450(0, -16, +0x318)
+			if (10000.0f < before || m_fPlayTime <= 0.0f)
+				WiiSnd::Stop(m_SndAlarm);
+			else if (m_SndAlarm.voice < 0 || !snd::IsPlaying(m_SndAlarm.voice))
+				WiiSnd::Play(m_SndAlarm, "m02se_13Alarm");
+		}
 		if (sys->IsBossStage() && m_pCars[1] != nullptr)
 		{
 			// the alarm while the red car is within 3 flags of the total
@@ -382,19 +416,53 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 		}
 		for (int i = 0; i < nPlayer; i++)
 			if (m_pCars[i] != nullptr && m_pCars[i]->IsStop()) NextState(5);   // the crash (+0x1d8)
-		if (!sys->IsMulti())
+		if (sys->IsMulti())
+		{
+			if ((int)m_fPlayTime == 0)
+			{
+				// the time is up: the winners are the players with the most flags (the mask of sys +0x10 via 0x800c5898); a tie -> state 9
+				int best = 0;
+				bool tie = false;
+				sys->ClearWinners();   // 0x800c5890
+				sys->SetWinner(0);
+				for (int i = 1; i < nPlayer; i++)
+				{
+					const int a = m_pCars[best] != nullptr ? m_pCars[best]->nFlags() : 0;
+					const int b = m_pCars[i] != nullptr ? m_pCars[i]->nFlags() : 0;
+					if (a == b)
+					{
+						tie = true;
+						sys->SetWinner(i);
+					}
+					else if (a < b)
+					{
+						tie = false;
+						sys->ClearWinners();
+						sys->SetWinner(i);
+						best = i;
+					}
+				}
+				NextState(tie ? 9 : 8);
+				WiiSnd::SetVolume(m_SndBgm, 0.5f, 500);
+			}
+		}
+		else
 		{
 			if (!sys->IsBossStage())
 			{
-				if (m_pCars[0] != nullptr && m_pCars[0]->nFlags() == MapFlagTotal()) NextState(7);   // BGM volume 0.5 NOT PORTED
+				if (m_pCars[0] != nullptr && m_pCars[0]->nFlags() == MapFlagTotal())
+				{
+					NextState(7);
+					WiiSnd::SetVolume(m_SndBgm, 0.5f, 500);   // 0x80126334: 0x80026394(0.5, +0x28c, 500)
+				}
 			}
 			else if (m_pCars[1] != nullptr && m_pCars[1]->nFlags() == MapFlagTotal())
 			{
 				NextState(10);
+				WiiSnd::SetVolume(m_SndBgm, 0.5f, 500);   // 0x80126380
 				m_pCars[1]->Clear();   // 0x80088a70
 			}
 		}
-		// multiplayer time up -> 8 / 9 (winner 0x800c5898): NOT PORTED
 		break;
 	}
 	case 5:   // miss
@@ -432,26 +500,28 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 			m_pConsole->HideBang();   // 0x8006669c
 			NextStep(1);
 		}
-		else if (m_nStep == 1 && m_nNextJob == 0xc100000)
+		else if (m_nStep == 1 && m_nNextJob == job::RALLYX_DEBUG_MENU)
 		{
 			m_pRetry->Start();   // 0x80149b88
 			if (m_pRetry->IsYes())
 			{
-				m_nNextJob = 0xc300000;   // retry the stage
+				m_nNextJob = job::RALLYX_GAME;   // retry the stage
 				m_pTaskFade->Fade(0x10002u, 500);
 				NextState(0xc);
 			}
 			if (m_pRetry->IsNo())
 			{
-				m_nNextJob = 0xc600000;   // game over
+				m_nNextJob = job::RALLYX_GAMEOVER;   // game over
 				m_pTaskFade->Fade(0x10002u, 500);
 				NextState(0xc);
 			}
 		}
 		break;
 	case 7: StateClear(); break;
-	case 8:   // multiplayer results (0x80126f70 / 0x80127118): NOT PORTED
-	case 9: break;
+	case 8:   // the winner (0x80126f70)
+	case 9:   // a draw (0x80127118)
+		StateMultiResult(m_nState == 8);
+		break;
 	case 10:   // the red car got every flag
 		if (m_nStep == 0)
 		{
@@ -465,7 +535,7 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 		else if (m_nStep == 1 && m_pConsole->IsLoseEnd() &&
 		         (cTaskUnit::Inc1(m_pParam->m_fLoseLastWait, m_fWait330) || (GamePad::Get(0).trig & 0x860u) != 0))   // CSV_GAME +0x34
 		{
-			m_nNextJob = 0xc200000;
+			m_nNextJob = job::RALLYX_MENU;
 			m_pTaskFade->Fade(0x10002u, 500);
 			NextState(0xc);
 		}
@@ -482,12 +552,38 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 	}
 	if (m_nState != 0xc && GamePad::Get(0).hold == 0xffffffffu) NextState(0xc);
 	for (int i = 0; i < 4; i++)
-		if (m_nCamOn[i] == 1 && m_pCars[i] != nullptr && m_pCars[i]->pCamera() != nullptr)
-		{
-			// natively only ScnRoot camera 0 is drawn (split screen NOT PORTED)
-			if (i == 0) m_pCars[i]->pCamera()->Apply(i);   // 0x80129c94
-		}
+		if (m_nCamOn[i] == 1 && m_pCars[i] != nullptr && m_pCars[i]->pCamera() != nullptr) m_pCars[i]->pCamera()->Apply(i);   // 0x80129c94
 	return true;
+}
+
+// DOL 0x80126f70 (bWin) / 0x80127118 (draw): step 0 the cars' nitro goes off (0x80088ba0), step 1 the console's result is shown (m02se_22win /
+// m02se_23draw), step 2 after CSV_GAME +0x2c / +0x30 frames or A / B / Z: back to the multiplayer menu (job 200)
+void cAppG02RallyXGame::StateMultiResult(bool bWin)
+{
+	if (m_nStep == 0)
+	{
+		for (int i = 0; i < nPlayers(); i++)
+			if (m_pCars[i] != nullptr) m_pCars[i]->ResetNitro();   // 0x80088ba0: +0x2a4 = 0
+		NextStep(1);
+	}
+	if (m_nStep == 1)
+	{
+		if (bWin ? m_pConsole->IsWinShown() : m_pConsole->IsDrawShown())
+		{
+			cTaskConsole::PlaySE(bWin ? "m02se_22win" : "m02se_23draw");
+			NextStep(2);
+			m_fWait330 = 0.0f;
+		}
+	}
+	else if (m_nStep == 2 && (bWin ? m_pConsole->IsWinEnd() : m_pConsole->IsDrawEnd()))
+	{
+		if (cTaskUnit::Inc1(bWin ? m_pParam->m_fWinnerLastWait : m_pParam->m_fDrawLastWait, m_fWait330) || (GamePad::Get(0).trig & 0x860u) != 0)
+		{
+			m_nNextJob = job::RALLYX_MULTI_MENU;
+			m_pTaskFade->Fade(0x10002u, 500);
+			NextState(0xc);
+		}
+	}
 }
 
 // DOL 0x80126b18 (state 7: stage clear)
@@ -544,7 +640,7 @@ void cAppG02RallyXGame::StateClear()
 		cG02RallyXRecord& rec = cG02RallyXRecord::Get();
 		if (!sys->IsBossStage()) rec.SetRecord(stage, (u32)m_nScore, (u32)m_fPlayTime);   // 0x800c6218
 		else rec.SetTime(stage, (u32)m_fPlayTime);                                       // 0x800c6274
-		m_nNextJob = 0xc200000;
+		m_nNextJob = job::RALLYX_MENU;
 		m_bNextFlag = true;   // +0x314
 		if (!sys->IsBossStage())
 		{
@@ -562,7 +658,7 @@ void cAppG02RallyXGame::StateClear()
 			{
 				if (!rec.IsAllClear())   // 0x800c61d8
 				{
-					m_nNextJob = 0xce00000;   // the staff roll, once
+					m_nNextJob = job::RALLYX_STAFFROLL;   // the staff roll, once
 					m_bNextFlag = false;
 				}
 				rec.SetOpen(6);

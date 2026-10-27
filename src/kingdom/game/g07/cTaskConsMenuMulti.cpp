@@ -48,7 +48,9 @@ bool cTaskConsMenuMulti::IsDpdHit(float x, float y)
 
 void cTaskConsMenuMulti::WaitExec()
 {
-	if (nullptr != UnityUI || !((dynamic_cast<cTaskConsMultiMenuStart*>(this) != nullptr)))
+	// the C# tested `UnityUI != null || !(this is Start)`, so with no Unity UI the plain Multi button never went back to its idle animation (it kept
+	// the highlight); the other Exec functions here test `&&`, as here now
+	if (nullptr != UnityUI && !((dynamic_cast<cTaskConsMultiMenuStart*>(this) != nullptr)))
 	{
 		UnityUI->ResetAnim(m_buttonType);
 	}

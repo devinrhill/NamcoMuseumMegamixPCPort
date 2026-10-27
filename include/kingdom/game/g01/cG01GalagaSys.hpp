@@ -167,6 +167,7 @@ public:
 	static void DetachMenuArc();                                             // DOL 0x800b0924
 
 	static void JobInit();                                                   // DOL 0x800b0cf4 (job 176)
+	static void JobEnd();                                                    // DOL 0x800b0d40 (job 191)
 
 private:
 	void Init();                                                             // DOL 0x800b032c

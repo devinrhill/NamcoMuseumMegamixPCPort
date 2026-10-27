@@ -1,4 +1,5 @@
 #include "kingdom/game/g11/cAppG11GrobdaMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "WiiSnd.hpp"
@@ -120,20 +121,20 @@ void cAppG11GrobdaMenu::MainExec()
 			[[fallthrough]];
 		case 1u:
 			m_pConsMan->Select();
-			if (m_pConsMan->IsBackDecide()) nSetNextJob(0x15f00000u);   // job 351: back to the hub
-			if (m_pConsMan->IsStartDecide()) nSetNextJob(0x15800000u);  // job 344: the Nunchuk card, then the stage
+			if (m_pConsMan->IsBackDecide()) nSetNextJob(job::GROBDA_TERM);   // job 351: back to the hub
+			if (m_pConsMan->IsStartDecide()) nSetNextJob(job::GROBDA_NUNCHUK);  // job 344: the Nunchuk card, then the stage
 			if (m_pConsMan->IsRuleDecide()) bTutorial() = true;
 			if (m_pConsMan->IsMultiDecide())
 			{
 				if (!cG11GrobdaSys::Instance()->IsMulti())
 				{
 					SetSndAllStop(false);
-					nSetNextJob(0x15600000u);   // job 342: the matching (NOT PORTED)
+					nSetNextJob(job::GROBDA_MATCHING);   // job 342: the matching (NOT PORTED)
 				}
 				else
 				{
 					cG11GrobdaSys::Instance()->nStage(0);   // sys +0x20 = 0
-					nSetNextJob(0x15200000u);               // back to this menu
+					nSetNextJob(job::GROBDA_MENU);               // back to this menu
 				}
 			}
 			if (nOldState(n) == nModeState(n)) break;

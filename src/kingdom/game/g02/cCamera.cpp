@@ -152,11 +152,11 @@ void cCamera::Term()
 // ---- the ScnRoot camera ----------------------------------------------------------------------------------------------------------------
 
 // DOL 0x80129c94: ScnRoot::GetCamera(nCam) -> SetPosition(eye), SetPosture(LOOKAT, up +0x30, target +0x20). The starters inline the same block.
-// Native: camera 0 is the scene camera; 1..3 (split screen) are NOT PORTED.
+// Native: camera 0 is the scene camera, 1..3 the split screen's (NativeScene::SetLayout from the app's layout, SetCameraN).
 void cCamera::Apply(int nCam) const
 {
-	if (nCam != 0) return;
-	kingdom::NativeScene::SetCamera(m_vEye, m_vTarget, ScnCameraFovy(nCam), SCN_NEAR, SCN_FAR);
+	if (nCam < 0 || nCam > 3) return;
+	kingdom::NativeScene::SetCameraN(nCam, m_vEye, m_vTarget, ScnCameraFovy(nCam), SCN_NEAR, SCN_FAR);
 }
 
 // DOL 0x80129d30: ScnRoot::GetCamera(nCam) -> Camera::GetCameraMtx. Native: C_MTXLookAt(eye, up, target) of this camera (the ScnRoot camera

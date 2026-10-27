@@ -1,4 +1,5 @@
 #include "kingdom/game/g03/cAppG03PacnRollNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "WiiPad.hpp"
 
@@ -10,7 +11,7 @@ namespace kingdom::game::g03
 cAppG03PacnRollNunchuk::cAppG03PacnRollNunchuk()
 {
 	RegistLayout("BIN_COMMON_ANT_NUNCHUK");
-	nNextJob() = 0x0d300000u;
+	nNextJob() = job::PACNROLL_GAME;
 	SetName("cAppG03PacnRollNunchuk");
 }
 

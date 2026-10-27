@@ -13,8 +13,8 @@ namespace kingdom { class cTaskCursor; }
 namespace kingdom::game { class cTaskConsRetry; }
 
 // Gator Panic Remix (g04) the 2D console: kingdom::game::g04::cTaskGameConsole (0x20c bytes, vtable 0x8044a424; builder 0x800937bc at app
-// +0x294, priority 0x10002; build 0x801b0808, mode 0x801b1678, Execute 0x801b1434) and the anita tasks it owns. Single player (the
-// multiplayer menu / score / Mii icon consoles are NOT PORTED):
+// +0x294, priority 0x10002; build 0x801b0808, mode 0x801b1678, Execute 0x801b1434) and the anita tasks it owns (the multiplayer menu /
+// score consoles further down; NOT PORTED: the Mii icons, out of scope):
 //   +0x1f0 a menu pointer per player (kingdom::cTaskMenuCursor, COMMON_ANITA_POINTER anim 2i / 2i+1 with A B Z, enabled in modes 2 / 3 / 6)
 //   +0x200 the tutorial (cTaskConsMenuTutorial, COMMON_ANITA_TUTORIAL + TUTORIAL01_ANITA pages, MENU_TEXT_TUTORIAL)
 //   +0x1d0 the menu (cTaskConsMenu, SELECT_ANITA: item 0 back, 1 how to play, 2 start, 3 players)
@@ -62,6 +62,7 @@ public:
 	void SetMode(int mode);                        // DOL 0x8019e060
 	void First(uint n);                            // DOL 0x8019e378
 	void Set(uint n);                              // DOL 0x8019e444
+	void ScoreNumMode3();                          // cTaskScoreNum::SetMode(3) run on this object (cTaskConsScore mode 7)
 
 private:
 	int m_nMode{};                                 // +0x1c8
@@ -117,7 +118,7 @@ public:
 	void Leaders(uint& mask, int& count) const;    // DOL 0x801a3ef4: the players with the best score (all of them while tied)
 	void Finish();                                 // DOL 0x801a4078: the winner's number blinks (a single winner only), mode 4
 
-	void SetBonus(cTaskPacmanBase* p, int n) override;                   // DOL 0x801a37a4 (UNVERIFIED which slot)
+	void SetBonus(cTaskPacmanBase* p, int n) override;                   // listener +0x0c: blr (0x801a4274); +0x10 = Refresh 0x801a37a4, which the Pac-Man never calls
 	void SetHits(cTaskPacmanBase* p, int n) override;                    // DOL 0x801a38dc
 	void SetDamage(cTaskPacmanBase* p, int n) override;                  // DOL 0x801a390c
 	void Combo(cTaskPacmanBase* p, int combo, uint chain) override;      // DOL 0x801a3fa0

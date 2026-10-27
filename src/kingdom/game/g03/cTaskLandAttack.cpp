@@ -33,6 +33,7 @@ cTaskLandAttack::~cTaskLandAttack()
 {
 }
 
+// DOL 0x8011f600
 bool cTaskLandAttack::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE())
@@ -78,7 +79,9 @@ bool cTaskLandAttack::Execute(cJetTask* pParam)
 		}
 		m_nFrameCount++;
 	}
-	if (!CustomKingdomUtil::IF(m_pGimmick->nActFlag() & 0x80000000u) && m_pGimmick->Model->GetFrameAnmChr(0u) >= m_pGimmick->Model->GetFrameMaxAnmChr(0u))
+	// DOL 0x8011f600: the attack clip ends at "frame >= max - rate" (0x8001c2e0 / 0x8001c630 / 0x8001d790). The converted "frame >= max" never fired for the
+	// looping w4sb clips (the frame wraps first): the centre platform repeated its first attack forever
+	if (!CustomKingdomUtil::IF(m_pGimmick->nActFlag() & 0x80000000u) && m_pGimmick->Model->GetFrameAnmChr(0u) >= m_pGimmick->Model->GetFrameMaxAnmChr(0u) - m_pGimmick->Model->GetUpdateRateAnmChr(0u))
 	{
 		m_pGimmick->nActFlag() |= 2147483648u;
 	}

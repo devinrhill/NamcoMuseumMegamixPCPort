@@ -296,7 +296,8 @@ bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 				SetType(1u);
 				SetAnmState(1u);
 			}
-			if (pModel(nType())->GetFrameMaxAnmChr(0u) < pModel(nType())->GetFrameAnmChr(0u))
+			// "max <= frame": the port's one-time clips stop at max (the DOL's "max < frame" never fired: ghosts froze in the ijike start, state 3)
+			if (pModel(nType())->GetFrameMaxAnmChr(0u) <= pModel(nType())->GetFrameAnmChr(0u))
 			{
 				SetAnmState(2u);
 				nStat() = 4;
@@ -606,7 +607,7 @@ bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 	{
 		pHitChar(0)->SetOfsPos(0.0f, 1.0f, 0.0f);
 	}
-	if (nStat() < 9 && !m_bSndEngineStop && Constants::PACN_APP()->pTaskConsRetry() != nullptr && !Constants::PACN_APP()->pTaskConsRetry()->IsVisible() && nullptr == m_SndHndEngine)
+	if (nStat() < 9 && !m_bSndEngineStop && Constants::PACN_APP()->pTaskConsRetry() != nullptr && !Constants::PACN_APP()->pTaskConsRetry()->IsVisible() && !SoundManager::get_SE()->IsPlaying(m_SndHndEngine))   // DOL 0x80160538: the handle has no sound (0x80026424), not a null test
 	{
 		switch (m_nSndType)
 		{
@@ -621,6 +622,7 @@ bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 	return cTaskCharEnemy::Execute(pParam);
 }
 
+// DOL 0x80160640 (the Visible / Invisible toggles are the C#'s; the DOL only submits the models)
 void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = nType();
@@ -638,6 +640,7 @@ void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 		::Constants::jetGeoMtx44to34(m2, m);
 		DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 		DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
+		pCurrentModel()->UpdateMatrix();   // DOL 0x80160814: the vehicle (model 2) into this frame's scene list (0x8009c3f4)
 		if (nStat() != 9 && !pPBModel(2u)->IsVisible())
 		{
 			pPBModel(2u)->Visible();
@@ -654,6 +657,7 @@ void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 	::Constants::jetGeoMtx44to34(m2, m);
 	DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 	DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
+	pCurrentModel()->UpdateMatrix();   // DOL 0x8016098c: the current model into this frame's scene list
 	if (nStat() != 9)
 	{
 		if (nType() == 0)

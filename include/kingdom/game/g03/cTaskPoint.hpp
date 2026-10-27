@@ -57,6 +57,9 @@ private:
 
 public:
 	void SetRetryData();
+
+protected:
+	void ReleaseTerm() override { cTaskPoint::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

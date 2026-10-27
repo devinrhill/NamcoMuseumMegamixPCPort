@@ -199,6 +199,9 @@ public:
 
 protected:
 	void SetFlash(int modelIdx, float rate);
+
+protected:
+	void ReleaseTerm() override { cTaskCharBoss::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -1,4 +1,5 @@
 #include "kingdom/game/g11/cAppG11GrobdaNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -19,7 +20,7 @@ void cAppG11GrobdaNunchuk::JobInit()
 cAppG11GrobdaNunchuk::cAppG11GrobdaNunchuk()
 {
 	RegistLayout("BIN_COMMON_ANT_NUNCHUK");   // vtable +0x4c(this, 0xbddf0075)
-	nNextJob() = 0x15300000u;
+	nNextJob() = job::GROBDA_GAME;
 	SetName("cAppG11GrobdaNunchuk");
 }
 

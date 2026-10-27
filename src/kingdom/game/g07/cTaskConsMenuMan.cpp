@@ -280,8 +280,11 @@ void cTaskConsMenuMan::AddHitArray()
 	pHitArray(13u) = pTaskConsMenuArrow(1u);
 }
 
+// DOL 0x801c8a0c: Back (+0x1dc) first, then Multi / Rule / World / Bar / Curtain / Map, the 7 stages and the 2 arrows (the C# dropped Back, so the
+// Back button kept its highlight after the selection moved on)
 void cTaskConsMenuMan::AllWaitState()
 {
+	pTaskConsMenuBack()->WaitState();
 	pTaskConsMenuMulti()->WaitState();
 	pTaskConsMenuRule()->WaitState();
 	pTaskConsMenuWorld()->WaitState();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskModel.hpp"
 #include "kingdom/game/g01/cObject.hpp"
 #include "kingdom/game/g01/cTaskShootMarker.hpp"
@@ -28,6 +29,7 @@ public:
 	void HitCallback(cObject* other) override; // DOL 0x800f07f8
 
 private:
+	kingdom::cKingdomSndActor m_SndActor;   // +0x384: the cGalagaSndActor (0x801c1680, made in 0x800f01b0), released by Term
 	void Step();                               // DOL 0x800f04dc (vtable +0xa8)
 	void Die();                                // DOL 0x800f0b3c
 	void UpdateModel();

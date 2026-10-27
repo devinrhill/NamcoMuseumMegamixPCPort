@@ -125,6 +125,9 @@ public:
 	void HitListup(std::vector<cHitChar*>& pVec, const int& nSide, const uint& nFlag = 0u);
 
 	bool HitPreCheck(cHitChar* pHit);
+
+protected:
+	void ReleaseTerm() override { cTaskCollision::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

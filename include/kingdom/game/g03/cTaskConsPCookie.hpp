@@ -65,6 +65,9 @@ private:
 	int nGetAnimCookieUP(int Cookie);
 
 	int nGetAnimCookieFlameOut(int Cookie);
+
+protected:
+	void ReleaseTerm() override { cTaskConsPCookie::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

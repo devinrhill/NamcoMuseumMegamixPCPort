@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cAppG02RallyXStaffRoll.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -19,7 +20,7 @@ void cAppG02RallyXStaffRoll::JobInit()
 // the base default (BGM_001) plays nothing.
 cAppG02RallyXStaffRoll::cAppG02RallyXStaffRoll()
 {
-	nSetNextJobNo(0x0c600000u);   // +0x288: the game over, which goes back to the stage select
+	nSetNextJobNo(job::RALLYX_GAMEOVER);   // +0x288: the game over, which goes back to the stage select
 	RegistData();
 }
 

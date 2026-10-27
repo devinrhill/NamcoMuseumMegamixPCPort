@@ -90,6 +90,9 @@ public:
 	bool BaseExecute(cJetTask* pParam);
 
 	void BaseDraw(int nStatus, cJetTask* pParam);
+
+protected:
+	void ReleaseTerm() override { cTaskConsoleBase::Term(); cTaskAnita::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

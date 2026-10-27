@@ -33,6 +33,9 @@ public:
 	void PanelExplode();
 
 	bool ToSwitchLength(Constants::PANEL_INFO* p1, Constants::PANEL_INFO* p2);
+
+protected:
+	void ReleaseTerm() override { cTaskGimmickSwitch::Term(); cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

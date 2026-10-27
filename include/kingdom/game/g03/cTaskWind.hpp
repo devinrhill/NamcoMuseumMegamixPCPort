@@ -62,6 +62,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	bool AreaCheck();
+
+protected:
+	void ReleaseTerm() override { cTaskWind::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

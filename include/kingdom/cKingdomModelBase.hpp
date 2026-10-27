@@ -75,6 +75,10 @@ private:
 public:
 	// model-space matrix (3x4 row major) of a node in the current pose (0x800e0254-like node queries); false for an unknown node
 	bool NodeMatrix(const std::string& node, float m3x4[12]);
+	// the per node skin matrices (3x4 row major, gfx::ModelDraw::Skin) of this instance's current CHR pose; false without a native model.
+	// `out` is left empty when no CHR slot poses the model (bind pose). HasChrPose: some slot poses it (weight > 0, a clip with frames)
+	bool PosedSkin(std::vector<float>& out);
+	bool HasChrPose() const;
 
 protected:
 	Native* m_native{};

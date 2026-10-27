@@ -66,6 +66,9 @@ protected:
 	float m_fFuelSave{};                        // +0x9d4 (the fuel at the stage end, before the bonus count)
 	int m_nCount{};                             // +0x9d8 (the stage end fuel count step)
 	WiiSnd::Handle m_SndCount;                  // +0x9dc (m02se_21Count)
+
+protected:
+	void ReleaseTerm() override { cTaskPlayer::Term(); cTaskUnit::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 // kingdom::game::g02::cTaskPlayerRedMode (the boss stage's player): no items / flags / stones / spikes / smoke screens

@@ -251,6 +251,9 @@ private:
 	int NextMode();
 
 	void SetNextMode();
+
+protected:
+	void ReleaseTerm() override { cTaskBoss05Last::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

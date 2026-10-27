@@ -160,6 +160,9 @@ public:
 	void Attacked(cHitChar* pRev, cHitChar* pAtk) override;
 
 	void HitPushOut(Vector4 vVec, cTaskChar* pChar) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharAreaGhost::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

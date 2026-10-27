@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cTaskConsMenuMan.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
@@ -47,9 +48,8 @@ void SetLight(int set, const char* sca)
 
 // the light manager (+0x1d8: MENU_LIGHT_BG crc 0xf7fa406d set 0, MENU_LIGHT_MODEL crc 0xd04cf948 set 1) and the cTaskSceneCamera (+0x1dc,
 // 0x1cc bytes, on ScnRoot camera 0; FUN_80149f74(cam, 0, MENU_LIGHT_MODEL) binds the SCN0, FUN_8014a388(cam, 0) plays it; connected to the
-// app). NATIVE: the SCN0 camera 0 sampled once at frame 0 (UNVERIFIED: whether the SCN0 animates the camera after frame 0; an aim camera is
-// assumed, as g04's BG_SCA).
-void cTaskConsMenuMan::SetupScene()
+// app). NATIVE: the SCN0 camera 0 sampled once at frame 0 (UNVERIFIED: whether the SCN0 animates the camera after frame 0).
+void SetupMenuScene()
 {
 	SetLight(0, "MENU_LIGHT_BG");
 	SetLight(1, "MENU_LIGHT_MODEL");
@@ -59,7 +59,16 @@ void cTaskConsMenuMan::SetupScene()
 	wii::ScnAnim a;
 	wii::CameraResult cam;
 	if (d != nullptr && b.Load(d, size) && a.Load(b) && a.SampleCamera("", 0.0f, cam))
-		kingdom::NativeScene::SetCamera(cam.pos, cam.aimPos, cam.fovy, cam.nearZ, cam.farZ);
+	{
+		float target[3];
+		cam.LookAt(target);   // MENU_LIGHT_MODEL's camera is a rotate camera (rotation -4.9, 48.4, 0 degrees), not an aim camera
+		kingdom::NativeScene::SetCamera(cam.pos, target, cam.fovy, cam.nearZ, cam.farZ);
+	}
+}
+
+void cTaskConsMenuMan::SetupScene()
+{
+	SetupMenuScene();
 }
 
 // DOL 0x80108074
@@ -136,7 +145,7 @@ void cTaskConsMenuMan::InitStageNo()
 	m_nWorldMax = cG02RallyXSysExt::WorldOf(nFree) - 1;
 	m_nStageMax = cG02RallyXSysExt::StageInWorldOf(nFree) - 1;
 	const uint last = KingdomGlobal::SysCore->GetLastJobNo();
-	if (last == 0x08600000u || last == 0x0c300000u)
+	if (last == job::SAVE || last == job::RALLYX_GAME)
 	{
 		if (!cG02RallyXSysExt::bNewStageApear)
 		{

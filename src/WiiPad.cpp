@@ -49,8 +49,8 @@ struct Channel
 };
 Channel g_ch[MAX_CHANNELS];
 std::uint32_t g_inject[4] = {};
-bool g_injectPtr = false;
-float g_injectPtrX = 0, g_injectPtrY = 0; // game screen pixels, top-left origin
+bool g_injectPtr[MAX_CHANNELS] = {};
+float g_injectPtrX[MAX_CHANNELS] = {}, g_injectPtrY[MAX_CHANNELS] = {}; // game screen pixels, top-left origin
 bool g_sideways = true;
 bool g_uprightOverride = false;
 bool EffectiveSideways() { return g_sideways && !g_uprightOverride; }
@@ -200,12 +200,21 @@ std::uint32_t DpadMask(Dir d)
 	}
 }
 
-void InjectPointer(float gameX, float gameY) { g_injectPtr = true; g_injectPtrX = gameX; g_injectPtrY = gameY; }
-void ClearInjectedPointer() { g_injectPtr = false; }
+void InjectPointer(float gameX, float gameY, int channel)
+{
+	if (channel < 0 || channel >= MAX_CHANNELS) return;
+	g_injectPtr[channel] = true;
+	g_injectPtrX[channel] = gameX;
+	g_injectPtrY[channel] = gameY;
+}
+void ClearInjectedPointer() { for (bool& b : g_injectPtr) b = false; }
 
 bool g_injectStick = false;
 float g_injectStickX = 0, g_injectStickY = 0;
 void InjectStick(float x, float y) { g_injectStick = true; g_injectStickX = x; g_injectStickY = y; }
+
+int g_forcedConnected = 1;
+void SetForcedConnected(int n) { g_forcedConnected = n; }
 
 void InjectHeld(std::uint32_t mask, int channel)
 {
@@ -334,7 +343,7 @@ void Update()
 			g_inject[c] = 0;
 		}
 		ch.held = RotateDpad(ch.held);
-		ch.connected = (c == 0) || platform::IsPadConnected(c);
+		ch.connected = c < g_forcedConnected || platform::IsPadConnected(c);
 		ch.pressed = ch.held & ~ch.prev;
 		ch.released = ch.prev & ~ch.held;
 		ch.repeat = ch.pressed;
@@ -353,14 +362,36 @@ void Update()
 		float len = std::sqrt(ch.nunchuk.x * ch.nunchuk.x + ch.nunchuk.y * ch.nunchuk.y);
 		if (len > 1.0f) { ch.nunchuk.x /= len; ch.nunchuk.y /= len; }
 	}
+	// IR pointer of channels 1..3 (native stand-in, a PC gamepad has no IR camera): the gamepad's right stick moves the pointer (half the screen
+	// in about 20 frames at full tilt), valid while the gamepad is there; it starts at the screen centre
+	for (int c = 1; c < MAX_CHANNELS; c++)
+	{
+		Pointer& q = g_ch[c].pointer;
+		if (g_injectPtr[c])
+		{
+			q.x = g_injectPtrX[c] / 320.0f - 1.0f;
+			q.y = 1.0f - g_injectPtrY[c] / 240.0f;
+			q.valid = true;
+			continue;
+		}
+		if (!platform::IsPadConnected(c)) { q.valid = false; continue; }
+		if (!q.valid) q.x = q.y = 0.0f;
+		float sx = platform::PadAxis(c, platform::PadAxisFromName("RightX"));
+		float sy = -platform::PadAxis(c, platform::PadAxisFromName("RightY"));
+		if (std::fabs(sx) < STICK_DEADZONE) sx = 0;
+		if (std::fabs(sy) < STICK_DEADZONE) sy = 0;
+		q.x = std::clamp(q.x + sx * 0.05f, -1.0f, 1.0f);
+		q.y = std::clamp(q.y + sy * 0.05f, -1.0f, 1.0f);
+		q.valid = true;
+	}
 	// IR pointer: the mouse, for channel 0. The game screen is the 4:3 rectangle centred in the window (the 2D layers are letterboxed the same way).
 	int w = 0, h = 0;
 	platform::WindowSize(w, h);
 	Pointer& p = g_ch[0].pointer;
-	if (g_injectPtr)
+	if (g_injectPtr[0])
 	{
-		p.x = g_injectPtrX / 320.0f - 1.0f;
-		p.y = 1.0f - g_injectPtrY / 240.0f;
+		p.x = g_injectPtrX[0] / 320.0f - 1.0f;
+		p.y = 1.0f - g_injectPtrY[0] / 240.0f;
 		p.valid = true;
 		return;
 	}

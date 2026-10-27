@@ -1,4 +1,5 @@
 #include "kingdom/game/g03/cAppPacnRollDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "WiiPad.hpp"
@@ -16,25 +17,25 @@ cAppPacnRollDebugMenu::cAppPacnRollDebugMenu()
 {
 	SetName("Pacn Roll Debug Menu");
 	SetMenu("Pacn Roll", {
-		{"MENU", 0x0d200000u},
-		{"STAGE", 0x0d400000u},
-		{"EDIT", 0x0d600000u},
-		{"EDIT2", 0x0d700000u},
-		{"EDIT_ENEMY", 0x0d900000u},
-		{"GAMEOVER", 0x0d500000u},
-		{"STAFFROLL", 0x0de00000u},
-		{"EXIT", 0x0df00000u},
+		{"MENU", job::PACNROLL_MENU},
+		{"STAGE", job::PACNROLL_DEBUG_SELECT},
+		{"EDIT", job::PACNROLL_EDIT},
+		{"EDIT2", job::PACNROLL_EDIT2},
+		{"EDIT_ENEMY", job::PACNROLL_EDIT_ENEMY},
+		{"GAMEOVER", job::PACNROLL_GAMEOVER},
+		{"STAFFROLL", job::PACNROLL_STAFFROLL},
+		{"EXIT", job::PACNROLL_TERM},
 	});
 	m_stageRow = 0;                                  // 0x8012b0f8..0x8012b140: first entry whose job == 0x0d400000
 	for (size_t i = 0; i < m_entries.size(); i++)
-		if (m_entries[i].job == 0x0d400000u) { m_stageRow = (int)i; break; }
+		if (m_entries[i].job == job::PACNROLL_DEBUG_SELECT) { m_stageRow = (int)i; break; }
 }
 
 bool cAppPacnRollDebugMenu::Execute(cJetTask* pParam)
 {
 	auto* sys = KingdomGlobal::PacnRollSys;
 	const uint sel = m_selected;
-	if (sys && (sel == 0x0d400000u || sel == 0x0d600000u || sel == 0x0d700000u || sel == 0x0d900000u))
+	if (sys && (sel == job::PACNROLL_DEBUG_SELECT || sel == job::PACNROLL_EDIT || sel == job::PACNROLL_EDIT2 || sel == job::PACNROLL_EDIT_ENEMY))
 	{
 		const GamePad::State& pad = GamePad::Get(0);
 		// DOL: repeat & 0x8 (game RIGHT) -> next, & 0x4 (game LEFT) -> previous (0x8012bbd4 / 0x8012bc04); swapped here, see the header

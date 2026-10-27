@@ -4,6 +4,7 @@
 
 #include "common.hpp"
 #include "kingdom/cTaskKingdom.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskModel.hpp"
 #include "kingdom/game/g01/cObject.hpp"
 
@@ -70,6 +71,7 @@ public:
 	virtual void Dead();                // DOL vtable +0xc4 = 0x800e2de0: state 2, not collidable (gate 0x800e5048, spike 0x800e8e38)
 
 protected:
+	kingdom::cKingdomSndActor m_SndActor;   // +0x344: the cGalagaSndActor (0x801c1680, made in 0x800e3640), released by Term
 	void LoadModel(int nType);          // DOL 0x800e1ca8 (vtable +0xac)
 	void StartOrbit();                  // DOL 0x800e37a0
 	const sEmyNode* pOrbitNode(u32 n) const;   // DOL 0x800e3860

@@ -61,6 +61,9 @@ private:
 
 public:
 	bool IsPlayEnd();
+
+protected:
+	void ReleaseTerm() override { cTaskConsStageName::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

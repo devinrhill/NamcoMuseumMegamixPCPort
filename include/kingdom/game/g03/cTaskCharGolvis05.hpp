@@ -116,6 +116,9 @@ public:
 
 protected:
 	bool ChangeToAttack(int iAttackKind) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharGolvis05::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

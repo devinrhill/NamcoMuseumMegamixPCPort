@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cAppG01GalagaNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "InGamePadManager.hpp"
 #include "KingdomGlobal.hpp"
@@ -21,7 +22,7 @@ cAppG01GalagaNunchuk::cAppG01GalagaNunchuk()
 {
 	cG01GalagaSys::AttachMenuArc();
 	RegistLayout("ANT_NUNCHUK");
-	nNextJob() = 0x0b300000u;
+	nNextJob() = job::GALAGA_GAME;
 	SetName("cAppG01GalagaNunchuk");
 }
 

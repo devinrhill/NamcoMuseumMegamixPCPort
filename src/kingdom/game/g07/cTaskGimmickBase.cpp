@@ -184,6 +184,7 @@ bool cTaskGimmickBase::IsStepOnCnt(cTaskChar* pChar)
 	return IsStepOnCntW(vWorld);
 }
 
+// DOL 0x8012c480
 void cTaskGimmickBase::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -200,6 +201,7 @@ void cTaskGimmickBase::Draw(int nStatus, cJetTask* pParam)
 			CustomKingdomUtil::Assert(cPBModel != nullptr, "nullpo");
 			DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 			DummyNW4R::SetScale(cPBModel->pScnMdl(), cPBModel->vScale()[0], cPBModel->vScale()[1], cPBModel->vScale()[2]);
+			cPBModel->UpdateMatrix();   // DOL 0x8012c5c0: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 			num++;
 			continue;
 		}

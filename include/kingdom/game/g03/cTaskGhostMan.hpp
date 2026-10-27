@@ -83,6 +83,9 @@ public:
 	bool GhostIsActive(uint no);
 
 	bool GhostRevive(uint no);
+
+protected:
+	void ReleaseTerm() override { cTaskGhostMan::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -170,7 +170,10 @@ std::vector<Attached>& Store()
 	static std::vector<Attached> s;
 	return s;
 }
+unsigned g_generation = 0;
 }
+
+unsigned ArchiveStore::Generation() { return g_generation; }
 
 bool ArchiveStore::Attach(const std::string& relPath)
 {
@@ -186,6 +189,7 @@ bool ArchiveStore::Attach(const std::string& relPath)
 		return false;
 	}
 	Store().push_back({relPath, std::move(arc)});
+	g_generation++;
 	return true;
 }
 
@@ -208,6 +212,7 @@ bool ArchiveStore::Detach(const std::string& relPath)
 		if (it->name == relPath)
 		{
 			s.erase(it);
+			g_generation++;
 			return true;
 		}
 	}

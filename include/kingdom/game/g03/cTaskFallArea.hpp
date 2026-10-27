@@ -48,6 +48,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	bool AreaCheck(Vector4 trans, Vector4 last);
+
+protected:
+	void ReleaseTerm() override { cTaskFallArea::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

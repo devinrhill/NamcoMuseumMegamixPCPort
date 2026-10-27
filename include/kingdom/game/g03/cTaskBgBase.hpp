@@ -34,6 +34,9 @@ public:
 	void SetMaterialColor(Color color);
 
 	void SetMaterialAlpha(byte alpha);
+
+protected:
+	void ReleaseTerm() override { cTaskBgBase::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

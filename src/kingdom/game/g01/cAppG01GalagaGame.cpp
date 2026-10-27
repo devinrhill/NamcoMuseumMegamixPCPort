@@ -1,4 +1,5 @@
 #include "platform/devtools.hpp"
+#include "platform/devtools_g01edit.hpp"
 #include "kingdom/game/g01/cAppG01GalagaGame.hpp"
 #include "kingdom/game/g01/cAppG01GalagaBoss.hpp"
 #include "kingdom/game/cTaskConsRetry.hpp"
@@ -60,9 +61,9 @@ cAppG01GalagaGame::cAppG01GalagaGame()
 	sys->bUnk9(false);
 	sys->AttachStageArc(m_nWorld, m_nStage);
 	kingdom::cKingdomModelBase::ClearAssetCache();
-	// The 3D sound setup (no native counterpart yet, the 3D sound actors are not ported): FUN_80025714(KingSys +0xa54, FUN_8002571c()) stores
-	// 34000 / 6000 (FLOAT_80479ef0 / FUN_8000d834) into the sound manager's +0x2c8 float, and FUN_801c16e8 resets DAT_80479110, the id counter of
-	// the cGalagaSndActor objects 0x801c1680 makes. (Two calls of FUN_800151a8-like setters with 0 on KingSys come before AttachStageArc; UNVERIFIED.)
+	// The 3D sound setup: FUN_80025714(KingSys +0xa54, FUN_8002571c()) stores 34000 / 6000 (FLOAT_80479ef0 / FUN_8000d834) into the sound
+	// manager's +0x2c8 float (no native counterpart: UNVERIFIED what it scales), and FUN_801c16e8 resets DAT_80479110, the id counter of the
+	// cGalagaSndActor objects 0x801c1680 makes (natively kingdom::cKingdomSndActor needs no id). (Two calls of FUN_800151a8-like setters with 0 on KingSys come before AttachStageArc; UNVERIFIED.)
 }
 
 // DOL 0x801bb258
@@ -72,6 +73,17 @@ void cAppG01GalagaGame::Init()
 	// natively the scene task draws the models submitted this frame (cTaskModel::Draw -> cTaskScnRoot) with the camera cTaskScene sets
 	kingdom::NativeScene::Reset();
 	kingdom::NativeScene::SetPerFrame(true);
+	// DOL 0x801bb3ec..0x801bb480 (the boss, 0x801b8968.., is the same): the depth shadow light straight above the origin, radius 25, ortho 20 x 20,
+	// near 20, far 40 (41 at the end of Init)
+	{
+		kingdom::NativeScene::SetShadow(true);
+		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
+		sh.SetMode(0);
+		sh.SetTarget(0.0f, 0.0f, 0.0f);
+		sh.SetAngles(1.5707964f, 0.0f, 0.0f);
+		sh.SetOrtho(20.0f, 20.0f, 20.0f, 41.0f);
+		sh.SetRadius(25.0f);
+	}
 	ConnectChild(new kingdom::cTaskNativeScene());
 	m_pTaskFade = new kingdom::cTaskFade();
 	m_pTaskFade->Fade(2u, 500);   // in, black
@@ -136,7 +148,7 @@ void cAppG01GalagaGame::Init()
 	ConnectChild(m_pTaskStage);
 	ConnectChild(KingdomGlobal::GalagaSys->pTaskCollisionMan());
 	m_nFlow = 0;
-	m_bRetry = KingdomGlobal::SysCore->GetLastJobNo() == 0x0b300000u;   // UNVERIFIED (old hand port: Jbc_GetProcNoOld)
+	m_bRetry = KingdomGlobal::SysCore->GetLastJobNo() == job::GALAGA_GAME;   // UNVERIFIED (old hand port: Jbc_GetProcNoOld)
 }
 
 cTaskScene* cAppG01GalagaGame::CreateScene()
@@ -163,6 +175,7 @@ void cAppG01GalagaGame::Free()
 	delete KingdomGlobal::GalagaSys->pDemoMan();   // 0x801bbdb8
 	KingdomGlobal::GalagaSys->pDemoMan() = nullptr;
 	kingdom::NativeScene::Reset();
+	SoundManager::get_SE()->ClearListener();   // the camera's listener (0x800d3868) goes with the tree
 	cAppKingdom::Free();
 }
 
@@ -395,12 +408,12 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 		case 0:
 			nModeStep(n) = 1;
 			// console manager vtable +0x80 (0x800eb914: every console to state 4; the result console 0x800dfcb0 starts its phases), the stage
-			// BGM fades (100 ms), the clear jingle DAT_8047ce14 m01se_15clear on the jingle handle (+0x290)
+			// BGM goes to volume 0.25 (FLOAT_8047ce50, 100 ms), the clear jingle DAT_8047ce14 m01se_15clear on the jingle handle (+0x290)
 			m_pTaskLife->StartResult();
 			for (cTaskConsolePlayer* p : m_pPlayer) if (p != nullptr) p->StartResult();
 			if (m_pTaskResult != nullptr) m_pTaskResult->Start();
 			if (m_pTaskResultMulti != nullptr) m_pTaskResultMulti->Start();
-			SoundManager::get_BGM()->Stop(0.1f);
+			SoundManager::get_BGM()->SetVolume(0.25f, 0.1f);   // 0x801bc7f8: 0x80026394(0.25, BGM +0x284, 100): ducked under the jingle
 			m_nJingle = snd::Play("m01se_15clear");
 			[[fallthrough]];
 		case 1:
@@ -453,12 +466,12 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 		case 1:
 			if (m_pTaskRetry->IsYes())   // +0x1d0 == 1
 			{
-				m_nNextJob = 0x0b300000u;
+				m_nNextJob = job::GALAGA_GAME;
 				NextMode(n, ePROC_EXIT);
 			}
 			else if (m_pTaskRetry->IsNo())   // +0x1d0 == 2
 			{
-				m_nNextJob = 0x0b500000u;   // game over (job 181)
+				m_nNextJob = job::GALAGA_GAMEOVER;   // game over (job 181)
 				NextMode(n, ePROC_EXIT);
 			}
 			if (nOldState(n) == nModeState(n)) break;
@@ -490,7 +503,7 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 			{
 				// no goal demo: EXIT to the menu, then on through step 1 (DOL LAB_801bca00: its done test may still pick the boss for
 				// stage 9) whose tail resets the step for EXIT's step 0
-				m_nNextJob = 0x0b200000u;
+				m_nNextJob = job::GALAGA_MENU;
 				NextMode(n, ePROC_EXIT);
 			}
 			[[fallthrough]];
@@ -504,10 +517,10 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 				if (m_nStage == 9)
 				{
 					KingdomGlobal::GalagaSys->nStage(10);   // 0x800afd0c (GXInitTexObjUserData in the map)
-					m_nNextJob = 0x0b300000u;
+					m_nNextJob = job::GALAGA_GAME;
 				}
 				else
-					m_nNextJob = 0x0b200000u;
+					m_nNextJob = job::GALAGA_MENU;
 				NextMode(n, ePROC_EXIT);
 			}
 			dm->Tick();   // 0x801becb8
@@ -562,6 +575,7 @@ void cAppG01GalagaGame::PauseCheck()
 void cAppG01GalagaGame::PauseFlag()
 {
 	cG01GalagaSys::s_bPause = m_pTaskPause->IsPause() || (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;
+	if (devtools::G01EditFrozen()) cG01GalagaSys::s_bPause = true;   // devtools: the Galaga editor holds the stage still (not 1:1)
 }
 
 }

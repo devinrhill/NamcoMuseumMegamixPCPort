@@ -8,7 +8,10 @@
 // SIN step in degrees) and CSV_CAMERA_PARAM (cParamCameraSetting +0x1bc: zoom near / far / aspect / angle, game near / far / aspect / angle).
 //   SetMode 0x8019d724: 0 the game camera (BG_SCA camera 0 at frame 0 with the game projection), 1 a shake (cCamera mode 3), 2 the zoom of the
 //   angry event (BG_ZOOM_SCA with the zoom projection).
-//   Execute 0x8019d630: while +0x1c0 == 1 (UNVERIFIED: set by the ctor) the shake's end (both radii 0) puts the game camera back; the cCamera
+//   Execute 0x8019d630: while +0x1c0 == 1 the shake's end (both radii 0) puts the game camera back. Finding (audit): NOTHING in main.dol writes
+//   +0x1c0 (no store in g04 code, the ctor leaves it, operator new 0x8013b9dc does not clear), so the DOL reads heap garbage; were it 1 the
+//   zoom (radii 0 too) would be undone the next frame. The port keeps 1 but checks the shake mode: after a shake both radii are 0, so the
+//   view is the game camera either way (no visible difference). The cCamera
 //   update 0x80094e2c applies the shake: eye.y += ROW * sin(t), target.x += COL * sin(t) (t += SIN, wraps at 360), radii -= SUB.
 // The aspect of the projection (1.242) is not applied natively (the scene uses the 4:3 viewport).
 namespace kingdom::game::g04

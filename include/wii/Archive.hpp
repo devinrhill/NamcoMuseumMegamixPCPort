@@ -55,5 +55,7 @@ public:
 	// Bytes of the entry with this name / CRC32, or nullptr. Valid until the owning archive is detached.
 	static const std::uint8_t* Find(const std::string& name, std::size_t& size);
 	static const std::uint8_t* Find(std::uint32_t crc, std::size_t& size);
+	// bumped by every Attach / Detach (pointers returned by Find may have changed meaning)
+	static unsigned Generation();
 };
 }

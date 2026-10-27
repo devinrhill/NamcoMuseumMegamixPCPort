@@ -115,7 +115,7 @@ void cTaskEnemy::Init()
 		kingdom::cKingdomModel* mi = pModel(i);
 		mi->SetFogIdx((int)m_nPlace + 2);
 		mi->SetLightSetIdx((int)m_nPlace + 2);
-		// red: the model's vtable +0x50 slot +0x20 (..., 1): UNVERIFIED (natively nothing)
+		if (m_nPlace != 0) mi->IsDrawShadowDepth(true);   // model vtable +0x20 (0x80020298): places 1..4 cast the depth shadow (place 0 has its blob, below)
 		mi->vRotate()[1] = m_Param.fAngle[m_nModel];   // the CSV value in degrees; the manager overwrites it with radians right after
 		mi->Invisible();
 	}
@@ -176,14 +176,18 @@ void cTaskEnemy::FrontPos()
 	m_vFront[2] += -std::sin(HALF_PI + ry) * m_Param.fMoveDistance;
 }
 
+// the block the DOL inlines everywhere (SetState, SetLook): the colour clip, its rate 0 (0x8001cd4c), gator A's shadow clip rate 0 (0x801b0378)
 void cTaskEnemy::ColorClip()
 {
 	kingdom::cKingdomModel* m = pCurModel();
 	if (m_nRed == 1) m_Anime.Regist(m, "ANIME_OA_R_A1_CLA", 0u);   // 0x0629244e
 	else if (!IsSingle()) m_Anime.Regist(m, OUT_A_CLA[(m_nColor * 5 + m_nKind) % 20], 0u);
 	else m_Anime.Regist(m, OUT_A_CLA[5 + m_nKind % 5], 0u);   // 0x80449ffc: green
+	m->SetUpdateRateMatClr(0u, 0.0f);
+	if (Shadow()) Shadow()->SetClrRate(0.0f);
 }
 
+// the other inlined block (SetState 9 / 0xc / 0x10 / 0x12 / 0x13, Move, AngryOut): the body clip, then gator A's shadow back to WANI_SH_CLA (0x801b0360)
 void cTaskEnemy::BodyClr(bool)
 {
 	kingdom::cKingdomModel* m = pCurModel();
@@ -195,6 +199,7 @@ void cTaskEnemy::BodyClr(bool)
 		m_Anime.Regist(m, "ANIME_OA_R_CLA", 1u);
 		m->SetUpdateRateMatClr(1u, 1.0f);
 	}
+	if (Shadow()) Shadow()->ClipNormal();
 }
 
 // slot 1's clip, rate (0x8001d790) and frame (0x8001c2e0) go to slot 0 (0x8001d124 / 0x8001bc74: all kinds), `next` goes into slot 1
@@ -210,7 +215,7 @@ void cTaskEnemy::SwapChr(const char* next)
 	m_Anime.SetWeight(0.0f, m, 1u);
 }
 
-// DOL 0x801aafd4
+// DOL 0x801aafd4 (checked case by case against the decomp)
 void cTaskEnemy::SetState(int state)
 {
 	const int old = m_nState;
@@ -235,7 +240,6 @@ void cTaskEnemy::SetState(int state)
 		m_Anime.SetWeight(1.0f, m, 0u);
 		m_Anime.SetWeight(0.0f, m, 1u);
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
 		m_nClip = 0;
 		break;
 	case 3:
@@ -244,7 +248,6 @@ void cTaskEnemy::SetState(int state)
 	case 4:
 		if (m_nClip == 4) m_Anime.Regist(m, "ANIME_EYE_W2_TSA", 0u);
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
 		m_Anime.Attach(m, "ANIME_W1_A01", 0u);
 		m_Anime.SetWeight(1.0f, m, 0u);
 		m_Anime.SetWeight(0.0f, m, 1u);
@@ -257,7 +260,6 @@ void cTaskEnemy::SetState(int state)
 		m->SetFrameAnmAll(0u, 0.0f);
 		m->SetUpdateRateAll(0u, 1.0f);
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
 		m_Anime.Attach(m, "ANIME_W1_A01", 0u);
 		m_Anime.SetWeight(1.0f, m, 0u);
 		m_Anime.SetWeight(0.0f, m, 1u);
@@ -266,8 +268,6 @@ void cTaskEnemy::SetState(int state)
 	case 6:
 		m->Invisible();
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
-		if (Shadow()) Shadow()->SetClrRate(0.0f);   // 0x801b0378
 		break;
 	case 7:
 	{
@@ -276,7 +276,6 @@ void cTaskEnemy::SetState(int state)
 		if (m_nPlace == 0)
 		{
 			ColorClip();
-			m->SetUpdateRateMatClr(0u, 0.0f);
 		}
 		else
 			BodyClr(true);
@@ -289,6 +288,7 @@ void cTaskEnemy::SetState(int state)
 		const float a = Dist3(m_vHome, m_vShow), b = Dist3(m_vHome, m_vFront);
 		const float rate = m_Param.fClrAdvance / ((a / b) * m_fMove);
 		m->SetUpdateRateMatClr(0u, rate);
+		if (Shadow()) Shadow()->SetClrRate(rate);   // 0x801b0378
 		m_nClip = 1;
 		break;
 	}
@@ -299,7 +299,6 @@ void cTaskEnemy::SetState(int state)
 		break;
 	case 9:
 		BodyClr(true);
-		if (Shadow()) Shadow()->ClipNormal();   // 0x801b0360
 		SwapChr("ANIME_W1_A01");
 		m_nClip = 0;
 		break;
@@ -334,7 +333,6 @@ void cTaskEnemy::SetState(int state)
 		m->SetFrameAnmAll(0u, 0.0f);
 		m->SetUpdateRateAll(0u, 1.0f);
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
 		m_Anime.Attach(m, "ANIME_W1_A01", 0u);
 		m_Anime.SetWeight(1.0f, m, 0u);
 		m_Anime.SetWeight(0.0f, m, 1u);
@@ -343,7 +341,6 @@ void cTaskEnemy::SetState(int state)
 	case 0xf:
 		m->Invisible();
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
 		break;
 	case 0x11:
 	{
@@ -358,8 +355,6 @@ void cTaskEnemy::SetState(int state)
 		m_Anime.SetWeight(1.0f, m, 0u);
 		m_Anime.SetWeight(0.0f, m, 1u);
 		ColorClip();
-		m->SetUpdateRateMatClr(0u, 0.0f);
-		if (Shadow()) Shadow()->SetClrRate(0.0f);   // 0x801b0378
 		SetLook(m_nKind, IsSingle() ? m_nModel : m_nColor);
 		m = pCurModel();
 		m->SetUpdateRateAnmChr(0u, m_Param.fAdvanceFrame / m_fMove);
@@ -367,14 +362,12 @@ void cTaskEnemy::SetState(int state)
 		m->SetUpdateRateMatClr(0u, m_Param.fClrAdvance / ((a / b) * m_fMove));
 		if (m_nPlace != 0) m->Invisible();
 		m_nClip = 1;
-		if (Shadow()) Shadow()->ClipNormal();   // 0x801b0360
 		break;
 	}
 	case 0x12:
 		if (m_nPlace == 0)
 		{
 			BodyClr(true);
-			if (Shadow()) Shadow()->ClipNormal();   // 0x801b0360
 			SwapChr("ANIME_W1_A01");
 			m_nClip = 0;
 		}
@@ -397,7 +390,6 @@ void cTaskEnemy::SetState(int state)
 		}
 		else
 			for (uint i = 0; i < 2; i++) pModel(i)->Invisible();
-		if (Shadow()) Shadow()->ClipNormal();   // 0x801b0360
 		break;
 	case 0x17:
 	{
@@ -498,8 +490,6 @@ void cTaskEnemy::SetLook(int kind, int color)
 	pModel((uint)(1 - m_nModel))->Invisible();
 	ColorClip();
 	kingdom::cKingdomModel* m = pCurModel();
-	m->SetUpdateRateMatClr(0u, 0.0f);
-	if (Shadow()) Shadow()->SetClrRate(0.0f);   // 0x801b0378
 	m->vTrans() = t;
 	m->vRotate() = r;
 	m->vScale() = s;
@@ -595,23 +585,22 @@ bool cTaskEnemy::IsAfterBite(float range) const
 	return !(m_fAfter - m_fTimer <= range);
 }
 
-void cTaskEnemy::FootFxAt(int k, const float pos[3], bool hip)
+// the foot splashes at eff_foot_l / eff_foot_r (+ pos): place 0 (the far gator) kicks up smoke (slot 0x11, PTK_EFFECT18_SMOKE01), the others
+// water (slot 8, PTK_EFFECT09_WATER01). The three DOL copies raise the splashes differently (upL / upR); 0x801ae4a4 puts gator A's right
+// splash at pos itself (it passes pos, not the node sum: kept)
+void cTaskEnemy::FootFxAt(int k, const float pos[3], float upL, float upR, bool rightAtPos)
 {
 	kingdom::cKingdomModel* m = pCurModel();
-	if (hip)
+	const uint slot = m_nPlace == 0 ? 0x11u : 8u;
+	const Vector4 l = ResNodeTrans(m, "eff_foot_l");
+	m_FootFx[k].Generate(slot, true, true, true, 0.0f, Vector4(pos[0] + l[0], pos[1] + l[1] + upL, pos[2] + l[2], 1.0f));
+	if (rightAtPos)
 	{
-		Vector4 h = ResNodeTrans(m, "ef_hip");
-		m_FootFx[k].Generate(8u, true, true, true, 0.0f, Vector4(pos[0] + h[0], pos[1] + h[1], pos[2] + h[2], 1.0f));
+		m_FootFx[k].Generate(slot, true, true, true, 0.0f, Vector4(pos[0], pos[1], pos[2], 1.0f));
 		return;
 	}
-	// place 0 (the far gator) kicks up smoke (slot 0x11, PTK_EFFECT18_SMOKE01), the others water (slot 8, PTK_EFFECT09_WATER01, +0.3 up)
-	const uint slot = m_nPlace == 0 ? 0x11u : 8u;
-	const float up = m_nPlace == 0 ? 0.0f : 0.3f;   // FLOAT_8047cca4 (the DOL adds it on the left foot only for place 0 in 0x801a9d60)
-	for (const char* node : {"eff_foot_l", "eff_foot_r"})
-	{
-		Vector4 f = ResNodeTrans(m, node);
-		m_FootFx[k].Generate(slot, true, true, true, 0.0f, Vector4(pos[0] + f[0], pos[1] + f[1] + up, pos[2] + f[2], 1.0f));
-	}
+	const Vector4 r = ResNodeTrans(m, "eff_foot_r");
+	m_FootFx[k].Generate(slot, true, true, true, 0.0f, Vector4(pos[0] + r[0], pos[1] + r[1] + upR, pos[2] + r[2], 1.0f));
 }
 
 // DOL 0x801ae4a4: the first unspent sixth of the walk that t has passed makes a splash
@@ -620,7 +609,8 @@ void cTaskEnemy::FootFx(float t, const float pos[3])
 	for (int k = 0; k < 6; k++)
 		if (0.16666667f * (float)k < t && !m_bFoot[k])   // FLOAT_8047cca0
 		{
-			FootFxAt(k, pos);
+			if (m_nPlace == 0) FootFxAt(k, pos, 0.0f, 0.0f, true);
+			else FootFxAt(k, pos, 0.2f, 0.2f);   // FLOAT_8047cc9c
 			m_bFoot[k] = true;
 			return;
 		}
@@ -638,7 +628,13 @@ void cTaskEnemy::Move(cJetTask*)
 	m->vTrans() = p;
 	m_fTimer += 1.0f;
 	const float pos[3] = {p[0], p[1], p[2]};
-	FootFx(t, pos);
+	for (int k = 0; k < 6; k++)   // the splash inlined: both feet + 0.3 (FLOAT_8047cca4), gator A's right foot not raised
+		if (0.16666667f * (float)k < t && !m_bFoot[k])
+		{
+			FootFxAt(k, pos, 0.3f, m_nPlace == 0 ? 0.0f : 0.3f);
+			m_bFoot[k] = true;
+			break;
+		}
 	if (m_nPlace == 0 && !m_b254 && m_Anime.ClrEnd(m, 0u))
 	{
 		m_b254 = true;
@@ -669,7 +665,9 @@ void cTaskEnemy::Back()
 			if (m_nRed == 1) m_Anime.Regist(m, "ANIME_OA_R_A_CLA", 0u);
 			else m_Anime.Regist(m, BACK_A1_CLA[(m_nKind + m_nColor * 5) % 20], 0u);
 			const float a = Dist3(m_vHide, m_vHome), b = Dist3(m_vFront, m_vHome);
-			m->SetUpdateRateMatClr(0u, m_Param.fClrReturn / ((a / b) * m_fReturn));
+			const float rate = m_Param.fClrReturn / ((a / b) * m_fReturn);
+			m->SetUpdateRateMatClr(0u, rate);
+			if (Shadow()) Shadow()->SetClrRate(rate);   // 0x801b0378
 			m_b620 = true;
 		}
 		if (m_Anime.ClrEnd(m, 0u)) m_b254 = true;
@@ -700,6 +698,7 @@ void cTaskEnemy::Bite()
 			pm->Damage((uint)m_nColor);
 		app->CameraShake(1);               // 0x8019d724(+0x2a4, 1)
 		m->SetUpdateRateMatClr(0u, 0.0f);
+		if (Shadow()) Shadow()->SetClrRate(0.0f);   // 0x801b0378
 		WiiSnd::Detach(h);
 	}
 }
@@ -720,7 +719,7 @@ void cTaskEnemy::BackOff()
 			if (0.16666667f * (float)k < m_fTimer / m_f624 && !m_bFoot[k])
 			{
 				const float pos[3] = {p[0], p[1], p[2]};
-				FootFxAt(k, pos);
+				FootFxAt(k, pos, 0.0f, 0.0f);   // inlined here without any raise
 				m_bFoot[k] = true;
 				break;
 			}
@@ -731,6 +730,7 @@ void cTaskEnemy::BackOff()
 		if (m_nRed == 1) m_Anime.Regist(m, "ANIME_OA_R_A_CLA", 0u);
 		else m_Anime.Regist(m, BACK_A1_CLA[(m_nKind + m_nColor * 5) % 20], 0u);
 		m->SetUpdateRateMatClr(0u, m_Param.fClrReturn / m_f624);
+		if (Shadow()) Shadow()->SetClrRate(m_Param.fClrReturn / m_f624);   // 0x801b0378
 		m_b620 = true;
 	}
 	if (m_b254)
@@ -858,8 +858,10 @@ bool cTaskEnemy::Execute(cJetTask* pParam)
 	return true;
 }
 
-void cTaskEnemy::Draw(int, cJetTask*)
+// DOL 0x801a9d5c: b cTaskModel::Draw (the models are submitted for this frame)
+void cTaskEnemy::Draw(int nStatus, cJetTask* pParam)
 {
+	cTaskModel::Draw(nStatus, pParam);
 }
 
 }

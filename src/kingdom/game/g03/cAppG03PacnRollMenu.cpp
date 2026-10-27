@@ -109,7 +109,7 @@ void cAppG03PacnRollMenu::MainExec()
 	uint n = 0u;
 	if (GamePad::Get(0).hold == 0xffffffffu) // DOL 0x800fc634: every bit held (disconnected pad word) -> job 209
 	{
-		kingdom::Kingdom_SetJobNo(0x0d100000u, false, false);
+		kingdom::Kingdom_SetJobNo(job::PACNROLL_DEBUG_MENU, false, false);
 	}
 	if (nModeState(n) == 0)
 	{
@@ -157,12 +157,12 @@ void cAppG03PacnRollMenu::MainExec()
 			pTaskConsMenuMan()->Select();
 			if (pTaskConsMenuMan()->IsBackDecide())
 			{
-				nSetNextJob(0x0df00000u);
+				nSetNextJob(job::PACNROLL_TERM);
 			}
 			if (pTaskConsMenuMan()->IsStageDecide())
 			{
 				pTaskConsMenuMan()->Uplode();
-				nSetNextJob(0x0d800000u); // DOL 0x800fc730/75c: 0x0df00000 back, 0x0d800000 = cAppG03PacnRollNunchuk (C# went to 0x0d300000)
+				nSetNextJob(job::PACNROLL_NUNCHUK); // DOL 0x800fc730/75c: 0x0df00000 back, 0x0d800000 = cAppG03PacnRollNunchuk (C# went to 0x0d300000)
 			}
 			static bool s_envTutorial = std::getenv("MEGAMIX_TUTORIAL") != nullptr; // debug: the pointer click on the Rule button is not ported
 			if (pTaskConsMenuMan()->IsRuleDecide() || s_envTutorial)

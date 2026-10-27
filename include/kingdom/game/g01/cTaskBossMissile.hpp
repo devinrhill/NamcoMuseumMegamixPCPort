@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskModel.hpp"
 #include "kingdom/game/g01/cObject.hpp"
 #include "kingdom/game/g01/cTaskShootMarker.hpp"
@@ -60,6 +61,7 @@ public:
 	static sBulletParam s_Param;                       // DAT_80479054
 
 private:
+	kingdom::cKingdomSndActor m_SndActor;   // +0x384: the cGalagaSndActor (0x801c1680, the DOL class derives from cTaskMissile, whose ctor 0x800f01b0 makes it: UNVERIFIED)
 	void Fly();                        // DOL 0x800f1490 / 0x800f224c (vtable +0xf8, state 1)
 	void Home(float fStep);            // DOL 0x800f10f8 (vtable +0xfc)
 	void DieStep();                    // DOL 0x800f172c / 0x800f26fc (vtable +0x100, state 2)

@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cAppG02RallyXNunchuk.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "WiiPad.hpp"
@@ -22,7 +23,7 @@ cAppG02RallyXNunchuk::cAppG02RallyXNunchuk()
 {
 	cG02RallyXSysExt::AttachMenuArc();
 	RegistLayout("COMMON_ANITA_NUNCHUK");
-	nNextJob() = 0x0c300000u;
+	nNextJob() = job::RALLYX_GAME;
 	SetName("cAppG02RallyXNunchuk");
 }
 

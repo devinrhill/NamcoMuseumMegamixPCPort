@@ -528,7 +528,7 @@ bool cTaskBoss::BomMatrix(int i, float out[16]) const
 	return true;
 }
 
-// DOL 0x800cc44c: +0x20 = the translate of the orbit skeleton's node 1 ("orbit"), the sound actor follows (not ported); +0x554 = +0x3f0
+// DOL 0x800cc44c: +0x20 = the translate of the orbit skeleton's node 1 ("orbit"), the sound actor follows; +0x554 = +0x3f0
 void cTaskBoss::UpdateBossModel()
 {
 	float n[12];
@@ -538,6 +538,7 @@ void cTaskBoss::UpdateBossModel()
 		m_v20 = Vector4(n[3], n[7], n[11], 1.0f);
 		for (int i = 0; i < 3; i++) m_vWorldPos[i] = (&m_v20.x)[i];
 	}
+	m_SndActor.SetPosition(m_v20);   // 0x800cc5dc: the sound actor (+0x344) at +0x20
 }
 
 // DOL 0x800cc618
@@ -611,7 +612,7 @@ bool cTaskBoss::AttackBeam()
 		{
 			SetAnm(1, "CHAR_ENEMY_LASTBOSS_ANM_CHA_04", "CHAR_ENEMY_LASTBOSS_HIT_ANM_CHA_04", false);
 			if (m_pFxInhale != nullptr) m_pFxInhale->Start(FX_INHALE, false, true, false);
-			m_nSeSuikomi = snd::Play("m01se_34suikomi");
+			m_nSeSuikomi = m_SndActor.Play("m01se_34suikomi");   // on the actor (+0x344), as charge / bite / missiles / struggle
 			m_bMouth = true;
 			m_nAtkStep = 2;
 		}
@@ -635,7 +636,7 @@ bool cTaskBoss::AttackBeam()
 			m_nAtkStep = 3;
 			if (m_pFxInhale != nullptr) m_pFxInhale->Stop();
 			snd::Stop(m_nSeSuikomi);
-			m_nSeCharge = snd::Play("m01se_21charge");
+			m_nSeCharge = m_SndActor.Play("m01se_21charge");
 			m_bMouth = false;
 		}
 		break;
@@ -668,6 +669,7 @@ bool cTaskBoss::AttackBeam()
 		{
 			snd::Stop(m_nSeCharge);
 			m_nSeHassya = snd::Play("m01se_22hassya");
+			snd::SetVolume(m_nSeHassya, 0.2f, 0);   // 0x800cd324: 0x80026394(0.2 (FLOAT_8047b40c), +0x660, 0)
 			m_bHassya = true;
 			(void)HASSYA_VOL;
 		}
@@ -783,7 +785,7 @@ bool cTaskBoss::AttackBite()
 	if (m_Param.fBite <= f && !m_Param.bBite)
 	{
 		if (m_pFxMouth != nullptr) { m_pFxMouth->SetPos(mouth); m_pFxMouth->SetMtx(mouthMtx); m_pFxMouth->Start(FX_BITE, true, true, false); }
-		snd::Play("m01se_29kamituki");
+		m_SndActor.Play("m01se_29kamituki");
 		m_Param.bBite = true;
 		m_bBite = true;
 	}
@@ -958,7 +960,7 @@ bool cTaskBoss::AttackMissile()
 			m_pMissile[i]->Launch();   // vtable +0xcc
 			m_pMissile[i] = nullptr;
 			if (m_pFxBom[i] != nullptr) m_pFxBom[i]->Start(FX_BOM, true, true, true);
-			snd::Play("m01se_11missile");
+			m_SndActor.Play("m01se_11missile");
 		}
 		m_nAtkStep++;
 		return false;
@@ -1014,7 +1016,7 @@ bool cTaskBoss::StruggleStart()
 		b->RegistAnm(0u, "CHAR_ENEMY_LASTBOSS_ANM_CLA_09");
 		for (cTaskShell* sh : m_pShell) if (sh != nullptr) sh->Break();
 		if (m_pFxBody != nullptr) m_pFxBody->Start(FX_STRUGGLE, true, true, false);
-		snd::Play("m01se_08bak4");
+		m_SndActor.Play("m01se_08bak4");
 		Blend(BLEND, 0, 1);
 		m_nAtkStep = 1;
 	}
@@ -1022,7 +1024,7 @@ bool cTaskBoss::StruggleStart()
 	{
 		if (m_bStruggleSe && STRUGGLE_SE < b->GetFrameAnmChr(1u))
 		{
-			snd::Play("m01se_27boss_02");
+			m_SndActor.Play("m01se_27boss_02");
 			m_bStruggleSe = false;
 		}
 		if (ClipEnd(b, 1u))

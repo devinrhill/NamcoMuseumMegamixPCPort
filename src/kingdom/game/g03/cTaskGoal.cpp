@@ -89,7 +89,7 @@ bool cTaskGoal::HitCheck()
 	::Constants::jetGeoVecCopy(v, this->Model->vTrans());
 	v[1] += cTaskCharPacman2->fRadius();
 	Constants::sFace* sFace = cTaskCharPacman2->pHitFace(1);
-	if (sFace != nullptr && !cTaskCharPacman2->IsState(16u) && (sFace->nKind == Constants::eFACE_KIND::eFACE_KIND_NORM || sFace->nKind == Constants::eFACE_KIND::eFACE_KIND_GRAS))
+	if (sFace != nullptr && !cTaskCharPacman2->IsState(cTaskCharPacman::STATE_HANG) && (sFace->nKind == Constants::eFACE_KIND::eFACE_KIND_NORM || sFace->nKind == Constants::eFACE_KIND::eFACE_KIND_GRAS))
 	{
 		::Constants::jetGeoVecSub(v, cTaskCharPacman2->vTrans(), v);
 		if (::Constants::jetGeoVecInnerProduct(v, v) <= 6.7599993f)

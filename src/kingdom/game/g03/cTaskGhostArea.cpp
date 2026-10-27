@@ -83,7 +83,7 @@ void cTaskGhostArea::Term()
 	{
 		if (pTaskCharGhost[i] != nullptr)
 		{
-			pTaskCharGhost[i]->Term();
+			pTaskCharGhost[i]->TermOnce();
 		}
 	}
 }
@@ -96,7 +96,7 @@ bool cTaskGhostArea::Execute(cJetTask* pParam)
 		return true;
 	}
 	m_nPlayerAreaFlag = 0uL;
-	if (!cTaskCharPacman2->IsState(16u) && m_fAreaInside[0][0] > cTaskCharPacman2->vTrans()[0] && m_fAreaInside[0][1] < cTaskCharPacman2->vTrans()[0] && m_fAreaInside[1][0] > cTaskCharPacman2->vTrans()[1] && m_fAreaInside[1][1] < cTaskCharPacman2->vTrans()[1] && m_fAreaInside[2][0] > cTaskCharPacman2->vTrans()[2] && m_fAreaInside[2][1] < cTaskCharPacman2->vTrans()[2])
+	if (!cTaskCharPacman2->IsState(cTaskCharPacman::STATE_HANG) && m_fAreaInside[0][0] > cTaskCharPacman2->vTrans()[0] && m_fAreaInside[0][1] < cTaskCharPacman2->vTrans()[0] && m_fAreaInside[1][0] > cTaskCharPacman2->vTrans()[1] && m_fAreaInside[1][1] < cTaskCharPacman2->vTrans()[1] && m_fAreaInside[2][0] > cTaskCharPacman2->vTrans()[2] && m_fAreaInside[2][1] < cTaskCharPacman2->vTrans()[2])
 	{
 		for (int i = 0; i < m_pEnemyAreaData.nAreaNum; i++)
 		{

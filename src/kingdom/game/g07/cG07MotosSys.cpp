@@ -2,6 +2,7 @@
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
 
+#include <cstring>
 #include <string>
 
 #include "CustomKingdomUtil.hpp"
@@ -10,11 +11,60 @@
 #include "kingdom/game/g07/eSAVE_VERSION.hpp"
 #include "kingdom/sMatchingData.hpp"
 #include "KingdomGlobal.hpp"
+#include "kingdom/cKingdomSys.hpp"
 #include <Constants.hpp>
 #include <GameStateManager.hpp>
 
 namespace kingdom::game::g07
 {
+
+namespace
+{
+// Game data block 4 of museum.bin = the save data at cG07MotosSys +0x23c, 0x46c bytes, big-endian (0x800a0280 / 0x800a0438 / 0x800a06a4):
+//   +0x000 nSaveVersion (3), +0x004 46 stage records of 0x18 {nHiScore, nRecordTime (0 = none), bHiScoreNew, bRecordTimeNew, bClear, bOpen}
+//   (index 0 unused, 1..35 the single-player stages, 36..45 the vs stages), +0x454 nItemData[4] (1..3 = power / jump / charge stock),
+//   +0x464 bAllClear, +0x468 nPlayerStock
+constexpr uint SAVE_BLOCK = 4u;
+constexpr uint SAVE_SIZE = 0x46c;
+
+u32 GetBe(const u8* p) { return (u32)p[0] << 24 | (u32)p[1] << 16 | (u32)p[2] << 8 | p[3]; }
+void PutBe(u8* p, u32 v) { p[0] = (u8)(v >> 24); p[1] = (u8)(v >> 16); p[2] = (u8)(v >> 8); p[3] = (u8)v; }
+
+void Pack(const SSaveDataPacMotos& d, u8* b)
+{
+	std::memset(b, 0, SAVE_SIZE);
+	PutBe(b, (u32)d.nSaveVersion);
+	for (std::size_t n = 0; n < d.sScoreDatas.size() && n < 46; n++)
+	{
+		const SSaveDataPacMotos::ScoreData& r = d.sScoreDatas[n];
+		const u32 w[6] = {r.nHiScore, r.nRecordTime, r.bHiScoreNew ? 1u : 0u, r.bRecordTimeNew ? 1u : 0u, r.bClear ? 1u : 0u, r.bOpen ? 1u : 0u};
+		for (int i = 0; i < 6; i++) PutBe(b + 4 + n * 0x18 + 4 * i, w[i]);
+	}
+	for (std::size_t i = 0; i < d.nItemData.size() && i < 4; i++) PutBe(b + 0x454 + 4 * i, d.nItemData[i]);
+	PutBe(b + 0x464, d.bAllClear ? 1u : 0u);
+	PutBe(b + 0x468, d.nPlayerStock);
+}
+
+void Unpack(const u8* b, SSaveDataPacMotos& d)
+{
+	d.Init();
+	d.nSaveVersion = (int)GetBe(b);
+	for (std::size_t n = 0; n < 46; n++)
+	{
+		const u8* r = b + 4 + n * 0x18;
+		SSaveDataPacMotos::ScoreData& s = d.sScoreDatas[n];
+		s.nHiScore = GetBe(r);
+		s.nRecordTime = GetBe(r + 4);
+		s.bHiScoreNew = GetBe(r + 8) != 0;
+		s.bRecordTimeNew = GetBe(r + 0xc) != 0;
+		s.bClear = GetBe(r + 0x10) != 0;
+		s.bOpen = GetBe(r + 0x14) != 0;
+	}
+	for (std::size_t i = 0; i < 4; i++) d.nItemData[i] = GetBe(b + 0x454 + 4 * i);
+	d.bAllClear = GetBe(b + 0x464) != 0;
+	d.nPlayerStock = GetBe(b + 0x468);
+}
+}
 
 const string cG07MotosSys::ARC_NAME_STAGE_TBL[46] = {"g07_motos/g07wxxsxx.lzs", "g07_motos/g07w01s01.lzs", "g07_motos/g07w01s02.lzs", "g07_motos/g07w01s03.lzs", "g07_motos/g07w01s04.lzs", "g07_motos/g07w01s05.lzs", "g07_motos/g07w01s06.lzs", "g07_motos/g07w01s07.lzs", "g07_motos/g07w02s01.lzs", "g07_motos/g07w02s02.lzs", "g07_motos/g07w02s03.lzs", "g07_motos/g07w02s04.lzs", "g07_motos/g07w02s05.lzs", "g07_motos/g07w02s06.lzs", "g07_motos/g07w02s07.lzs", "g07_motos/g07w03s01.lzs", "g07_motos/g07w03s02.lzs", "g07_motos/g07w03s03.lzs", "g07_motos/g07w03s04.lzs", "g07_motos/g07w03s05.lzs", "g07_motos/g07w03s06.lzs", "g07_motos/g07w03s07.lzs", "g07_motos/g07w04s01.lzs", "g07_motos/g07w04s02.lzs", "g07_motos/g07w04s03.lzs", "g07_motos/g07w04s04.lzs", "g07_motos/g07w04s05.lzs", "g07_motos/g07w04s06.lzs", "g07_motos/g07w04s07.lzs", "g07_motos/g07w05s01.lzs", "g07_motos/g07w05s02.lzs", "g07_motos/g07w05s03.lzs", "g07_motos/g07w05s04.lzs", "g07_motos/g07w05s05.lzs", "g07_motos/g07w05s06.lzs", "g07_motos/g07w05s07.lzs", "g07_motos/g07vs01.lzs", "g07_motos/g07vs02.lzs", "g07_motos/g07vs03.lzs", "g07_motos/g07vs04.lzs", "g07_motos/g07vs05.lzs", "g07_motos/g07vs06.lzs", "g07_motos/g07vs07.lzs", "g07_motos/g07vs08.lzs", "g07_motos/g07vs09.lzs", "g07_motos/g07vs10.lzs"};
 int cG07MotosSys::m_nInstance = 0;
@@ -195,16 +245,13 @@ void cG07MotosSys::Free()
 	Term();
 }
 
+// DOL 0x800a0280: game data block 4 into the save data; another version than 3 starts over (stage 1 open, record times 0) and is written back
 bool cG07MotosSys::SaveDataLoad()
 {
-	m_sSaveData = GameStateManager::m_pacMotosSave;
-	bool flag = false;
-	eSAVE_VERSION nSaveVersion = (eSAVE_VERSION)m_sSaveData.nSaveVersion;
-	if (nSaveVersion == eSAVE_VERSION::eSAVEDATA_VER_NONE || nSaveVersion != eSAVE_VERSION::eSAVEDATA_VER_0102)
-	{
-		flag = true;
-	}
-	if (flag)
+	u8 b[SAVE_SIZE] = {};
+	KingdomGlobal::KingSys->LoadGameData(SAVE_BLOCK, b, SAVE_SIZE);
+	Unpack(b, m_sSaveData);
+	if ((eSAVE_VERSION)m_sSaveData.nSaveVersion != eSAVE_VERSION::eSAVEDATA_VER_0102)
 	{
 		m_sSaveData = SSaveDataPacMotos();
 		m_sSaveData.Init();
@@ -214,6 +261,8 @@ bool cG07MotosSys::SaveDataLoad()
 			pScoreData(num).nRecordTime = RECORD_TIME_DUMMY;
 		}
 		m_sSaveData.nSaveVersion = 3;
+		Pack(m_sSaveData, b);
+		KingdomGlobal::KingSys->SaveGameData(SAVE_BLOCK, b, SAVE_SIZE);
 		return true;
 	}
 	for (uint num2 = 1u; num2 < 4; num2++)
@@ -264,6 +313,7 @@ uint cG07MotosSys::SaveDataSave(uint nScore, uint nTime, bool bClear, bool bData
 	return num;
 }
 
+// DOL 0x800a06a4: the item stock into the save data; bSave = also into block 4
 uint cG07MotosSys::WriteMemoryToSaveData(bool bSave, bool bDataWrite)
 {
 	uint result = 0u;
@@ -288,7 +338,9 @@ uint cG07MotosSys::WriteMemoryToSaveData(bool bSave, bool bDataWrite)
 void cG07MotosSys::SetTitleData()
 {
 	if (devtools::PreviewAll()) return; // devtools: --preview-all never persists (not 1:1)
-	GameStateManager::m_pacMotosSave = m_sSaveData;
+	u8 b[SAVE_SIZE];
+	Pack(m_sSaveData, b);
+	KingdomGlobal::KingSys->SaveGameData(SAVE_BLOCK, b, SAVE_SIZE);   // the save data into block 4 (0x800a0438 / 0x800a06a4)
 }
 
 void cG07MotosSys::MultiDataInit()

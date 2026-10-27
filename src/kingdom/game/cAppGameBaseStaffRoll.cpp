@@ -68,19 +68,19 @@ void cAppGameBaseStaffRoll::Term()
 	MotosFrontUIManager::SetForceCameraEnable(false);
 	if (m_pTaskBgMdl != nullptr)
 	{
-		m_pTaskBgMdl->Term();
+		m_pTaskBgMdl->TermOnce();
 	}
 	if (m_pTaskPacMdl != nullptr)
 	{
-		m_pTaskPacMdl->Term();
+		m_pTaskPacMdl->TermOnce();
 	}
 	if (m_pTaskGhostMdl != nullptr)
 	{
-		m_pTaskGhostMdl->Term();
+		m_pTaskGhostMdl->TermOnce();
 	}
 	if (m_pTaskCookieMdl != nullptr)
 	{
-		m_pTaskCookieMdl->Term();
+		m_pTaskCookieMdl->TermOnce();
 	}
 }
 

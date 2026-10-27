@@ -1,4 +1,5 @@
 #include "kingdom/game/g04/cAppG04WaniWaniDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -11,7 +12,7 @@ namespace kingdom::game::g04
 cAppG04WaniWaniDebugMenu::cAppG04WaniWaniDebugMenu()
 {
 	SetName("WaniWani Debug Menu");
-	SetMenu("WaniWani", {{"GAME", 0x0e300000u}, {"GAME_MULTI", 0x0e600000u}, {"EXIT", 0x0ef00000u}});
+	SetMenu("WaniWani", {{"GAME", job::WANIWANI_GAME}, {"GAME_MULTI", job::WANIWANI_GAME_MULTI}, {"EXIT", job::WANIWANI_TERM}});
 }
 
 // the sys is made by job 224 in the DOL; --job 0x0e100000 makes it here

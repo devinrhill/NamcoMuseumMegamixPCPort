@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "kingdom/cTaskCursor.hpp"
+#include "WiiSnd.hpp"
 #include "kingdom/game/cAppGameBaseMenu.hpp"
 
 // Rally-X Remix (g02) stage select = job 194 (0x0c200000): kingdom::game::g02::cAppG02RallyXMenu (DOL vtable 0x80440e48, 0x2b0 bytes),
@@ -11,6 +12,9 @@
 // Galaga's menu; slot 19 0x800af4f8 is the shared empty callback.
 namespace kingdom::game::g02
 {
+// the menu BGM voice (m02bgm_Select), shared with the multiplayer menu (job 200): kept playing through the matching job
+extern WiiSnd::Handle g_RallyXMenuBgm;
+
 class cTaskConsMenuMan;
 class cTaskConsMenuMotionTutorial;
 class cTaskConsMenuCtlTutorial;

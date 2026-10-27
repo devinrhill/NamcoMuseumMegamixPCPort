@@ -90,6 +90,9 @@ public:
 	static void CustumFuncCharge(MO_EFFECT_INFO* pInfo);
 
 	static void CustumFuncPiyori(MO_EFFECT_INFO* pInfo);
+
+protected:
+	void ReleaseTerm() override { cTaskEffect::Term(); cTaskPBPtkMan::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

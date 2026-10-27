@@ -35,6 +35,9 @@ public:
 	void DrawScnRootXlu() override;
 
 	bool IsDebugDraw();
+
+protected:
+	void ReleaseTerm() override { cTaskPBPtkMan::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

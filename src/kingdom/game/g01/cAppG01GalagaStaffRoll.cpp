@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cAppG01GalagaStaffRoll.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include <EBGMKind.hpp>
 
@@ -19,7 +20,7 @@ void cAppG01GalagaStaffRoll::JobInit()
 cAppG01GalagaStaffRoll::cAppG01GalagaStaffRoll()
 {
 	pSetBgmName(EBGMKind::GALAGA_SND_BGM07_ENDING);   // DAT_8047aff8 m01bgm_Ending (+0x28c)
-	nSetNextJobNo(0x0b500000u);
+	nSetNextJobNo(job::GALAGA_GAMEOVER);
 	RegistData();
 }
 

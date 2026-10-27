@@ -74,6 +74,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	void SetMaterialColor(int n, Color color);
+
+protected:
+	void ReleaseTerm() override { cTaskModelEx::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -2,16 +2,25 @@
 #include "platform/platform.hpp"
 #include "common.hpp"
 #include "cJetTask.hpp"
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <map>
 #include <string>
+#include <tuple>
 #include "platform/boot.hpp"
 #include "GamePad.hpp"
 #include "gfx/Gfx.hpp"
 #include "WiiSystem.hpp"
 #include "WiiPad.hpp"
 #include "platform/devtools.hpp"
+#include "platform/devui.hpp"
+#include "platform/devtools_scn.hpp"
+#include "platform/devtools_g01edit.hpp"
+#include "platform/devtools_g07edit.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "InGamePadManager.hpp"
 #include "gfx/Gfx3D.hpp"
 #include "snd/Mixer.hpp"
@@ -22,6 +31,28 @@
 #include <vector>
 
 // Recursively prints a node and its children, one indented line per task.
+// --round: a Pac-N-Roll round index (0..25) or a stage name "wXsY" / "wXsb" (case-insensitive; sb = the world's last stage, its boss).
+// World layout of cG03PacnRollSys::nWorld / nStage / nStageMax: worlds start at rounds 0, 5, 9, 14, 20 and have 5, 4, 5, 6, 6 stages.
+// Returns -1 when the text is neither.
+static int ParseG03Round(const std::string& text)
+{
+	static const int kFirst[5] = {0, 5, 9, 14, 20}, kCount[5] = {5, 4, 5, 6, 6};
+	std::string t;
+	for (char c : text) t += (char)std::tolower((unsigned char)c);
+	if (!t.empty() && t.find_first_not_of("0123456789") == std::string::npos)
+	{
+		const int r = std::atoi(t.c_str());
+		return r <= 25 ? r : -1;
+	}
+	if (t.size() < 4 || t[0] != 'w' || t[2] != 's' || t[1] < '1' || t[1] > '5') return -1;
+	const int w = t[1] - '1';
+	const std::string s = t.substr(3);
+	if (s == "b") return w == 0 ? -1 : kFirst[w] + kCount[w] - 1;   // World 1 has no boss stage
+	if (s.find_first_not_of("0123456789") != std::string::npos) return -1;
+	const int n = std::atoi(s.c_str());
+	return n >= 1 && n <= kCount[w] ? kFirst[w] + n - 1 : -1;
+}
+
 static void PrintTaskTree(cJetNode* node, int depth = 0)
 {
 	for (; node != nullptr; node = node->pNextSibling())
@@ -42,7 +73,7 @@ static void LogWiiPresses()
 	};
 	for (const auto& n : kNames)
 	{
-		if (WiiPad::Pressed(0) & n.bit) std::printf("wiimote: %s\n", n.name);
+		// if (WiiPad::Pressed(0) & n.bit) std::printf("wiimote: %s\n", n.name);
 	}
 }
 
@@ -147,7 +178,7 @@ static void PrintHelp()
 	    "\n"
 	    "  -h, --help                  print this text and exit\n"
 	    "  --job HEX                   start at a job instead of the boot chain (0x08300000 debug menu, 0x08900000 title, 0x08800000 attract)\n"
-	    "  --round N                   Pac-N-Roll stage 0..25 (W1S1 = 0) when the game job is entered directly (--job 0x0d300000)\n"
+	    "  --round N|wXsY              Pac-N-Roll stage 0..25 (W1S1 = 0) or its name (w5s1, w2sb = boss) when the game job is entered directly (--job 0x0d300000)\n"
 	    "  --g03-start X Y Z           dev: Pac-N-Roll starts Pac-Man at this stage position (also MEGAMIX_G03_START=x,y,z)\n"
 	    "  --g03-life N                dev: Pac-N-Roll starts with N extra lives instead of the save's value (also MEGAMIX_G03_LIFE=N)\n"
 	    "  --g01-stage N               dev: Galaga stage job entered with --job 0x0b300000 plays stage N (1..10; also MEGAMIX_G01_STAGE=N)\n"
@@ -155,6 +186,24 @@ static void PrintHelp()
 	    "  --g02-stage N               dev: Rally-X stage job entered with --job 0x0c300000 plays stage index N (1..30; also MEGAMIX_G02_STAGE=N)\n"
 	    "  --g04-time S                dev: Gator Panic's play time is S seconds instead of 120 (also MEGAMIX_G04_TIME=S)\n"
 	    "  --g01-autoaim               dev: Galaga shots aim at the nearest enemy (with A held and the pointer on screen; also MEGAMIX_G01_AUTOAIM=1)\n"
+	    "  --g03-no-damage             dev: Pac-N-Roll's Pac-Man loses no HP from hits; falls still miss (also MEGAMIX_G03_NO_DAMAGE=1)\n"
+	    "  --g03-no-gates              dev: Pac-N-Roll stages spawn none of their Golvis gates (also MEGAMIX_G03_NO_GATES=1)\n"
+	    "  --g03-skip-title            dev: Pac-N-Roll stages start without the stage name card (also MEGAMIX_G03_SKIP_TITLE=1)\n"
+	    "  --g03-fly                   dev: Pac-N-Roll's Pac-Man flies: stick moves (camera-relative), C up, Z down, B held 3x, A held 2x; no collision;\n"
+	    "                              Wiimote 1 switches between flying and normal rolling (also MEGAMIX_G03_FLY=1)\n"
+	    "  --g03-show-hit              dev: Pac-N-Roll draws the stage's collision faces as wireframe, coloured by kind (also MEGAMIX_G03_SHOW_HIT=1)\n"
+	    "  --g03-show-gimmick-hit      dev: Pac-N-Roll draws only the gimmicks' collision faces and hit boxes; white = hurts (also MEGAMIX_G03_SHOW_GIMMICK_HIT=1)\n"
+	    "  --g03-bg-collision          dev: Pac-N-Roll collides with the drawn BG / gimmick models (animated ones too) instead of the hidden hit models;\n"
+	    "                              floor + wall only: no bounce / dash / jump / magma / water faces (also MEGAMIX_G03_BG_COLLISION=1)\n"
+	    "  --g03-no-menu-warp          dev: the hub never warps to a game when Pac-Man rolls onto a door (also MEGAMIX_G03_NO_MENU_WARP=1)\n"
+	    "  --g03-jump                  dev: Pac-N-Roll's Pac-Man jumps with C on a floor (strength 0.35; B held = 3x, A held = 2x)\n"
+	    "  --g03-jump-strength S       dev: --g03-jump with strength S instead of 0.35 (also MEGAMIX_G03_JUMP=S)\n"
+	    "  --g03-freecam               dev: Pac-N-Roll camera turns without limits; right stick Y / D-pad up-down raises the look-at point\n"
+	    "  --g03-explore ARCHIVE ENTRY[,ENTRY...]\n"
+	    "                              dev: roll Pac-N-Roll's Pac-Man around any models, e.g. g07_motos/g07w02s01.lzs MDL_BG_1,MDL_BG_2\n"
+	    "                              (collision from the models, the stage's items / ghosts / gates hidden; other g03 dev switches work)\n"
+	    "  --g03-explore-anim ENTRY[,ENTRY...]  dev: animations played on every explore model (ENTRY+ANIM in --g03-explore: one model)\n"
+	    "  --g03-explore-scale S       dev: scale of the explore models (default 1)\n"
 	    "  --g03-cookies N             dev: Pac-N-Roll starts with N Pac-Dots in hand (tests gates; also MEGAMIX_G03_COOKIES=N)\n"
 	    "  --g03-kill N                dev: Pac-N-Roll deals lethal damage to Pac-Man at game frame N (tests the miss / game over flow; also MEGAMIX_G03_KILL=N)\n"
 	    "  --g03-standin               dev: Pac-N-Roll runs the old native stand-in (movement test) instead of the real game\n"
@@ -162,16 +211,20 @@ static void PrintHelp()
 	    "  --dump-tree [N]             run N frames (default 400) headless-style, print the task tree, exit (first argument)\n"
 	    "  --no-smooth                 turn off the 4x MSAA edge smoothing (also MEGAMIX_NOSMOOTH=1)\n"
 	    "  --no-nunchuk                Wiimote 1 has no Nunchuk: games show their \"connect the Nunchuk\" card\n"
+	    "  --pads N                    Wiimotes 1..N count as connected without a gamepad (multiplayer matching; default 1)\n"
 	    "  --shot FRAME FILE           save a PNG of the window at that frame (repeatable)\n"
 	    "  --press FRAME BUTTON        one-frame Wiimote press: a b 1 2 plus minus home left right up down z c shake (repeatable); prefix N: for Wiimote N (2:a)\n"
 	    "  --stick FRAME X Y           Nunchuk stick (-1..1, y up) from that frame on (repeatable; the last one at or before the frame wins)\n"
 	    "  --hold FRAME BUTTON         hold a Wiimote button from that frame on (same names as --press except home; directions are physical)\n"
-	    "  --point FRAME X Y           put the pointer at game pixel X,Y (640x480, origin top-left) from that frame on (repeatable); replaces the mouse\n"
-	    "  --preview-all               dev: every Pac-N-Roll / Pac-Motos / Galaga stage and world reads as unlocked, nothing is saved (also MEGAMIX_PREVIEW_ALL=1)\n"
+	    "  --point FRAME [N:]X Y       put the pointer at game pixel X,Y (640x480, origin top-left) from that frame on (repeatable); replaces the mouse\n"
+	    "                              (N: = Wiimote N's pointer, which otherwise follows gamepad N's right stick)\n"
+	    "  --devui                     dev: open the dev window beside the game (the window widens for it): tabs Jobs (switch jobs at run time), Menu (unlock / start stages), Editor (Pac-N-Roll stage editor; saves in MEGAMIX_G03_EDITS), Motos editor (Pac-Motos stage editor; saves in MEGAMIX_G07_EDITS), Galaga editor (Galaga course / orbit editor; saves in MEGAMIX_G01_EDITS), Save (edit a copy of the save data, written to another folder), SCN0 (edit the loaded scene lights / fogs / cameras until quit) (F9 shows / hides it; Ctrl + = / - / 0 zoom; theme ~/.config/megamix/ui_theme.json; also MEGAMIX_DEVUI=1)\n"
+	    "  --preview-all               dev: every Pac-N-Roll / Pac-Motos / Galaga / Rally-X stage and world reads as unlocked, nothing is saved (also MEGAMIX_PREVIEW_ALL=1)\n"
 	    "  --tap-every N               dev: inject an A press every N frames\n"
 	    "  --no-audio                  run without sound (no audio device is opened)\n"
 	    "  --data DIR                  the extracted disc's files folder (holds museum/; DIR/files or DIR/DATA/files also work); overrides data_root\n"
 	    "  --dol FILE                  the game's main.dol (default: dol_path, else sys/main.dol next to the files folder); overrides dol_path\n"
+	    "  --arcade NAME               dev: run a classic arcade game instead of the Megamix boot (pacman, rallyx, newrallyx; remote sideways; A / PLUS = start menu (with OPTIONS) between games and pause menu during one (2 = choose), HOME = stop)\n"
 	    "  --view-model ARCHIVE ENTRY [MODEL]   orbit viewer for a BRRES model (left drag orbit, wheel zoom)\n"
 	    "      --chr ENTRY | --srt ENTRY | --pat ENTRY   play a bone / texture-scroll / texture-swap animation\n"
 	    "      --at FRAME                                freeze the animations at a frame\n"
@@ -206,11 +259,25 @@ int main(int argc, char** argv)
 	std::multimap<int, std::pair<float, float>> sticks; // --stick FRAME X Y: Nunchuk stick from that frame on
 	std::multimap<int, std::uint64_t> holds; // --hold FRAME BUTTON: holds the button from that frame on
 	std::multimap<int, std::uint64_t> presses; // --press FRAME NAME: a one-frame press of a Wiimote button (physical direction names)
-	std::multimap<int, std::pair<float, float>> points; // --point FRAME X Y: pointer position (game pixels) from that frame on
+	std::multimap<int, std::tuple<int, float, float>> points; // --point FRAME [N:]X Y: Wiimote N's pointer position (game pixels) from that frame on
 	unsigned entryJob = 0, nextJob = 0;
 	bool noSmooth = false;
 	for (int i = 1; i < argc; i++) if (std::string(argv[i]) == "--no-smooth") noSmooth = true; // own loop: valid as the last argument
 	for (int i = 1; i < argc; i++) if (std::string(argv[i]) == "--no-nunchuk") WiiPad::SetNunchukConnected(0, false);
+	for (int i = 1; i + 1 < argc; i++) if (std::string(argv[i]) == "--pads") WiiPad::SetForcedConnected(std::atoi(argv[i + 1]));
+	for (int i = 1; i < argc; i++)   // valueless, so it also works as the last argument
+	{
+		if (std::string(argv[i]) == "--g03-no-gates") devtools::SetG03NoGates(true);
+		if (std::string(argv[i]) == "--g03-no-damage") devtools::SetG03NoDamage(true);
+		if (std::string(argv[i]) == "--g03-show-hit") devtools::SetG03ShowHit(true);
+		if (std::string(argv[i]) == "--g03-fly") devtools::SetG03Fly(true);
+		if (std::string(argv[i]) == "--g03-skip-title") devtools::SetG03SkipTitle(true);
+		if (std::string(argv[i]) == "--g03-show-gimmick-hit") devtools::SetG03ShowGimmickHit(true);
+		if (std::string(argv[i]) == "--g03-bg-collision") devtools::SetG03BgCollision(true);
+		if (std::string(argv[i]) == "--g03-no-menu-warp") devtools::SetG03NoMenuWarp(true);
+		if (std::string(argv[i]) == "--g03-jump") devtools::SetG03Jump(true);
+		if (std::string(argv[i]) == "--g03-freecam") devtools::SetG03Freecam(true);
+	}
 	for (int i = 1; i + 1 < argc; i++)
 	{
 		const std::string a = argv[i];
@@ -230,9 +297,20 @@ int main(int argc, char** argv)
 			for (const auto& k : kHold) if (nm == k.n) holds.emplace(std::atoi(argv[i + 1]), (ch << 32) | k.b);
 		}
 		else if (a == "--stick" && i + 3 < argc) sticks.emplace(std::atoi(argv[i + 1]), std::make_pair((float)std::atof(argv[i + 2]), (float)std::atof(argv[i + 3])));
-		else if (a == "--point" && i + 3 < argc) points.emplace(std::atoi(argv[i + 1]), std::make_pair((float)std::atof(argv[i + 2]), (float)std::atof(argv[i + 3])));
+		else if (a == "--point" && i + 3 < argc)
+		{
+			const char* x = argv[i + 2];
+			int ch = 0;
+			if (const char* colon = std::strchr(x, ':')) { ch = std::atoi(x) - 1; x = colon + 1; }
+			points.emplace(std::atoi(argv[i + 1]), std::make_tuple(ch, (float)std::atof(x), (float)std::atof(argv[i + 3])));
+		}
 		else if (a == "--preview-all") devtools::SetPreviewAll(true);
+		else if (a == "--devui") devui::SetEnabled(true);
+		else if (a == "--arcade") devtools::SetArcade(argv[i + 1]);
 		else if (a == "--job") entryJob = (unsigned)std::strtoul(argv[i + 1], nullptr, 0);
+		else if (a == "--g03-explore" && i + 2 < argc) devtools::SetG03Explore(argv[i + 1], argv[i + 2]);
+		else if (a == "--g03-explore-anim") devtools::SetG03ExploreAnims(argv[i + 1]);
+		else if (a == "--g03-explore-scale") devtools::SetG03ExploreScale((float)std::atof(argv[i + 1]));
 		else if (a == "--next") nextJob = (unsigned)std::strtoul(argv[i + 1], nullptr, 0);
 		else if (a == "--g03-start" && i + 3 < argc) devtools::SetG03Start((float)std::atof(argv[i + 1]), (float)std::atof(argv[i + 2]), (float)std::atof(argv[i + 3]));
 		else if (a == "--g03-standin") boot::SetG03StandIn(true);
@@ -244,7 +322,13 @@ int main(int argc, char** argv)
 		else if (a == "--g04-time") devtools::SetG04Time(std::atoi(argv[i + 1]));
 		else if (a == "--g03-cookies") devtools::SetG03Cookies(std::atoi(argv[i + 1]));
 		else if (a == "--g03-kill") devtools::SetG03KillFrame(std::atoi(argv[i + 1]));
-		else if (a == "--round") boot::SetG03Round(std::atoi(argv[i + 1]));
+		else if (a == "--g03-jump-strength") devtools::SetG03JumpStrength((float)std::atof(argv[i + 1]));
+		else if (a == "--round")
+		{
+			const int r = ParseG03Round(argv[i + 1]);
+			if (r >= 0) boot::SetG03Round(r);
+			else std::fprintf(stderr, "--round %s: expected 0..25 or a stage name such as w5s1 / w2sb (W1: s1..s5, W2: s1..s4, W3: s1..s5, W4 / W5: s1..s6)\n", argv[i + 1]);
+		}
 	}
 	const int dumpAfter = (dumpTree && argc > 2) ? std::atoi(argv[2]) : 400;
 
@@ -276,7 +360,7 @@ int main(int argc, char** argv)
 		platform::Shutdown();
 		return 2;
 	}
-	std::fprintf(stderr, "data: %s\n", WiiSystem::DataRoot().c_str());
+	// std::fprintf(stderr, "data: %s\n", WiiSystem::DataRoot().c_str());
 
 	for (int i = 1; i + 2 < argc; i++)
 	{
@@ -288,8 +372,28 @@ int main(int argc, char** argv)
 		}
 	}
 
-	boot::SetEntryJob(entryJob, nextJob);
-	boot::Init();
+	if (devtools::G03Explore() && entryJob == 0) entryJob = kingdom::job::PACNROLL_GAME;   // --g03-explore runs in the Pac-N-Roll game
+	const bool arcade = !devtools::Arcade().empty();   // devtools: --arcade runs a classic game instead of the boot
+	if (arcade)
+	{
+		if (!devtools::ArcadeInit())
+		{
+			platform::Shutdown();
+			return 2;
+		}
+	}
+	else
+	{
+		boot::SetEntryJob(entryJob, nextJob);
+		boot::Init();
+		devtools::RegisterJobsPanel();   // devtools: the dev window's Jobs tab
+		devtools::RegisterMenuPanel();   // devtools: the dev window's Menu tab (in a game's menu)
+		devtools::RegisterSavePanel();   // devtools: the dev window's Save tab
+		devtools::RegisterScnPanel();    // devtools: the dev window's SCN0 tab
+		devtools::RegisterG03EditPanel();
+		devtools::RegisterG07EditPanel();
+		devtools::RegisterG01EditPanel();
+	}
 
 	while (!platform::ShouldClose())
 	{
@@ -297,25 +401,28 @@ int main(int argc, char** argv)
 		for (auto r = presses.equal_range(shotFrame + 1); r.first != r.second; ++r.first) WiiPad::InjectHeld((std::uint32_t)r.first->second, (int)(r.first->second >> 32));
 		for (const auto& h : holds) if (h.first <= shotFrame + 1) WiiPad::InjectHeld((std::uint32_t)h.second, (int)(h.second >> 32));
 		{ const std::pair<float, float>* st = nullptr; for (const auto& sk : sticks) if (sk.first <= shotFrame + 1) st = &sk.second; if (st) WiiPad::InjectStick(st->first, st->second); }
-		for (const auto& pt : points) if (pt.first <= shotFrame + 1) WiiPad::InjectPointer(pt.second.first, pt.second.second); // later entries win
+		for (const auto& pt : points) // later entries win
+			if (pt.first <= shotFrame + 1) WiiPad::InjectPointer(std::get<1>(pt.second), std::get<2>(pt.second), std::get<0>(pt.second));
 		WiiPad::Update();
 		InGamePadManager::Update();
 		GamePad::Update();
 		LogWiiPresses();
-		if (platform::KeyPressed('P'))
+		if (!arcade && platform::KeyPressed('P'))
 		{
 			std::printf("--- task tree ---\n");
 			PrintTaskTree(boot::Root());
 		}
 		platform::BeginFrame();
-		boot::Frame();
+		if (arcade) devtools::ArcadeFrame();
+		else boot::Frame();
 		gfx::DrawLetterbox();   // the game is 640 x 480: nothing it draws shows outside that rectangle
+		devui::Frame();   // devtools: the dev window (F9 / --devui), over the letterbox
 		shotFrame++;
 		if (shots.count(shotFrame)) std::printf("shot %d -> %s %s\n", shotFrame, shots[shotFrame].c_str(), gfx::SaveScreenshot(shots[shotFrame]) ? "ok" : "FAILED");
 		if (dumpTree && ++frames == dumpAfter)
 		{
 			std::printf("--- task tree after %d frames ---\n", frames);
-			PrintTaskTree(boot::Root());
+			if (!arcade) PrintTaskTree(boot::Root());
 			break;
 		}
 		platform::DrawFps(20, 20);

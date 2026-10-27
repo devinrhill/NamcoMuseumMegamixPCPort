@@ -761,6 +761,7 @@ bool cTaskChar::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x801e3048
 void cTaskChar::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -788,6 +789,7 @@ void cTaskChar::Draw(int nStatus, cJetTask* pParam)
 		}
 		DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 		DummyNW4R::SetScale(cPBModel->pScnMdl(), cPBModel->vScale()[0], cPBModel->vScale()[1], cPBModel->vScale()[2]);
+		cPBModel->UpdateMatrix();   // DOL 0x801e3204: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 		num++;
 	}
 }

@@ -39,6 +39,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	void HitCallbackFloor(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW) override;
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickGondola::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

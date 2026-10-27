@@ -69,7 +69,7 @@ void cTaskCharGolvis04::Term()
 {
 	if (m_pDemoPacMan != nullptr)
 	{
-		m_pDemoPacMan->Term();
+		m_pDemoPacMan->TermOnce();
 	}
 	ReleaseObjectManager::Regist(m_dummyDemoCamObj);
 	ReleaseObjectManager::Regist(m_dummyDemoCamAimObj);

@@ -56,11 +56,25 @@ void cParamGame::Load()
 	}
 }
 
-// DOL 0x80091af8 + 0x80094a58
+// DOL 0x80091af8 + 0x80094a58; built at 0x80091408 / 0x80091448: one player = no matching data (the pause answers pad 1), more = the sys's
+// sWaniMatching (0x80091d20 = sys + 4): the base pause takes nNum controllers and gives cursor i the pad player[i].nWork (+0x4c)
 cTaskPause::cTaskPause()
 {
-	RegistData("COMMON_ANITA_PAUSE", "COMMON_ANITA_POINTER", nullptr);   // 0x6e1c482e / 0x1a3f6a03 (multiplayer: the matching data)
-	nMenuJob() = 0x0e300000u;
+	sMatchingData* data = nullptr;
+	const sWaniMatching* w = KingdomGlobal::WaniWaniSys->pMatchingData();
+	if (KingdomGlobal::WaniWaniSys->nPlayers() != 1)   // 0x80091adc
+	{
+		m_Matching.nNum = (uint)w->nPlayer;
+		for (uint i = 0; i < 4; i++)
+		{
+			m_Info[i].Name = w->player[i].szName;
+			m_Info[i].nWork = (uint)w->player[i].nWork;
+			m_Matching.Info[i] = &m_Info[i];
+		}
+		data = &m_Matching;
+	}
+	RegistData("COMMON_ANITA_PAUSE", "COMMON_ANITA_POINTER", data);   // 0x6e1c482e / 0x1a3f6a03
+	nMenuJob() = job::WANIWANI_GAME;
 }
 
 cTaskPause::~cTaskPause()
@@ -196,8 +210,11 @@ void cAppG04WaniWaniGame::Init()
 	m_bFromRetry = false;
 	KingdomGlobal::WaniWaniSys->LoadRecord();   // 0x80199dfc
 	kingdom::cKingdomModelBase::ClearAssetCache();
-	// the scene root +0x1b8 (cTaskScnRoot 0x80, 0x80, 0x80, 0x10; priority 0x7fffffff): natively cTaskNativeScene, registered drawing
+	// the scene root +0x1b8 (cTaskScnRoot 0x80, 0x80, 0x80, 0x10; priority 0x7fffffff): natively cTaskNativeScene
 	kingdom::NativeScene::Reset();
+	// the scene root draws only what the task Draws submitted this frame (cTaskModel::Draw 0x8009a650; the gator Draw 0x801a9d5c and the blob
+	// shadow's cTaskPBModel::Draw 0x8009aad0 go through it)
+	kingdom::NativeScene::SetPerFrame(true);
 	ConnectChild(new kingdom::cTaskNativeScene());
 	m_pTaskCamera = new cTaskCamera();   // +0x2a4 (0x8019d314)
 	ConnectChild(m_pTaskCamera);
@@ -216,7 +233,17 @@ void cAppG04WaniWaniGame::Init()
 			kingdom::NativeScene::SetLight(i, light);
 		}
 	}
-	// KingSys +0xa54 FUN_80025560(500): the sound fade (natively nothing)
+	// DOL 0x80091144..0x80091668: the depth shadow light (mode 0, target 0, angles (pi/4, 0, 0), radius 30, ortho 20 x 20 near 20 far 60)
+	{
+		kingdom::NativeScene::SetShadow(true);
+		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
+		sh.SetMode(0);
+		sh.SetTarget(0.0f, 0.0f, 0.0f);
+		sh.SetAngles(0.785398f, 0.0f, 0.0f);
+		sh.SetOrtho(20.0f, 20.0f, 20.0f, 60.0f);
+		sh.SetRadius(30.0f);
+	}
+	snd::FadeOutAll(500);   // 0x80091368: FUN_80025560(KingSys +0xa54, 500), every sound fades out
 	m_pTaskFade = new kingdom::cTaskFade();   // +0x290 (0x80091964)
 	ConnectChild(m_pTaskFade);
 	m_pTaskBG = new cTaskBG();                // +0x284 (0x800931c0)
@@ -251,9 +278,15 @@ void cAppG04WaniWaniGame::Init()
 	m_nNextPlayers = n;
 }
 
-// DOL 0x80094480 (partial)
+// DOL 0x80094480 (the dtor) -> 0x80092018 (Term): the fog / light managers (+0x2b4 / +0x2b8) and CSV_GAME (+0x314) are plain members natively;
+// sound handles 1..5 stop at once (handle 0, the menu music, keeps playing: the DOL skips it), the stick stops working the dpad
 void cAppG04WaniWaniGame::Free()
 {
+	WiiSnd::Stop(m_SndGame);     // 0x80026318(+0x2c8, 0)
+	WiiSnd::Stop(m_SndStart);    // +0x2d4
+	WiiSnd::Stop(m_SndEat);      // +0x2ec (+0x2e0 has no native handle: nothing plays on it)
+	WiiSnd::Stop(m_SndResult);   // +0x2f8
+	GamePad::SetStickDpad(false);   // 0x800219d4(0)
 	kingdom::NativeScene::Reset();
 	cAppKingdom::Free();
 }
@@ -321,7 +354,7 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 		if (nModeStep(n) == 0)
 		{
 			nModeStep(n) = 1;
-			// 0x800219d4(1): the pointer on (natively always)
+			GamePad::SetStickDpad(true);   // 0x800219d4(1): the Nunchuk stick works the menu
 			m_pTortoise->SetState(0);   // 0x801b7c7c(+0x280, 0)
 			if (m_SndMenu.voice < 0 || !snd::IsPlaying(m_SndMenu.voice)) WiiSnd::Play(m_SndMenu, "m04bgm_Select");   // 0x80026424 / 0x80199ee8
 			m_pEnemyManager->SetAllState(1);
@@ -333,7 +366,7 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 			{
 				if (m_pConsole->MenuIsSel(0))   // back: the hub
 				{
-					m_nNextJob = 0x0ef00000u;
+					m_nNextJob = job::WANIWANI_TERM;
 					change(9);
 				}
 				else if (m_pConsole->MenuIsSel(2))   // start
@@ -342,11 +375,11 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 					m_pConsole->SetMode(2);
 				else if (m_pConsole->MenuIsSel(3))   // players: the matching (alone) / the Nunchuk card
 				{
-					if (single) m_nNextJob = 0x0e500000u;
+					if (single) m_nNextJob = job::WANIWANI_MATCHING;
 					else
 					{
 						m_nNextPlayers = 1;
-						m_nNextJob = 0x0e700000u;
+						m_nNextJob = job::WANIWANI_NUNCHUK;
 					}
 					change(9);
 				}
@@ -368,7 +401,8 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 			if (nOldState(n) == nModeState(n)) break;
 			nModeStep(n) = 2;
 		}
-		nModeStep(n) = 0;   // 0x800219d4(0): the pointer off
+		nModeStep(n) = 0;
+		GamePad::SetStickDpad(false);   // 0x800219d4(0)
 		break;
 	case 3:   // the game
 		if (nModeStep(n) == 0)
@@ -416,7 +450,7 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 			nModeStep(n) = 2;
 		}
 		nModeStep(n) = 0;
-		WiiSnd::FadeOut(m_SndGame, 400);   // 0x80026394(0, +0x2c8, 400)
+		WiiSnd::SetVolume(m_SndGame, 0.0f, 400);   // 0x80026394(0, +0x2c8, 400): silent, still playing
 		break;
 	case 4:   // from the retry: fade in, then READY
 		if (nModeStep(n) == 0)
@@ -524,21 +558,21 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 		{
 			nModeStep(n) = 1;
 			m_pConsole->pRetry()->Start();   // 0x80149b88(+0x294 +0x1ec)
-			WiiSnd::FadeOut(m_SndGame, 1000);
+			WiiSnd::SetVolume(m_SndGame, 1.0f, 1000);   // 0x80092cfc: 0x80026394(1 (FLOAT_8047ab80), +0x2c8, 1000): the music comes back
 		}
 		if (nModeStep(n) == 1)
 		{
 			kingdom::game::cTaskConsRetry* r = m_pConsole->pRetry();
 			if (r->IsYes() && !r->IsVisible())   // +0x1d0 == 1 && +0x1c8 == 0
 			{
-				m_nNextJob = 0x0e300000u;
+				m_nNextJob = job::WANIWANI_GAME;
 				KingdomGlobal::WaniWaniSys->bRetry() = true;
 				change(single ? 9u : 1u);
 			}
 			else if (r->IsNo() && !r->IsVisible())
 			{
 				KingdomGlobal::WaniWaniSys->bRetry() = false;
-				m_nNextJob = 0x0e300000u;
+				m_nNextJob = job::WANIWANI_GAME;
 				change(single ? 9u : 1u);
 			}
 			if (nOldState(n) == nModeState(n)) break;
@@ -555,9 +589,7 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 		if (nModeStep(n) == 0)
 		{
 			nModeStep(n) = 1;
-			// m_nNextJob != matching: KingSys +0xa54 FUN_80025560(500) (the sound fade)
-			WiiSnd::FadeOut(m_SndMenu, 500);
-			WiiSnd::FadeOut(m_SndGame, 500);
+			if (m_nNextJob != job::WANIWANI_MATCHING) snd::FadeOutAll(500);   // FUN_80025560(KingSys +0xa54, 500): every sound; the menu music carries into the matching
 			m_pTaskFade->Fade(0x10002u, 500);
 		}
 		if (nModeStep(n) == 1)
@@ -605,6 +637,11 @@ bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 			nModeStep(n) = 2;
 		}
 		nModeStep(n) = 0;
+		if (single && (uint)KingdomGlobal::WaniWaniSys->nHighScore() <= m_pConsole->pScore()->Score())   // 0x80092f34 (never true: 0xb is multiplayer only)
+		{
+			KingdomGlobal::WaniWaniSys->SetHighScore((int)m_pConsole->pScore()->Score());
+			m_bNewRecord = true;
+		}
 		m_pTortoise->Reset();     // 0x801b7810
 		m_pConsole->Restart();    // 0x801b13b4
 		m_pTimer->Reset();        // 0x801a70ac

@@ -177,7 +177,7 @@ void cTaskCollision::CollisionPacman2BG()
 	::Constants::jetGeoVecAdd(cTaskCharPacman2->vTrans(), cTaskCharPacman2->vTrans(), cTaskCharPacman2->vForceMove());
 	HitProcessFloor();
 	cTaskCharPacman2->PostCollisionFloor();
-	if (cTaskCharPacman2->IsState(32768u))
+	if (cTaskCharPacman2->IsState(cTaskCharPacman::STATE_CLIMB))
 	{
 		Vector4 v2 = Vector4::zero;
 		::Constants::jetGeoVecUnit(v2);

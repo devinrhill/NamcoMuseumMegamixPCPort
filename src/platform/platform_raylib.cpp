@@ -1,5 +1,6 @@
 #include "platform/platform.hpp"
 #include "gfx/Gfx.hpp"
+#include "platform/devui.hpp"
 #include <raylib.h>
 #include <rlgl.h>
 
@@ -20,6 +21,7 @@ void SetSmoothing(bool on) { g_smooth = on && std::getenv("MEGAMIX_NOFXAA") == n
 
 bool Init(int width, int height, const char* title)
 {
+	SetTraceLogLevel(LOG_ERROR);   // before InitWindow: most of raylib's INFO lines come from inside it
 	if (g_smooth) SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(width, height, title);
 	SetTargetFPS(std::getenv("MEGAMIX_UNCAPPED") ? 0 : 60);   // MEGAMIX_UNCAPPED=1: no frame cap (dev measurement, with MEGAMIX_DRAWSTATS)
@@ -32,7 +34,9 @@ void Shutdown()
 	CloseAudioDevice();
 	CloseWindow();
 }
-bool ShouldClose() { return WindowShouldClose(); }
+bool g_closeRequested = false;
+bool ShouldClose() { return g_closeRequested || WindowShouldClose(); }
+void RequestClose() { g_closeRequested = true; }
 
 void BeginFrame()
 {
@@ -54,7 +58,7 @@ void DrawFps(int x, int y) { DrawFPS(x, y); }
 bool KeyPressed(char key)
 {
 	if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
-	return IsKeyPressed(key);
+	return !devui::Typing() && IsKeyPressed(key);   // devtools: not while the dev window has the keyboard
 }
 }
 

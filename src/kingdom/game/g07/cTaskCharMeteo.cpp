@@ -156,6 +156,7 @@ bool cTaskCharMeteo::Move()
 	return true;
 }
 
+// DOL 0x800ae5c8
 void cTaskCharMeteo::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -175,6 +176,7 @@ void cTaskCharMeteo::Draw(int nStatus, cJetTask* pParam)
 			for (int c = 0; c < 3; c++)
 				for (int r = 0; r < 3; r++) m_Ptkmtx[r][c] *= cPBModel->vScale()[c];
 			m_phEffTail->UpdateMatrix(m_Ptkmtx);
+			cPBModel->UpdateMatrix();   // DOL 0x800ae6bc: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 			num++;
 			continue;
 		}

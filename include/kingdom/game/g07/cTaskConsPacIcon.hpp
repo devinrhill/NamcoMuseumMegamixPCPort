@@ -58,6 +58,9 @@ public:
 	void Visible(uint set = std::numeric_limits<uint>::max()) override;
 
 	void Invisible(uint set = std::numeric_limits<uint>::max()) override;
+
+protected:
+	void ReleaseTerm() override { cTaskConsPacIcon::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

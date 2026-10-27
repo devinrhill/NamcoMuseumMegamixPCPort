@@ -36,14 +36,14 @@ int Rand()
 void cG00DummySys::JobInit()
 {
 	g_bSys = true;
-	Kingdom_SetJobNo(0x0a100000u, false, 0);
+	Kingdom_SetJobNo(job::DUMMY_161, false, 0);
 }
 
 // DOL 0x800c7010
 void cG00DummySys::JobEnd()
 {
 	g_bSys = false;
-	Kingdom_SetJobNo(0x08300000u, false, 0);
+	Kingdom_SetJobNo(job::DEBUG_MENU, false, 0);
 }
 
 // ---- cAppG00DummyMenu ---------------------------------------------------------------------------------------------------------
@@ -94,10 +94,10 @@ bool cAppG00DummyMenu::Execute(cJetTask* pParam)
 		if (trig & GamePad::PAD_2) go(2);
 		break;
 	case 4:
-		if (m_nCount++ > 30) Kingdom_SetJobNo(0x0a200000u, false, 0);
+		if (m_nCount++ > 30) Kingdom_SetJobNo(job::DUMMY_MENU, false, 0);
 		break;
 	case 5:
-		if (m_nCount++ > 30) Kingdom_SetJobNo(0x0af00000u, false, 0);
+		if (m_nCount++ > 30) Kingdom_SetJobNo(job::DUMMY_TERM, false, 0);
 		break;
 	default:
 		break;
@@ -192,7 +192,7 @@ bool cAppG00DummyGame::Execute(cJetTask* pParam)
 		if (m_nCount++ > 30)
 		{
 			m_nCount = 0;
-			Kingdom_SetJobNo(0x0af00000u, false, 0);
+			Kingdom_SetJobNo(job::DUMMY_TERM, false, 0);
 		}
 	}
 	return true;

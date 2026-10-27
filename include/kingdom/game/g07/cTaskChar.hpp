@@ -484,6 +484,9 @@ public:
 	virtual void SetMortion(uint nModel, string name, uint nSlot = 0u, uint type = 0u);
 
 	virtual void SetMortionReverse(uint nModel, string name, uint nSlot, uint type = 0u);
+
+protected:
+	void ReleaseTerm() override { cTaskChar::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

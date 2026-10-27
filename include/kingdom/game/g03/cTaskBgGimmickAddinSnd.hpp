@@ -32,6 +32,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	void Draw(int nState, cJetTask* pParam) override;
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickAddinSnd::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

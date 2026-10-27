@@ -73,13 +73,17 @@ public:
 	bool NextFlag(int nIndex, float out[4]) const;    // DOL 0x80079fcc (the red car passes its taken count +0x2d0); false past the end
 	bool FindDropCell(float out[4], const float pPos[4], int nDir);   // DOL 0x80078574 (true: out moved to a free road cell)
 
+	// the multiplayer item spawn points (record types 3 paint / 4 armor / 2 fuel / 5 smoke; DOL +0x200 / +0x20c / +0x218 / +0x224 with the counts
+	// +0x1fc / +0x208 / +0x214 / +0x220: 0x8007a064.. / 0x80079fe4 ..)
+	int nSpawnCount(int nRecType) const { return (unsigned)nRecType < 6u ? (int)m_Spawn[nRecType].size() : 0; }
+	bool SpawnCell(int nRecType, int nIdx, int cell[2]) const;
 	cTaskGimmickMan* pGimmickMan() const { return m_pGimmickMan; }   // +0x1dc
 	cTaskFlagMan* pFlagMan() const { return m_pFlagMan; }            // +0x1e0
 	cTaskSmokeMan* pSmokeMan() const { return m_pSmokeMan; }         // +0x1e4
 
 private:
 	void BuildCells();                 // DOL 0x80077190 (first half) / 0x80077b54
-	void PlaceObjects();               // DOL 0x80077190 (flags) / 0x80077530 / 0x80077e48 (multiplayer 0x8007765c not ported)
+	void PlaceObjects();               // DOL 0x80077190 (flags) / 0x80077530 / 0x80077e48 / the multiplayer 0x8007765c + 0x80078020
 	static void ObjCell(const u8* rec, int& x, int& z);
 	bool IsRoad(int x, int z) const { return (Attr(x, z) & 1u) != 0; }   // the inlined attr test of 0x80078574 (0 off the map)
 	void AddFlag(cTaskGimmick* g);     // FlagMan FUN_8007013c + console FUN_800662c8 (map +0x1ec)
@@ -97,6 +101,7 @@ private:
 	int m_nEnemy{};                    // +0x1f4: type 1 objects
 	std::mt19937 m_Rand{0x20061206u};  // +0x1f8 cKingdomRand (genrand 0x8014146c; UNVERIFIED: = std::mt19937)
 	// native: what the map gave the managers (the fallbacks while the W2 hooks are null)
+	std::vector<std::pair<int, int>> m_Spawn[6];   // the multiplayer spawn points by record type (2..5)
 	std::vector<cTaskItemFlag*> m_vFlags;
 	std::vector<cTaskGimmickSmoke*> m_vSmokes;
 };

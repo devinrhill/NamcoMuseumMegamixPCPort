@@ -94,8 +94,8 @@ void cTaskBgGate::Init()
 
 void cTaskBgGate::Term()
 {
-	m_pBreakModel->Term();
-	m_pTaskGateCookie->Term();
+	m_pBreakModel->TermOnce();
+	m_pTaskGateCookie->TermOnce();
 	cTaskBgHit::Term();
 }
 

@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
+#include "kingdom/cKingdomPtkHnd.hpp"
+
 #include "common.hpp"
 #include "kingdom/cTaskModel.hpp"
 
@@ -16,5 +21,15 @@ class cTaskBG : public kingdom::cTaskModel
 public:
 	cTaskBG();                                 // DOL 0x80060898-region ctor + Init 0x8005f8e8
 	bool Execute(cJetTask* pParam) override;   // DOL 0x800600a4
+	void Term() override;                      // DOL 0x8006002c (run by cTaskKingdom::TermOnce at the job change)
+	// DOL 0x8006016c (the app's stage reset 0x80125a14, single player): the butterflies, particle slot 0x28 at every child of node "ef_butterfly01"
+	// of STAGE_BG_PTK_POINT; false when the stage has none
+	bool ResetPtk();
+
+private:
+	std::vector<std::unique_ptr<kingdom::cKingdomPtkHnd>> m_Ptk;   // +0x1d0 (a vector of handles)
+
+protected:
+	void ReleaseTerm() override { cTaskBG::Term(); kingdom::cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 }

@@ -52,6 +52,9 @@ protected:
 	float m_fWander{};                          // +0x9cc (frames to the next wander turn)
 	kingdom::cKingdomPtkHnd m_FxConfused;       // +0x9d0 (slot 0x29: shown while it brakes at the painted player)
 	cParamCarEnemy* m_pEnemyParam{};            // +0xa20 (CSV_CARENEMY)
+
+protected:
+	void ReleaseTerm() override { cTaskEnemy::Term(); cTaskUnit::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 class cTaskEnemyRedMode : public cTaskEnemy

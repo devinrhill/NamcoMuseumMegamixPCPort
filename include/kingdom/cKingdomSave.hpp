@@ -21,6 +21,8 @@ public:
 	static constexpr uint FILE_SIZE = 0xe004;
 
 	cKingdomSave();
+	// DOL 0x80022320 (its banner part): fill Banner() from the resident archive's SAVE_COMMENT / SAVE_BANNER / SAVE_ICON_n entries
+	void InitBanner();
 
 	// DOL 0x800226d4: save folder reachable, banner.bin present (rewritten if its size is wrong), museum.bin present
 	bool Check();

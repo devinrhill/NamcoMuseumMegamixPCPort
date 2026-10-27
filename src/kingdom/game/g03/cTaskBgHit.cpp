@@ -1,4 +1,5 @@
 #include "kingdom/game/g03/cTaskBgHit.hpp"
+#include "platform/devtools.hpp"
 #include "wii/Anim.hpp"
 #include "kingdom/cKingdomModelBase.hpp"
 
@@ -199,18 +200,12 @@ void cTaskBgHit::UpdateMatrix()
 		::Constants::jetGeoMtxTrans(m_MtxRotTrans, m_MtxRotTrans, this->Model->vTrans());
 		::Constants::jetGeoMtxMult(m_MtxRotTrans, m_MtxRotTrans, m_MtxRotate);
 		::Constants::jetGeoMtxScale(m_Mtx, m_MtxRotTrans, this->Model->vScale());
-		// DOL 0x80154e64: when the model's blend slot 0 holds a CHR clip with a "root" bone, that bone at the slot's current frame moves the collision:
-		// m_Mtx *= S(root.scale) * rt(root) (rotation + translation), m_MtxRotate *= rt(root) with the translation zeroed (moving platforms, rotating bridges)
-		if (std::shared_ptr<wii::ChrAnim> anm = this->Model->AnmChrOf(0))
-		{
-			wii::BoneKey root;
-			if (anm->Sample("root", this->Model->GetFrameAnmChr(0), root))
-			{
-				::Constants::jetGeoMtxScale(m_Mtx, m_Mtx, Vector4(root.scale[0], root.scale[1], root.scale[2], 1.0f));
-				::Constants::jetGeoMtxMult(m_Mtx, m_Mtx, cKingdomModelBase::BoneRt(root, true));
-				::Constants::jetGeoMtxMult(m_MtxRotate, m_MtxRotate, cKingdomModelBase::BoneRt(root, false));
-			}
-		}
+		// DOL 0x80154e64: the scene model's current CHR result for its "root" node (ChrAnmResult via the ScnMdl, vtable +0x38) moves the collision:
+		// m_Mtx *= S(root.scale) * rt(root) (rotation + translation), m_MtxRotate *= rt(root) with the translation zeroed (moving platforms, rotating
+		// bridges). Natively: the first CHR slot that poses the model (weight > 0) and animates "root"; RegistAnmNoIdx puts a gimmick's CHR clip after
+		// its SRT / PAT clips, so it is often not slot 0 (the w4 rotating / swinging / rising bounce pads stayed static)
+		ApplyAnmRoot();
+		if (devtools::G03BgCollision()) devtools::G03BgCollisionRefresh(this); // devtools: --g03-bg-collision (not 1:1)
 		::Constants::jetGeoMtxInverse(m_MtxRotateInv, m_MtxRotate);
 		::Constants::jetGeoMtxInverse(m_MtxInv, m_Mtx);
 		m_isCalcedMtx = true;
@@ -222,6 +217,32 @@ void cTaskBgHit::UpdateMatrix()
 			::Constants::jetGeoMtxCopy(pMtxRotateInvOld(), pMtxRotateInv());
 		}
 	}
+}
+
+// natively: the first CHR slot that poses the model (weight > 0) and animates "root"; RegistAnmNoIdx puts a gimmick's CHR clip after its SRT / PAT clips,
+// so it is often not slot 0 (the DOL reads the ScnMdl's blended CHR result, there is no slot)
+int cTaskBgHit::AnmRootSlot()
+{
+	for (uint s = 0; s < (uint)cKingdomModelBase::BLEND_MAX; s++)
+	{
+		std::shared_ptr<wii::ChrAnim> anm = this->Model->AnmChrOf(s);
+		if (!anm || this->Model->GetWeightAnmChr(s) <= 0.0f || anm->numFrame <= 0) continue;
+		wii::BoneKey root;
+		if (anm->Sample("root", 0.0f, root)) return (int)s;
+	}
+	return -1;
+}
+
+void cTaskBgHit::ApplyAnmRoot()
+{
+	const int s = AnmRootSlot();
+	if (s < 0) return;
+	std::shared_ptr<wii::ChrAnim> anm = this->Model->AnmChrOf((uint)s);
+	wii::BoneKey root;
+	if (!anm->Sample("root", wii::ClipFrame(this->Model->GetFrameAnmChr((uint)s), anm->numFrame, anm->loops), root)) return;
+	::Constants::jetGeoMtxScale(m_Mtx, m_Mtx, Vector4(root.scale[0], root.scale[1], root.scale[2], 1.0f));
+	::Constants::jetGeoMtxMult(m_Mtx, m_Mtx, cKingdomModelBase::BoneRt(root, true));
+	::Constants::jetGeoMtxMult(m_MtxRotate, m_MtxRotate, cKingdomModelBase::BoneRt(root, false));
 }
 
 void cTaskBgHit::RegistHitData(string key)
@@ -243,6 +264,7 @@ void cTaskBgHit::RegistHitData(string key)
 		cFaceList2->IsReuse() = true;
 	}
 	pFaceList() = cFaceList2;
+	if (devtools::G03BgCollision()) devtools::G03BgCollisionReplace(this); // devtools: --g03-bg-collision (not 1:1)
 	if (pFaceList() != nullptr && IsCollision())
 	{
 		cAppG03PacnRollGame2->pTaskCollision()->PushBackCollisionObj(this);

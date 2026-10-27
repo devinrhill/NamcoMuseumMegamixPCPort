@@ -25,8 +25,10 @@ struct Voice
 	int id{};
 	std::unique_ptr<Source> src;
 	float volume{1};
+	float gain[2]{1, 1};        // 3D volume x pan ratio per output channel (SetSpatial)
 	float fade{0};              // volume change per output frame while fading out
 	bool fading{false};
+	float ext{1}, extTarget{1}, extStep{0};   // nw4r BasicSound::SetVolume: the external volume, moving to its target (MoveValue)
 	double step{1};             // source frames per output frame
 	double frac{0};
 	std::int16_t a[2]{}, b[2]{};   // the two source frames being interpolated
@@ -78,8 +80,13 @@ void Generate(std::int16_t* out, unsigned frames)
 				v.primed = true;
 			}
 			const float t = (float)v.frac;
-			l += (v.a[0] + (v.b[0] - v.a[0]) * t) * v.volume;
-			r += (v.a[1] + (v.b[1] - v.a[1]) * t) * v.volume;
+			l += (v.a[0] + (v.b[0] - v.a[0]) * t) * v.volume * v.ext * v.gain[0];
+			r += (v.a[1] + (v.b[1] - v.a[1]) * t) * v.volume * v.ext * v.gain[1];
+			if (v.ext != v.extTarget)
+			{
+				v.ext += v.extStep;
+				if ((v.extStep > 0) == (v.ext > v.extTarget)) v.ext = v.extTarget;
+			}
 			v.frac += v.step;
 			while (v.frac >= 1.0)
 			{
@@ -130,7 +137,21 @@ void Shutdown()
 	g_ready = false;
 }
 
-int Play(const std::string& cue)
+namespace
+{
+void PanGains(float volume, float pan, float out[2])
+{
+	// nw4r Util::CalcPanRatio with the SQRT curve, centre scaled to 1 (the mixer plays unpanned sounds at 1); UNVERIFIED: the sound's own
+	// pan curve (SoundCommonInfo panCurve) is not read
+	pan = std::max(-1.0f, std::min(1.0f, pan));
+	out[0] = volume * std::sqrt(1.0f - pan);
+	out[1] = volume * std::sqrt(1.0f + pan);
+}
+}
+
+int Play(const std::string& cue) { return Play(cue, 1.0f, 0.0f); }
+
+int Play(const std::string& cue, float volume3d, float pan3d)
 {
 	if (!Init()) return -1;
 	const SoundDef* def = g_archive.Find(cue);
@@ -163,6 +184,7 @@ int Play(const std::string& cue)
 	}
 	else { std::fprintf(stderr, "sound: '%s' is a sequence sound (not supported)\n", cue.c_str()); return -1; }
 	v->step = (double)v->src->sampleRate() / kRate;
+	PanGains(volume3d, pan3d, v->gain);
 	std::lock_guard<std::mutex> lock(g_mutex);
 	v->id = g_nextId++;
 	const int id = v->id;
@@ -188,6 +210,18 @@ void FadeOut(int voice, int ms)
 		}
 }
 
+void SetVolume(int voice, float volume, int ms)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices)
+		if (v->id == voice)
+		{
+			v->extTarget = volume;
+			if (ms <= 0) { v->ext = volume; v->extStep = 0; }
+			else v->extStep = (volume - v->ext) / std::max(1.0f, ms * kRate / 1000.0f);
+		}
+}
+
 bool IsPlaying(int voice)
 {
 	std::lock_guard<std::mutex> lock(g_mutex);
@@ -195,9 +229,38 @@ bool IsPlaying(int voice)
 	return false;
 }
 
+void SetSpatial(int voice, float volume, float pan)
+{
+	float g[2];
+	PanGains(volume, pan, g);
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices) if (v->id == voice) { v->gain[0] = g[0]; v->gain[1] = g[1]; }
+}
+
+bool Sound3DParamOf(const std::string& cue, unsigned& flags, int& decayCurve, float& decayRatio)
+{
+	if (!Init()) return false;
+	const SoundDef* def = g_archive.Find(cue);
+	if (def == nullptr) return false;
+	flags = def->flags3d;
+	decayCurve = def->decayCurve3d;
+	decayRatio = def->decayRatio3d;
+	return true;
+}
+
 void StopAll()
 {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	for (auto& v : g_voices) v->ended = true;
+}
+
+void FadeOutAll(int ms)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	for (auto& v : g_voices)
+	{
+		v->fading = true;
+		v->fade = v->volume / std::max(1.0f, ms * kRate / 1000.0f);
+	}
 }
 }

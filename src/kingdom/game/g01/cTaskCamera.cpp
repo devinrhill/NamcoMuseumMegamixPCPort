@@ -4,11 +4,11 @@
 #include <cmath>
 
 #include "kingdom/NativeScene.hpp"
+#include "kingdom/cKingdomCSV.hpp"
+#include "SoundManager.hpp"
 
 namespace kingdom::game::g01
 {
-
-// cTaskCamera +0x40 = 0x800d304c: the 3D sound listener follows the camera (0x80137824 with +0x210 / +0x220 / +0x240): not ported (sound actors).
 
 namespace
 {
@@ -26,9 +26,25 @@ void Cross(const float a[3], const float b[3], float out[3])
 }
 
 // DOL 0x800d3194
+// The 3D sound listener (+0x26c, a 0x70-byte nw4r Sound3DListener made by 0x800d2ee8, added to the sound manager by 0x80137768):
+// vtable +0x50 = 0x800d3064 reads PlayerParam.csv column 1 rows INTERIOR_SIZE (+0x260), DISTANCE (+0x264), DISTANCE_MAX (+0x268), then
+// SetInteriorSize (0x801378d0), unit distance (0x801378d4 -> listener +0x50), max volume distance (0x801378d8 -> +0x4c)
 cTaskCamera::cTaskCamera()
 {
 	SetName("g01::cTaskCamera");
+	kingdom::cKingdomCSV csv;
+	csv.RegistData("PlayerParam.csv");
+	float interior = 0.0f, unit = 0.0f, maxVolume = 0.0f;
+	csv.F32(csv.SearchRow(0, "INTERIOR_SIZE", 0, 0), 1, interior);
+	csv.F32(csv.SearchRow(0, "DISTANCE", 0, 0), 1, unit);
+	csv.F32(csv.SearchRow(0, "DISTANCE_MAX", 0, 0), 1, maxVolume);
+	SoundManager::get_SE()->SetListenerParam(interior, maxVolume, unit);
+}
+
+// DOL 0x800d3868 (the listener leaves the sound manager)
+cTaskCamera::~cTaskCamera()
+{
+	SoundManager::get_SE()->ClearListener();
 }
 
 // DOL 0x800d322c (nothing while paused, DAT_80479118). Only aim cameras (posture type 2) update the frame. The DOL builds "up" by turning
@@ -53,6 +69,9 @@ void cTaskCamera::Update()
 	Cross(right, m_vForward, m_vUp);
 	Normalize(m_vUp);
 	Cross(m_vForward, m_vUp, m_vRight);   // PSVECCrossProduct(+0x250, +0x240, +0x230)
+	// vtable +0x40 = 0x800d304c: the listener's look-at (0x80137824: eye +0x210, target +0x220, up +0x240)
+	SoundManager::get_SE()->SetListener(Vector4(m_vPos[0], m_vPos[1], m_vPos[2], 1.0f), Vector4(m_vAim[0], m_vAim[1], m_vAim[2], 1.0f),
+	                                    Vector4(m_vUp[0], m_vUp[1], m_vUp[2], 0.0f));
 }
 
 bool cTaskCamera::Execute(cJetTask* pParam)

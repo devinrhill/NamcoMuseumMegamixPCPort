@@ -21,7 +21,7 @@
 #include "wii/Archive.hpp"
 
 // The demo objects (0x800f3eec: cDemoPacmanW1S1 / W1S3 / W2S3 / W3S3, cTaskBossPacman's cDemoPacmanBoss) run on Pac-Man natively. Not
-// ported: the 3D sound actor (+0x460; its cues play unpositioned), the remote rumble (0x80021a14), the shadow of 0x800f4388.
+// ported: the remote rumble (0x80021a14), the shadow of 0x800f4388.
 namespace kingdom::game::g01
 {
 
@@ -291,7 +291,10 @@ void cTaskPacman::HitCallback(cObject* other)
 	if (m_pHitEffect == nullptr) m_pHitEffect = new cKingdomPtkHnd();
 	m_pHitEffect->Generate((uint)cTaskEffect::ePACMAN_HIT01, true, true, true, 0.0f, Vector4(m_v20.x, m_v20.y, m_v20.z, 1.0f));
 	m_fInvincible = m_fMaxInvincible;
-	snd::Play(m_pLife != nullptr && m_pLife->nLife() == 0 ? "m01se_14p_dead" : "m01se_13p_hit");   // DAT_8047b694 / 690 (gauge +0x224 == 0)
+	// DAT_8047b694 / 690 (gauge +0x224 == 0): the death cue on Pac-Man's actor (+0x460; nothing in the DOL moves it from (0, 0, 0): UNVERIFIED),
+	// the hit cue through FUN_801c15ac (unpositioned)
+	if (m_pLife != nullptr && m_pLife->nLife() == 0) m_SndActor.Play("m01se_14p_dead");
+	else snd::Play("m01se_13p_hit");
 }
 
 // DOL 0x800f5d94 (vtable +0xa0): the hit clips CHAR_PACMAN_ANM_VIS_02 (0x01273414) and CHAR_PACMAN_ANM_TPA_02 (0xdb0ffff8) in slot 0

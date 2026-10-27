@@ -395,6 +395,17 @@ void cG01GalagaSys::JobInit()
 {
 	KingdomGlobal::GalagaSys = new cG01GalagaSys();
 	KingdomGlobal::GalagaSys->nStage(1);
-	Kingdom_SetJobNo(0x0b200000u, false, 0);
+	Kingdom_SetJobNo(job::GALAGA_MENU, false, 0);
+}
+
+// DOL 0x800b0d40 (job 191, 0x0bf00000): delete the system (the virtual destructor through the +0x28 vtable, flag 1), then the hub (138)
+void cG01GalagaSys::JobEnd()
+{
+	if (KingdomGlobal::GalagaSys != nullptr)
+	{
+		delete KingdomGlobal::GalagaSys;
+		KingdomGlobal::GalagaSys = nullptr;
+	}
+	Kingdom_SetJobNo(job::MENU, false, 0);
 }
 }

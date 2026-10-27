@@ -1,4 +1,5 @@
 #include "kingdom/game/g11/cAppG11GrobdaGameOver.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -21,7 +22,7 @@ cAppG11GrobdaGameOver::cAppG11GrobdaGameOver()
 	pAnita(0u)->RegistData("BIN_ANT_GAMEOVER");
 	pAnita(0u)->SetAnimNo(0, true);
 	nAnita() = 0u;               // +0x294
-	nNextJob() = 0x15200000u;    // +0x298: the menu
+	nNextJob() = job::GROBDA_MENU;    // +0x298: the menu
 }
 
 }

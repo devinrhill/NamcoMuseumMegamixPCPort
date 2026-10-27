@@ -87,6 +87,9 @@ private:
 	int nGetAnimHPDown(uint max, uint HP);
 
 	int nGetAnimFlameUP(uint max);
+
+protected:
+	void ReleaseTerm() override { cTaskConsPacLife::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

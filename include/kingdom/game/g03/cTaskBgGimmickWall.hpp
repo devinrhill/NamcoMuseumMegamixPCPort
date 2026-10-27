@@ -38,6 +38,9 @@ public:
 	void HitCallbackWall(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW) override;
 
 	bool AreaCheck();
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickWall::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

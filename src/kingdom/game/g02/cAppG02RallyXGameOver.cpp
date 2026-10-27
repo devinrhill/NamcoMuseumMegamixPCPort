@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cAppG02RallyXGameOver.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -22,7 +23,7 @@ cAppG02RallyXGameOver::cAppG02RallyXGameOver()
 	pAnita(0u)->RegistData(ResourceDatabase::GetPath("ANITA_GAMEOVER"));
 	pAnita(0u)->SetAnimNo(0, true);
 	nAnita() = 0u;               // +0x294
-	nNextJob() = 0x0c200000u;    // +0x298: the stage select
+	nNextJob() = job::RALLYX_MENU;    // +0x298: the stage select
 }
 
 void cAppG02RallyXGameOver::Free()

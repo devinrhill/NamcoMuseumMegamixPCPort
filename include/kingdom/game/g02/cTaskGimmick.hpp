@@ -6,6 +6,7 @@
 #include "common.hpp"
 #include "kingdom/cKingdomCSV.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskKingdom.hpp"
 #include "kingdom/cTaskModel.hpp"
 
@@ -96,7 +97,10 @@ public:
 	static void Fx(kingdom::cKingdomPtkHnd& h, uint nSlot, bool bOnetime, bool bDepend, bool bClip, const Vector4& pos,
 	               const Vector4* pRot = nullptr);   // FUN_80021a9c
 	static void FxOnce(uint nSlot, kingdom::cKingdomModel* m);   // a temporary handle, slot at the model (trans + rotate), one-time
-	static void Se(const char* cue);  // FUN_80129d78 with a temporary cRallyXSndHnd (the 3D sound actor NOT PORTED)
+	static void Se(const char* cue);  // FUN_80129d78 with a temporary cRallyXSndHnd and no actor (the smoke plays on its own actor)
+
+protected:
+	void ReleaseTerm() override { cTaskGimmick::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 // DOL 0x800b1d6c: cTaskConsole::Hooks.GimmickRespawn (false when g is not a cTaskGimmick)
@@ -163,6 +167,7 @@ public:
 	bool Put(int nOwner, const int pCell[2], int nIndex);   // 0x800b2658 (called by the smoke manager FUN_8007c47c)
 
 	kingdom::cKingdomPtkHnd m_Fx;     // +0x1f0
+	kingdom::cKingdomSndActor m_SndActor;   // +0x244 (FUN_8002654c)
 	int m_nTime{};                    // +0x240
 	// +0x244 the sound actor (cKingdomSndActor): NOT PORTED
 };
@@ -174,12 +179,13 @@ public:
 	cTaskGimmickMan();
 	// DOL 0x800736c4
 	bool Execute(cJetTask* pParam) override { (void)pParam; return true; }
-	cTaskGimmick* Create(int nType, const int* pCell, int nDir);   // 0x800736cc (nullptr for the multiplayer types 38 / 39: NOT PORTED)
+	cTaskGimmick* Create(int nType, const int* pCell, int nDir);   // 0x800736cc
 	cTaskGimmick* Create(int nType, int x, int z, int nDir) { const int c[2] = {x, z}; return Create(nType, c, nDir); }
 	// DOL 0x80073a2c: every active gimmick on (x, z); with bReact the unit's reaction (cTaskUnit::OnGimmick 0x80085f50) then the gimmick's
 	// +0x50. True when one was there.
 	bool Contact(cTaskUnit* pUnit, int x, int z, bool bReact);
 	bool IsCellFree(int x, int z) const;   // 0x80073af4 (no active gimmick on the cell)
+	bool IsTypeActive(int nType) const;    // DOL 0x80073ba0 (type 0x29) / 0x80073c24 (type 0x27): is any gimmick of that type active
 
 	std::vector<cTaskGimmick*> m_vec; // +0x1b4
 };

@@ -214,14 +214,14 @@ void cTaskGhostMan::Term()
 	{
 		if (pGhostArea[i] != nullptr)
 		{
-			pGhostArea[i]->Term();
+			pGhostArea[i]->TermOnce();
 		}
 	}
 	for (int i = 0; i < (int)std::size(pGhostArea); i++)
 	{
 		if (pGhostArea[i] != nullptr)
 		{
-			pGhostArea[i]->Term();
+			pGhostArea[i]->TermOnce();
 		}
 	}
 	auto& pTaskCharGhost = m_pTaskCharGhost;
@@ -229,7 +229,7 @@ void cTaskGhostMan::Term()
 	{
 		if (pTaskCharGhost[i] != nullptr)
 		{
-			pTaskCharGhost[i]->Term();
+			pTaskCharGhost[i]->TermOnce();
 		}
 	}
 	auto& pTaskCharGhostBomb = m_pTaskCharGhostBomb;
@@ -237,7 +237,7 @@ void cTaskGhostMan::Term()
 	{
 		if (pTaskCharGhostBomb[i] != nullptr)
 		{
-			pTaskCharGhostBomb[i]->Term();
+			pTaskCharGhostBomb[i]->TermOnce();
 		}
 	}
 }

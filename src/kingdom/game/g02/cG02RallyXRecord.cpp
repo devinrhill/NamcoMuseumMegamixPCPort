@@ -1,8 +1,11 @@
 #include "kingdom/game/g02/cG02RallyXRecord.hpp"
 
+#include "InGamePadManager.hpp"
 #include "KingdomGlobal.hpp"
 #include "kingdom/cKingdomCSV.hpp"
 #include "kingdom/cKingdomSys.hpp"
+#include "kingdom/sMatchingData.hpp"
+#include "platform/devtools.hpp"
 
 namespace kingdom::game::g02
 {
@@ -26,6 +29,9 @@ int cG02RallyXSysExt::nPlayer = 1;
 int cG02RallyXSysExt::nCtrlType[4] = {2, 2, 2, 2};
 int cG02RallyXSysExt::nPadNo[4] = {0, 1, 2, 3};
 bool cG02RallyXSysExt::bNewStageApear = false;
+int cG02RallyXSysExt::nMatchNum = 0;
+uint cG02RallyXSysExt::nMatchCtrl[4] = {};
+string cG02RallyXSysExt::szMatchName[4];
 
 // the sys ctor (DOL 0x800c54e0): +0xc = 1, per player {+0x14 = 2, +0x1c = i}, +0x1b8 = 0
 void cG02RallyXSysExt::Reset()
@@ -37,6 +43,48 @@ void cG02RallyXSysExt::Reset()
 		nPadNo[i] = i;
 	}
 	bNewStageApear = false;
+}
+
+void cG02RallyXSysExt::SetMatching(const kingdom::sMatchingData& m)
+{
+	nMatchNum = (int)m.nNum;
+	for (int i = 0; i < 4; i++)
+	{
+		const kingdom::sMatchingData::InfoData* info = (uint)i < m.nNum ? m.Info[i] : nullptr;
+		nMatchCtrl[i] = info != nullptr ? info->nCtrl : 0u;
+		szMatchName[i] = info != nullptr ? info->Name : string();
+	}
+}
+
+// DOL 0x800c5e3c (called by the multiplayer menu app's ctor 0x80122254 unless it comes from the debug menu): the player count (+0x0c) and every
+// player's pad (+0x1c + 0x14 i = the matching info's nCtrl at info +0x4c; natively mapped to the remote's channel) from the matching block
+void cG02RallyXSysExt::ApplyMatching()
+{
+	if (nMatchNum <= 0)   // NATIVE: entered by --job without a matching (the DOL only gets here through job 199 or the debug menu)
+	{
+		DebugMatching();
+		return;
+	}
+	nPlayer = nMatchNum < 0 ? 0 : (nMatchNum > 4 ? 4 : nMatchNum);
+	for (int i = 0; i < nPlayer; i++) nPadNo[i] = InGamePadManager::GetPadNum((int)nMatchCtrl[i]);
+}
+
+// DOL 0x800c5e90 (the debug menu's entry, no matching ran): one player per connected pad (4 when at most one is), names "Galaga" / "RallyX" /
+// "PacnRoll" / "Motos" (table 0x803711a8), pad i; then the same tail as ApplyMatching
+void cG02RallyXSysExt::DebugMatching()
+{
+	static const char* const NAME[4] = {"Galaga", "RallyX", "PacnRoll", "Motos"};
+	int n = 0;
+	for (int i = 0; i < 4; i++)
+		if (InGamePadManager::IsConnectPad(i)) n++;
+	if (n <= 1) n = 4;
+	nMatchNum = n;
+	for (int i = 0; i < 4; i++)
+	{
+		nMatchCtrl[i] = (uint)i;
+		szMatchName[i] = i < n ? NAME[i] : "";
+	}
+	ApplyMatching();
 }
 
 // DOL 0x800c5b24
@@ -110,6 +158,7 @@ void cG02RallyXRecord::Load()
 // DOL 0x800c5ff0
 void cG02RallyXRecord::Save() const
 {
+	if (devtools::PreviewAll()) return; // devtools: --preview-all never persists (not 1:1)
 	u8 be[BLOCK_SIZE] = {};
 	PutBE(be + 0, m_nValid);
 	PutBE(be + 4, m_nVersion);
@@ -174,6 +223,7 @@ void cG02RallyXRecord::Reset()
 // closed one (0 when stage 1 is closed)
 int cG02RallyXRecord::GetFreeStage() const
 {
+	if (devtools::PreviewAll()) return 0x17; // devtools: --preview-all: the last non-boss stage, so every world can be picked (not 1:1)
 	int nFree = 0;
 	for (int idx = 1; idx <= 0x17; idx++)
 	{
@@ -183,6 +233,13 @@ int cG02RallyXRecord::GetFreeStage() const
 		nFree = idx;
 	}
 	return nFree;
+}
+
+// DOL 0x800c61f4
+bool cG02RallyXRecord::IsOpen(int idx) const
+{
+	if (devtools::PreviewAll() && Ok(idx)) return true; // devtools: --preview-all (not 1:1)
+	return Ok(idx) && m_Stage[idx].nOpen != 0;
 }
 
 // DOL 0x800c63f0

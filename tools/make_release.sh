@@ -18,8 +18,7 @@
 # from the system, because it must match the machine's GPU driver.
 # The package holds: bin/megamix (stripped), lib/ (only with --system-libs: raylib, libjpeg-turbo), megamix.sh (launcher), megamix.cfg (template),
 # README.txt, docs/ (README, OPTIONS, JOBS). It never contains game data: the script refuses to pack main.dol, disc archives,
-# BRRES / sound files or saves (resources/debug_font.brres is extracted from main.dol, so it stays out too; the game reads the font
-# from the player's main.dol instead).
+# BRRES / sound files or saves (the debug font is read from the player's main.dol).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

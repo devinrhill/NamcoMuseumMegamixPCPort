@@ -39,6 +39,9 @@ public:
 
 protected:
 	void SubmitNative() override;
+
+protected:
+	void ReleaseTerm() override { cTaskPBModel::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

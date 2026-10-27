@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cAppMotosDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "WiiPad.hpp"
@@ -16,24 +17,24 @@ cAppMotosDebugMenu::cAppMotosDebugMenu()
 {
 	SetName("Motos Debug Menu");
 	SetMenu("Motos", {
-		{"MENU", 0x11200000u},
-		{"MULTI MENU", 0x11700000u},
-		{"MATCHING", 0x11600000u},
-		{"STAGE", 0x11400000u},
-		{"GAMEOVER", 0x11500000u},
-		{"STAFFROLL", 0x11e00000u},
-		{"EXIT", 0x11f00000u},
+		{"MENU", job::MOTOS_MENU},
+		{"MULTI MENU", job::MOTOS_MULTI_MENU},
+		{"MATCHING", job::MOTOS_MATCHING},
+		{"STAGE", job::MOTOS_DEBUG_SELECT},
+		{"GAMEOVER", job::MOTOS_GAMEOVER},
+		{"STAFFROLL", job::MOTOS_STAFFROLL},
+		{"EXIT", job::MOTOS_TERM},
 	});
 	m_stageRow = 0;
 	for (size_t i = 0; i < m_entries.size(); i++)
-		if (m_entries[i].job == 0x11400000u) { m_stageRow = (int)i; break; }
+		if (m_entries[i].job == job::MOTOS_DEBUG_SELECT) { m_stageRow = (int)i; break; }
 }
 
 // DOL 0x800a36c4
 bool cAppMotosDebugMenu::Execute(cJetTask* pParam)
 {
 	auto* sys = KingdomGlobal::MotosSys;
-	if (sys && m_selected == 0x11400000u)
+	if (sys && m_selected == job::MOTOS_DEBUG_SELECT)
 	{
 		const GamePad::State& pad = GamePad::Get(0);
 		uint& idx = sys->nStageIdx();

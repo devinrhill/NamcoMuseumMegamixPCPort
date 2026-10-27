@@ -6,6 +6,8 @@
 #include <cstring>
 
 #include "wii/Brres.hpp"
+#include "wii/Archive.hpp"   // Crc32
+#include "platform/devtools_scn.hpp"
 
 namespace wii
 {
@@ -505,6 +507,7 @@ float ScnAnim::Slot::Eval(float f) const { return constant ? value : EvalKeys(ke
 
 bool ScnAnim::Load(const Brres& brres)
 {
+	m_key.clear();
 	m_cams.clear();
 	m_lights.clear();
 	m_ambs.clear();
@@ -551,6 +554,11 @@ bool ScnAnim::Load(const Brres& brres)
 					const std::size_t at = p + 32 + 4 * i, base = at + r.i32(at);
 					for (int k = 0; k <= numFrame; k++) out.push_back(r.u32(base + 4 * k));
 				};
+				// slot 8 dist func, 9 ref distance, 10 ref brightness, 11 spot func, 12 cutoff (unpac scn0.py Light.LAYOUT)
+				li.distFunc = (int)r.u32(p + 32 + 4 * 8);
+				li.spotFunc = (int)r.u32(p + 32 + 4 * 11);
+				if ((li.flags & 3) != 1) { slotAt(9, 28, li.refDist); slotAt(10, 29, li.refBright); }
+				if ((li.flags & 3) == 2) slotAt(12, 27, li.cutoff);
 				li.color = colorAt(4, 22);
 				framesAt(4, 22, li.colorFrames);
 				if (li.flags & 8) { li.specColor = colorAt(13, 30); framesAt(13, 30, li.specFrames); slotAt(14, 31, li.shininess); }
@@ -646,13 +654,54 @@ bool ScnAnim::Load(const Brres& brres)
 			m_cams.emplace_back(c.first, std::move(cam));
 		}
 	}
-	return !m_cams.empty() || !m_lights.empty();
+	m_key.clear();
+	if (m_cams.empty() && m_lights.empty()) return false;
+	char crc[16];
+	std::snprintf(crc, sizeof crc, "%08x", wii::Crc32(&brres.Data()[blk], std::min<std::size_t>(r.u32(blk + 4), brres.Data().size() - blk)));
+	m_key = brres.Folder("AnmScn(NW4R)")->front().first + " [" + crc + "]";
+	devtools::ScnLoaded(m_key, *this);   // devtools: the SCN0 tab lists every loaded scene
+	return true;
 }
+
+const ScnAnim* ScnAnim::Edited() const { return m_key.empty() ? nullptr : devtools::ScnEdited(m_key); }
 
 // g3d: a directional light shines along aim - pos (LightObj: position -(aim - pos) * 1e10); the surface -> light vector is pos - aim.
 // The enable bit is the constant flag bit 2 (an animated enable is read as on, UNVERIFIED: none seen). Colours are per frame when keyed.
+namespace
+{
+// GXInitLightSpot (cutoff degrees, GX_SP_OFF 0 FLAT 1 COS 2 COS2 3 SHARP 4 RING1 5 RING2 6) + GXInitLightDistAttn (GX_DA_OFF 0 GENTLE 1
+// MEDIUM 2 STEEP 3), the RVL SDK's formulas
+void LightAttn(float cutoff, int spotFn, float refDist, float refBr, int distFn, float a[3], float k[3])
+{
+	if (cutoff <= 0.0f || cutoff > 90.0f) spotFn = 0;
+	const float cr = std::cos(cutoff * 3.14159265f / 180.0f);
+	const float q = (1.0f - cr) * (1.0f - cr);
+	a[0] = 1.0f; a[1] = 0.0f; a[2] = 0.0f;
+	switch (spotFn)
+	{
+	case 1: a[0] = -1000.0f * cr; a[1] = 1000.0f; a[2] = 0.0f; break;
+	case 2: a[0] = -cr / (1.0f - cr); a[1] = 1.0f / (1.0f - cr); a[2] = 0.0f; break;
+	case 3: a[0] = 0.0f; a[1] = -cr / (1.0f - cr); a[2] = 1.0f / (1.0f - cr); break;
+	case 4: a[0] = cr * (cr - 2.0f) / q; a[1] = 2.0f / q; a[2] = -1.0f / q; break;
+	case 5: a[0] = -4.0f * cr / q; a[1] = 4.0f * (1.0f + cr) / q; a[2] = -4.0f / q; break;
+	case 6: a[0] = 1.0f - 2.0f * cr * cr / q; a[1] = 4.0f * cr / q; a[2] = -2.0f / q; break;
+	default: break;
+	}
+	if (refDist < 0.0f || refBr <= 0.0f || refBr >= 1.0f) distFn = 0;
+	k[0] = 1.0f; k[1] = 0.0f; k[2] = 0.0f;
+	switch (distFn)
+	{
+	case 1: k[1] = (1.0f - refBr) / (refBr * refDist); break;
+	case 2: k[1] = 0.5f * (1.0f - refBr) / (refBr * refDist); k[2] = 0.5f * (1.0f - refBr) / (refBr * refDist * refDist); break;
+	case 3: k[2] = (1.0f - refBr) / (refBr * refDist * refDist); break;
+	default: break;
+	}
+}
+}
+
 bool ScnAnim::SampleLightSet(float frame, LightResult& out) const
 {
+	if (const ScnAnim* e = Edited()) return e->SampleLightSet(frame, out);   // devtools: SCN0 tab edits
 	if (m_sets.empty()) return SampleLight(frame, out);
 	const LightSet& ls = m_sets.front();
 	const int fi = std::max(0, (int)frame);
@@ -687,12 +736,18 @@ bool ScnAnim::SampleLightSet(float frame, LightResult& out) const
 		unit(pick(l.color, l.colorFrames), g.color);
 		g.hasSpec = (l.flags & 8) != 0;
 		if (g.hasSpec) { unit(pick(l.specColor, l.specFrames), g.spec); g.shininess = l.shininess.Eval(frame); }
+		// g3d g3d_anmscn.cpp MakeDiffuseLightObj: point = spot off + distance attenuation, directional = no attenuation (position
+		// -(aim - pos) * 1e10), spot = cutoff / spot function + distance attenuation, direction aim - pos
+		g.type = (int)(l.flags & 3);
+		for (int k = 0; k < 3; k++) { g.pos[k] = pos[k]; g.spotDir[k] = len > 0.0f ? -d[k] / len : 0.0f; }
+		if (g.type != 1) LightAttn(g.type == 2 ? l.cutoff.Eval(frame) : 0.0f, g.type == 2 ? l.spotFunc : 0, l.refDist.Eval(frame), l.refBright.Eval(frame), l.distFunc, g.attnA, g.attnK);
 	}
 	return !first;
 }
 
 bool ScnAnim::SampleFog(LightResult& out) const
 {
+	if (const ScnAnim* e = Edited()) return e->SampleFog(out);   // devtools: SCN0 tab edits
 	if (m_fogs.empty()) return false;
 	const Fog& f = m_fogs.front();
 	out.fogType = f.type;
@@ -702,8 +757,22 @@ bool ScnAnim::SampleFog(LightResult& out) const
 	return true;
 }
 
+void CameraResult::LookAt(float target[3]) const
+{
+	if (aim)
+	{
+		for (int i = 0; i < 3; i++) target[i] = aimPos[i];
+		return;
+	}
+	const float rx = aimPos[0] * 3.14159265f / 180.0f, ry = aimPos[1] * 3.14159265f / 180.0f;
+	const float sx = std::sin(rx), cx = std::cos(rx), sy = std::sin(ry), cy = std::cos(ry);
+	const float back[3] = {cx * sy, -sx, cx * cy};
+	for (int i = 0; i < 3; i++) target[i] = pos[i] - back[i];
+}
+
 bool ScnAnim::SampleCamera(const std::string& name, float frame, CameraResult& out) const
 {
+	if (const ScnAnim* e = Edited()) return e->SampleCamera(name, frame, out);   // devtools: SCN0 tab edits
 	const Cam* cam = nullptr;
 	for (const auto& c : m_cams) if (name.empty() || c.first == name) { cam = &c.second; break; }
 	if (cam == nullptr) return false;
@@ -724,6 +793,7 @@ namespace wii
 {
 bool ScnAnim::SampleLight(float frame, LightResult& out) const
 {
+	if (const ScnAnim* e = Edited()) return e->SampleLight(frame, out);   // devtools: SCN0 tab edits
 	if (m_lights.empty()) return false;
 	const Light& l = m_lights.front();
 	out = LightResult{};

@@ -66,6 +66,9 @@ public:
 	void UpdateState();
 
 	bool IsManagerVisible();
+
+protected:
+	void ReleaseTerm() override { cTaskConsoleBase::Term(); cTaskAnita::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

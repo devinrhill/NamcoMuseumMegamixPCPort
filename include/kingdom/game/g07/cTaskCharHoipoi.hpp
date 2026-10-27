@@ -58,6 +58,9 @@ public:
 	bool ActionLocal() override;
 
 	bool ActionOther() override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharHoipoi::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

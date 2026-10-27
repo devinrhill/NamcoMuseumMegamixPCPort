@@ -6,7 +6,7 @@
 //
 // Items (0x1e4 bytes; one model with ITEM_ANI_OTHER and the SHADOW_CIRCLE sub model; y = 0.04): taken by the collector unit (the player, or
 // the red car on the boss stage: 0x800b1dd0) -> particle slot 9 at the item, hidden, inactive. Single player never brings them back (the
-// Multi* variants respawn on a timer: NOT PORTED, multiplayer).
+// Multi* variants respawn on a timer: cTaskItemMulti).
 //
 // Flags (cTaskItemFlag, 0x220 bytes): model 0 = ITEM_FLAG (hidden: the flag a car drops), model 1 = the flag of the class (ITEM_FLAG /
 // ITEM_FLAG_SP / ITEM_FLAG_LUCKY / ITEM_FLAG_01..20), both with ITEM_ANI_FLAG + SHADOW_CIRCLE. Taking one (OnHit 0x800b2f38) hides both,
@@ -58,6 +58,60 @@ public:
 	cTaskItemSpecialArmor() : cTaskItem("ITEM_ARMOR") { SetName("g02::cTaskItemSpecialArmor"); }
 	// DOL 0x80073ca8
 	const char* GetName() const override { return "SpecialArmor"; }
+};
+
+// The multiplayer items (0x1ec bytes, types 38 / 39 / 40 / 41: cTaskItemMultiFuelBurst vtable 0x803923b0 (factory 0x80070c5c),
+// ChameleonPaint 0x80392270 (0x80070abc), SmokeTank 0x80392130 (0x8007091c), SpecialArmor 0x80391ff0 (0x80070708)): the single player item with
+// a respawn timer. OnHit (0x800751c0 / 0x80074a9c / 0x800743d8 / 0x80073cb4) first sets +0x1e4 = +0x1e8 = the collector's relocation time
+// (cParamCar +0xe8 / +0xe0 / +0xec / +0xe4); Execute (0x800754c4 / 0x80074e00 / 0x800746dc / 0x80074018) counts it down in game state 4 and at 0
+// calls the respawn (vtable +0x5c 0x80075414 / 0x80074cf0 / 0x8007462c / 0x80073f08): an inactive item moves to a random spawn point of its map
+// list (record types 2 / 3 / 5 / 4) and is enabled again; the paint and the armor wait while a player has the effect or another of them is out.
+class cTaskItemMulti : public cTaskItem
+{
+public:
+	cTaskItemMulti(const char* key, int nKind);   // nKind: the cParamCar relocation index (0 paint, 1 armor, 2 fuel, 3 smoke)
+	bool Execute(cJetTask* pParam) override;
+	bool OnHit(cTaskUnit* pUnit) override;
+
+protected:
+	virtual bool Respawn();                       // vtable +0x5c: true when it moved
+	int m_nKind{};
+	float m_fTimer{};                             // +0x1e4
+	float m_fPeriod{};                            // +0x1e8
+};
+
+class cTaskItemMultiFuelBurst : public cTaskItemMulti
+{
+public:
+	cTaskItemMultiFuelBurst() : cTaskItemMulti("ITEM_FUEL", 2) { SetName("g02::cTaskItemMultiFuelBurst"); }
+	const char* GetName() const override { return "MultiFuelBurst"; }
+};
+
+class cTaskItemMultiChameleonPaint : public cTaskItemMulti
+{
+public:
+	cTaskItemMultiChameleonPaint() : cTaskItemMulti("ITEM_PAINT", 0) { SetName("g02::cTaskItemMultiChameleonPaint"); }
+	const char* GetName() const override { return "MultiChameleonPaint"; }
+
+protected:
+	bool Respawn() override;
+};
+
+class cTaskItemMultiSmokeTank : public cTaskItemMulti
+{
+public:
+	cTaskItemMultiSmokeTank() : cTaskItemMulti("ITEM_SMOKE", 3) { SetName("g02::cTaskItemMultiSmokeTank"); }
+	const char* GetName() const override { return "MultiSmokeTank"; }
+};
+
+class cTaskItemMultiSpecialArmor : public cTaskItemMulti
+{
+public:
+	cTaskItemMultiSpecialArmor() : cTaskItemMulti("ITEM_ARMOR", 1) { SetName("g02::cTaskItemMultiSpecialArmor"); }
+	const char* GetName() const override { return "MultiSpecialArmor"; }
+
+protected:
+	bool Respawn() override;
 };
 
 // kingdom::game::g02::cTaskItemFlag (0x220 bytes, vtable 0x80396b10)

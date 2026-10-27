@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cParamPlayer.hpp"
+#include "platform/devtools_g07edit.hpp"
 
 #include "CustomKingdomUtil.hpp"
 #include "kingdom/game/g07/MO_CHAR_PARAMS.hpp"
@@ -17,7 +18,7 @@ void cParamPlayer::Term()
 
 void cParamPlayer::LoadValue()
 {
-	int row = 1;
+	int row = 1 + devtools::G07Level(); // devtools: dev window difficulty, rows NORMAL / EASY / HARD (not 1:1)
 	CustomKingdomUtil::Assert(4 <= nRow(), "csv error");
 	CustomKingdomUtil::Assert(17 <= nCol(), "csv error");
 	m_sParam = new MO_CHAR_PARAMS();

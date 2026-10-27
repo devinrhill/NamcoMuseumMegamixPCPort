@@ -1,21 +1,21 @@
 #pragma once
 
 #include "WiiSnd.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "common.hpp"
 #include "kingdom/cAppKingdom.hpp"
 #include "kingdom/game/g02/cTaskUnit.hpp"
 
 namespace kingdom { class cTaskFade; }
 namespace kingdom::game { class cTaskConsRetry; }
-namespace kingdom::game::g02 { class cTaskMap; class cTaskConsole; class cTaskPause; class cParamGame; class cTaskEffect; }
+namespace kingdom::game::g02 { class cTaskMap; class cTaskConsole; class cTaskPause; class cParamGame; class cTaskEffect; class cTaskBG; }
 
 // Rally-X Remix (g02) stage = job 195 (0x0c300000): kingdom::game::g02::cAppG02RallyXGame (0x338 bytes; job init FUN_800c677c, ctor FUN_801236bc,
 // Execute FUN_80125b1c, Draw FUN_80126908 (applies the next state), dtor FUN_80127448). The app is also the cars' host (cRallyUnitHost: the DOL
 // unit reaches it through its parent, +0x14).
 // Ported: stage archives, light sets, pause, CSV_GAME, fade, console, map, BG, the cars (players, enemies, red modes), the car cameras, retry and
-// the whole state machine (single player). NOT PORTED: multiplayer (the time limit,
-// states 8 / 9, the multi console), split screen, BGM / alarm volume fades (WiiSnd has none), the BG reset FUN_8006016c, smoke / flag drop /
-// gimmick contact on the map side (Wave 2).
+// the whole state machine, the multiplayer match (time limit, states 8 / 9, the multi console, split screen via NativeScene layouts).
+// NOT PORTED: BGM / alarm volume fades (WiiSnd has none), the Mii heads.
 namespace kingdom::game::g02
 {
 class cAppG02RallyXGame : public kingdom::cAppKingdom, public cRallyUnitHost
@@ -37,6 +37,7 @@ public:
 	void UnitAddScore(int add) override { Score(add, false); }          // DOL 0x80126a10(app, add, 0)
 	bool UnitStageEnd(bool b, int unitId) override;                     // DOL 0x80126a54
 	void UnitRedCrash() override;                                       // DOL 0x80126ac8
+	void UnitMultiHit(int nIndex) override;                             // DOL 0x801272c0 -> the console's hit mark 0x800666e8
 	int MapFlagTotal() const override;                                  // DOL 0x80079ad0
 	void FxFlagScore(int count, int special, const Vector4& pos) override;
 	void FxRedFlag(const Vector4& pos) override;
@@ -50,6 +51,7 @@ private:
 	bool Score(int v, bool bSet);              // DOL 0x80126a10
 	void ResetCars();                          // DOL 0x80125a14
 	void StateClear();                         // DOL 0x80126b18 (state 7)
+	void StateMultiResult(bool bWin);          // DOL 0x80126f70 / 0x80127118 (states 8 / 9)
 	void NextState(int n) { m_nNextState = n; m_nNextStep = 0; }   // memset(+0x2f0, 0, 0xc); +0x2f0 = n
 	void NextStep(int n) { m_nNextStep = n; }                      // memset(+0x2f4, 0, 8); +0x2f4 = n
 	int nPlayers() const;                      // sys +0x0c (0x800c5c68)
@@ -71,7 +73,7 @@ private:
 	s32 m_nNextStep{};                   // +0x2f4
 	float m_fMissTime{};                 // +0x2fc
 	s32 m_nScore{};                      // +0x300
-	s32 m_nNextJob{0xc100000};           // +0x30c
+	s32 m_nNextJob{job::RALLYX_DEBUG_MENU};           // +0x30c
 	bool m_bNextFlag{};                  // +0x314
 	kingdom::game::cTaskConsRetry* m_pRetry{};   // +0x310
 	float m_fPlayTime{};                 // +0x318 (ms)
@@ -82,6 +84,7 @@ private:
 	s32 m_nScnLayout{};                  // cTaskScnRoot +0x1b8 (table 0x80378a58 {0, 0, 4, 7, 7} by the player count)
 	kingdom::game::g02::cTaskMap* m_pTaskMap{};   // +0x298
 	cTaskEffect* m_pEffect{};            // +0x1bc
+	cTaskBG* m_pTaskBG{};                // +0x2c0
 	bool m_bBgmFading{};
 };
 }

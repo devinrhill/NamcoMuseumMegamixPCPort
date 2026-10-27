@@ -18,6 +18,11 @@ namespace gfx
 namespace
 {
 std::unordered_map<std::string, std::unique_ptr<Texture>> g_cache;
+// fast path: (name, archive bytes) -> texture, valid while no archive is attached / detached
+struct FastKey { std::string key; const std::uint8_t* data; std::size_t size; bool operator==(const FastKey& o) const { return data == o.data && size == o.size && key == o.key; } };
+struct FastHash { std::size_t operator()(const FastKey& k) const { return std::hash<std::string>()(k.key) ^ (std::hash<const void*>()(k.data) << 1); } };
+std::unordered_map<FastKey, Texture*, FastHash> g_fast;
+unsigned g_fastGen = ~0u;
 
 std::string BaseName(const std::string& path)
 {
@@ -59,12 +64,12 @@ Texture* FindTexture(const std::string& name)
 	const std::string base = BaseName(name);
 	if (base.empty()) return nullptr;
 	const std::string key = Lower(base);
-	auto it = g_cache.find(key);
-	if (it != g_cache.end()) return it->second.get();
 
 	std::size_t size = 0;
 	if (key == "depth_tex" && !std::getenv("MEGAMIX_NOENGTEX"))
 	{
+		auto cached = g_cache.find(key);
+		if (cached != g_cache.end()) return cached->second.get();
 		// depth_tex is the engine's shadow depth map: main.dol only embeds a zeroed placeholder ("depth_dummy", 512x512), the engine fills it
 		// every frame with a depth render from the light (not ported). The materials' TEV marks a pixel as shadowed when the ramp16 value is
 		// greater than the map, so the zeroed placeholder shadowed EVERYTHING; "cleared to far" (all ones) = nothing is in shadow.
@@ -81,6 +86,25 @@ Texture* FindTexture(const std::string& name)
 	if (data == nullptr) data = wii::ArchiveStore::Find(key + ".brres", size);
 	if (data == nullptr) data = EngineBlob(key, size);
 	if (data == nullptr) return nullptr; // not cached: an archive attached later may have it
+	// the cache key includes the file's contents: the stage archives reuse texture file names with different images (192 names in g03 alone,
+	// e.g. the bridge m03b_hasi03_h of w1s3), and a name-only key kept the first stage's image for every later stage
+	if (g_fastGen != wii::ArchiveStore::Generation())
+	{
+		g_fast.clear();
+		g_fastGen = wii::ArchiveStore::Generation();
+	}
+	const FastKey fk{key, data, size};
+	auto f = g_fast.find(fk);
+	if (f != g_fast.end()) return f->second;
+	char tag[32];
+	std::snprintf(tag, sizeof tag, "#%08x:%zx", wii::Crc32(data, size), size);
+	const std::string cacheKey = key + tag;
+	auto it = g_cache.find(cacheKey);
+	if (it != g_cache.end())
+	{
+		g_fast[fk] = it->second.get();
+		return it->second.get();
+	}
 
 	wii::Brres brres;
 	if (!brres.Load(data, size) || brres.TextureNames().empty())
@@ -105,7 +129,8 @@ Texture* FindTexture(const std::string& name)
 	out->height = img.height;
 	out->gfxId = CreateTexture(img.width, img.height, img.rgba.data());
 	Texture* raw = out.get();
-	g_cache[key] = std::move(out);
+	g_cache[cacheKey] = std::move(out);
+	g_fast[fk] = raw;
 	return raw;
 }
 
@@ -116,5 +141,6 @@ void ClearTextureCache()
 		if (kv.second->gfxId != NO_TEX) DestroyTexture(kv.second->gfxId);
 	}
 	g_cache.clear();
+	g_fast.clear();
 }
 }

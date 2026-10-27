@@ -37,7 +37,7 @@ void cTaskBgGimmickSwitch::Init()
 
 void cTaskBgGimmickSwitch::Term()
 {
-	m_pSleepMdl->Term();
+	m_pSleepMdl->TermOnce();
 	cTaskBgGimmick::Term();
 }
 
@@ -55,6 +55,7 @@ bool cTaskBgGimmickSwitch::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x80153bc4
 void cTaskBgGimmickSwitch::Draw(int nStatus, cJetTask* pParam)
 {
 	UpdateMatrix();
@@ -85,6 +86,9 @@ void cTaskBgGimmickSwitch::Draw(int nStatus, cJetTask* pParam)
 			m_pSleepMdl->Model->Visible();
 		}
 	}
+	// DOL 0x80153c54 / 0x80153c7c: (while the switch itself is visible, +0x44) the switch, or once booted (+0x520) the sleep model (+0x524),
+	// goes into this frame's scene list. The C#'s Visible / Invisible toggles above stand in for that choice, so the +0x44 gate is left out.
+	(m_bBoot ? m_pSleepMdl->Model : this->Model)->UpdateMatrix();
 }
 
 void cTaskBgGimmickSwitch::HitCallbackFloor(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW)

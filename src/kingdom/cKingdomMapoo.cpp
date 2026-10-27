@@ -5,6 +5,7 @@
 
 #include "kingdom/ResourceDatabase.hpp"
 #include "wii/Archive.hpp"
+#include "platform/devtools_g07edit.hpp"
 
 namespace kingdom
 {
@@ -17,6 +18,7 @@ bool cKingdomMapoo::RegistObj(string obj)
 {
 	std::size_t size = 0;
 	const std::uint8_t* d = wii::ArchiveStore::Find(obj, size);
+	devtools::G07EditOverride(obj, d, size); // devtools: the dev window's Pac-Motos editor swaps in its edited MAPOO_OBJ (not 1:1)
 	if (d == nullptr || size < 0x20)
 	{
 		std::fprintf(stderr, "cKingdomMapoo: %s not found\n", obj.c_str());

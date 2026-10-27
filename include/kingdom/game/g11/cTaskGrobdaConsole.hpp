@@ -1,12 +1,13 @@
 #pragma once
 
 #include "common.hpp"
+#include <vector>
 #include "kingdom/cTaskAnita.hpp"
 
 // Grobda Remix (g11) 2D console tasks: kingdom::game::g11::cTaskGrobdaConsoleBase (0x1d0 bytes, vtable 0x804419b8, parent cTaskAnita; ctor
 // 0x8012d738) and its children, all built by cTaskGrobdaConsoleManager (builder 0x8012f7c8, priorities 0x80000004.. 0x80000009).
-// Anita file m11c_game01.anp (UNVERIFIED: the port resolves the name through the archive store). Ported here: Base, ReadyGo, Time, Finish, Score, Gage, HighScore, Combo, Manager (single player).
-// NOT PORTED: Icon, Result (multiplayer only), the multiplayer branches of the others.
+// Anita file m11c_game01.anp (UNVERIFIED: the port resolves the name through the archive store). Ported here: Base, ReadyGo, Time, Finish, Score, Gage, HighScore, Combo,
+// Icon and Result (multiplayer), Manager. NOT PORTED: the Mii faces (cTaskFaceIcon children of Icon / Result: RFL).
 namespace kingdom::game::g11
 {
 class cTaskGrobdaConsoleBase : public kingdom::cTaskAnita
@@ -139,9 +140,41 @@ private:
 	float m_fGauge{1.0f};                           // +0x1d0
 };
 
+// kingdom::game::g11::cTaskGrobdaConsoleIcon (0x1d4 bytes, vtable 0x80441ce4 secondary; ctor 0x8012f1b4, Execute 0x8012f498): a player's panel
+// of multiplayer, anita anims 0x4f / 0x50 / 0x51 + 3 * player (in / idle / out). Its cTaskFaceIcon child (+0x1d0: the player's Mii at layer 0
+// pattern player + 10, scale 0.5) is NOT PORTED (RFL Mii faces).
+class cTaskGrobdaConsoleIcon : public cTaskGrobdaConsoleBase
+{
+public:
+	explicit cTaskGrobdaConsoleIcon(int player);    // DOL 0x8012f1b4
+	bool Execute(cJetTask* pParam) override;        // DOL 0x8012f498
+	void Start();                                   // DOL 0x8012f5d0 (vtable +0x48)
+	void End();                                     // DOL 0x8012f644 (vtable +0x4c)
+private:
+	int m_nPlayer{};                                // +0x1cc
+};
+
+// kingdom::game::g11::cTaskGrobdaConsoleResult (0x1e4 bytes; ctor tail 0x80131288, Execute 0x8013147c, Start 0x80131604, Hold 0x80131d7c,
+// End 0x80131c7c): the multiplayer result: anita 0 the frame (0x5b in, 0x5c idle, 0x5d out), anita 1 WIN (0x3d / 0x3e / 0x3f) or DRAW when
+// every player has the top score (0x40 / 0x41 / 0x42), anita 2.. one per winner (winner * 3 + 0x43 / 0x44 / 0x45, at layer i, pattern
+// winners + 0x16). The winners' Mii faces (cTaskFaceIcon +0x1dc, pattern winners + 0x19) are NOT PORTED.
+class cTaskGrobdaConsoleResult : public cTaskGrobdaConsoleBase
+{
+public:
+	cTaskGrobdaConsoleResult();                     // DOL 0x80131288
+	bool Execute(cJetTask* pParam) override;        // DOL 0x8013147c
+	void Start(const int* scores);                  // DOL 0x80131604 (the players' scores; count = the sys player count)
+	void End();                                     // DOL 0x80131c7c (vtable +0x4c)
+private:
+	void Hold();                                    // DOL 0x80131d7c
+	bool m_bDraw{};                                 // +0x1cc
+	std::vector<int> m_vWinner;                     // +0x1d0 (std::vector: +0x1d4 size, +0x1d8 capacity)
+	int m_nWait{};                                  // +0x1e0
+};
+
 // kingdom::game::g11::cTaskGrobdaConsoleManager (0x218.., vtable 0x80441d40; builder 0x8012f7c8, Execute 0x80130778, Start 0x80130a5c, End 0x80130b84,
 // Finish 0x80130ca8): owns the children. Modes: 1 start (frame anim 0x2c), 2 idle (0x2d), 3 finish (60 frames, then the high score check),
-// 4 / 5 ending (anim 0x2e), 6 hidden. Single player only: the Result (+0x1dc) and Icon (+0x1e0..) tasks of multiplayer are NOT PORTED.
+// 4 multiplayer result, 5 ending (anim 0x2e / 0x31), 6 hidden. Multiplayer: Result (+0x1dc) and Icons (+0x1e0..) instead of HighScore and Combo.
 class cTaskGrobdaConsoleManager : public cTaskGrobdaConsoleBase
 {
 public:
@@ -164,6 +197,8 @@ private:
 	int m_nFinishWait{};                               // +0x1d0
 	cTaskGrobdaConsoleReadyGo* m_pReadyGo{};           // +0x1d4
 	cTaskGrobdaConsoleFinish* m_pFinish{};             // +0x1d8
+	cTaskGrobdaConsoleResult* m_pResult{};             // +0x1dc (multiplayer)
+	cTaskGrobdaConsoleIcon* m_pIcon[4]{};              // +0x1e0 (multiplayer)
 	cTaskGrobdaConsoleGage* m_pGage[4]{};              // +0x1f0
 	cTaskGrobdaConsoleScore* m_pScore[4]{};            // +0x200
 	cTaskGrobdaConsoleHighScore* m_pHigh{};            // +0x210

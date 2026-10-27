@@ -15,6 +15,7 @@ class cTaskCamera : public cObject, public kingdom::cTaskKingdom
 {
 public:
 	cTaskCamera();                             // DOL 0x800d3194 (Init after new 0x270)
+	~cTaskCamera() override;                   // DOL 0x800d3868
 	bool Execute(cJetTask* pParam) override;   // DOL 0x800d322c
 
 	void Update();                             // the body of Execute (also called right after the scene moved the camera)

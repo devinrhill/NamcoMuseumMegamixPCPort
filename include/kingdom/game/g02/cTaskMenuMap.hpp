@@ -36,7 +36,7 @@ protected:
 	bool DecideExec() override;          // DOL 0x8011252c
 	bool DeleteExec() override;          // DOL 0x8011262c
 
-private:
+protected:   // cTaskMultiMenuMap
 	void ApplyScale();                   // the inlined "model[+0x1e4] scale = node scale * +0x1e0" of every *Exec
 
 	int m_nBgState{};                    // +0x1d8 (cTaskMenuBgBase: 2 after appearing, 4 after deleting; nothing reads it)

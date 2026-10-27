@@ -174,6 +174,9 @@ public:
 	float GetHitPower(int nPart, int nOtherID) override;
 
 	ushort nHamariRecoverDir(Vector4 vPos, Vector4 vTarget);
+
+protected:
+	void ReleaseTerm() override { cTaskCharEnemy::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

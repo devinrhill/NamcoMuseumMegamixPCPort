@@ -82,6 +82,16 @@
 namespace kingdom::game::g03
 {
 
+// the stage archive: g03_pacnroll/g03wWWsSS.lzs (the Unity key of pStageArcKey is an asset path). Rounds 26 / 27 (eROUND_WXXS03 / WXXS04) are the
+// "wXX" stages (DOL file table 0x80374c88.., last two entries): nWorld / nStage give 0 for them
+static string StageArcPath(uint round)
+{
+	char arc[64];
+	if (round >= 26u) std::snprintf(arc, sizeof arc, "g03_pacnroll/g03wXXs%02u.lzs", round - 23u);
+	else std::snprintf(arc, sizeof arc, "g03_pacnroll/g03w%02us%02u.lzs", KingdomGlobal::PacnRollSys->nWorld(round) + 1, KingdomGlobal::PacnRollSys->nStage(round) + 1);
+	return arc;
+}
+
 uint cAppG03PacnRollGame::nRound()
 {
 	return m_nRound;
@@ -327,17 +337,13 @@ void cAppG03PacnRollGame::Init()
 		KingdomGlobal::PacnRollSys->ResetDeadEnemyCnt();
 		KingdomGlobal::PacnRollSys->ResetGetItemCnt();
 	}
-	{
-		// the stage archive: g03_pacnroll/g03wWWsSS.lzs (the Unity key of pStageArcKey is an asset path)
-		char arc[64];
-		// rounds 26 / 27 (eROUND_WXXS03 / WXXS04) are the "wXX" stages (DOL file table 0x80374c88.., last two entries): nWorld / nStage give 0 for them
-		const uint round = KingdomGlobal::PacnRollSys->nRound();
-		if (round >= 26u) std::snprintf(arc, sizeof arc, "g03_pacnroll/g03wXXs%02u.lzs", round - 23u);
-		else std::snprintf(arc, sizeof arc, "g03_pacnroll/g03w%02us%02u.lzs", KingdomGlobal::PacnRollSys->nWorld() + 1, KingdomGlobal::PacnRollSys->nStage() + 1);
-		wii::ArchiveStore::Attach(arc);
-	}
+	devtools::G03ExploreAttach(); // devtools: --g03-explore (not 1:1)
+	wii::ArchiveStore::Attach(StageArcPath(KingdomGlobal::PacnRollSys->nRound()));
 	kingdom::cKingdomModelBase::ClearAssetCache();
 	kingdom::NativeScene::Reset();
+	// the DOL's scene root draws only what the task Draws submitted this frame (cTaskModel::Draw 0x8009a650, cTaskModelEx::Draw 0x80187270,
+	// the push-backs 0x8009abe0 -> 0x8009c3f4); the hub (cAppMenu) runs this Init too
+	kingdom::NativeScene::SetPerFrame(true);
 	{
 		// the stage's light sets (SCN0 files): 0 background, 1 items, 2 characters (Pac-Man, ghosts), 3 gimmicks / gates / goal
 		static const char* const kLights[4] = {"BIN_BG_SCA", "BIN_ITEM_SCA", "BIN_MODEL_SCA", "BIN_GIMMICK_SCA"};
@@ -348,7 +354,9 @@ void cAppG03PacnRollGame::Init()
 			wii::Brres b;
 			wii::ScnAnim sa;
 			wii::LightResult light;
-			if (d != nullptr && b.Load(d, size) && sa.Load(b) && sa.SampleLight(0, light))
+			// the whole light set (ambient light + up to 4 point / directional / spot lights), as g3d loads it; SampleLight kept only the
+			// first light as a directional one with a white ambient (bugs.txt w5s2: wrong stage lighting)
+			if (d != nullptr && b.Load(d, size) && sa.Load(b) && sa.SampleLightSet(0, light))
 			{
 				sa.SampleFog(light);
 				kingdom::NativeScene::SetLight(i, light);
@@ -381,6 +389,7 @@ void cAppG03PacnRollGame::Init()
 void cAppG03PacnRollGame::InitStage()
 {
 	CustomKingdomUtil::Assert(m_pTaskStage != nullptr, "nullpo");
+	kingdom::NativeScene::SetShadow(true);   // DOL 0x800b3c50: cTaskScnRoot +0x1f8 = 1, then the shadow camera task
 	cTaskShadowCamera* pTaskShadowCamera = new cTaskShadowCamera();
 	m_pTaskCamera = new cTaskCamera();
 	m_pTaskCamera->nDrawPriority(65540u);
@@ -443,6 +452,8 @@ void cAppG03PacnRollGame::InitStage()
 	m_pTaskStage->ConnectChild(m_pTaskCameraSet);
 	m_pTaskCameraSet->LoadData(KingdomGlobal::PacnRollSys->nWorld(), KingdomGlobal::PacnRollSys->nStage());
 	m_pTaskStage->ConnectChild(pTaskShadowCamera);
+	// DOL 0x800b3bb8: the sound listener: interior size 120.1, unit distance 10.2, max volume distance 15.5 (0x801378d0 / d4 / d8)
+	SoundManager::get_SE()->SetListenerParam(120.1f, 15.5f, 10.2f);
 }
 
 // C# WaitOneFramePlayBGM (coroutine: one frame later; here at once, the mixer starts it asynchronously)
@@ -492,7 +503,9 @@ void cAppG03PacnRollGame::Term()
 	{
 		ReleaseObjectManager::Regist(m_riverPosObj3);
 	}
-	KingdomGlobal::KingSys->DetachArcData(KingdomGlobal::PacnRollSys->pStageArcKey(nRound()));
+	// native: pStageArcKey is the Unity asset key ("g03_pacnroll/arcsv/g03w01s01"), which never matched the attached file, so every stage's archive
+	// stayed attached and the next stage / the hub found the old one's entries first (gates of the last stage in the hub)
+	KingdomGlobal::KingSys->DetachArcData(StageArcPath(KingdomGlobal::PacnRollSys->nRound()));
 	m_pGhostParam = nullptr;
 	m_pGhostCommonParam = nullptr;
 	if (m_bRetry)
@@ -508,59 +521,60 @@ void cAppG03PacnRollGame::Term()
 		}
 	}
 	m_HitHash.clear();
-	m_pTaskGoal->Term();
-	m_pTaskPoint->Term();
+	m_pTaskGoal->TermOnce();
+	m_pTaskPoint->TermOnce();
 	if (m_pTaskGate != nullptr)
 	{
-		m_pTaskGate->Term();
+		m_pTaskGate->TermOnce();
 	}
-	m_pTaskCharPacman->Term();
-	m_pTaskItem->Term();
-	m_pTaskBox->Term();
+	m_pTaskCharPacman->TermOnce();
+	m_pTaskItem->TermOnce();
+	m_pTaskBox->TermOnce();
 	if (m_pTaskBgGimmickPistonMan != nullptr)
 	{
-		m_pTaskBgGimmickPistonMan->Term();
+		m_pTaskBgGimmickPistonMan->TermOnce();
 	}
 	if (m_pTaskBgGimmickSwitch != nullptr)
 	{
-		m_pTaskBgGimmickSwitch->Term();
+		m_pTaskBgGimmickSwitch->TermOnce();
 	}
 	for (cTaskBgGimmick* item : m_vecTaskBgGimmick)
 	{
 		if (item != nullptr)
 		{
-			item->Term();
+			item->TermOnce();
 		}
 	}
 	if (m_pTaskBoss != nullptr)
 	{
-		m_pTaskBoss->Term();
+		m_pTaskBoss->TermOnce();
 	}
 	if (m_pTaskGhostMan != nullptr)
 	{
-		m_pTaskGhostMan->Term();
+		m_pTaskGhostMan->TermOnce();
 	}
 	for (cTaskBg* pTaskBg : m_pTaskBgList)
 	{
 		if (pTaskBg != nullptr)
 		{
-			pTaskBg->Term();
+			pTaskBg->TermOnce();
 		}
 	}
 	for (cTaskBgHit* pTaskBgHit : m_pTaskBgHitList)
 	{
 		if (pTaskBgHit != nullptr)
 		{
-			pTaskBgHit->Term();
+			pTaskBgHit->TermOnce();
 		}
 	}
-	pTaskPtkMan()->Term();
+	pTaskPtkMan()->TermOnce();
 	if (m_pTaskConsole != nullptr)
 	{
-		m_pTaskConsole->Term();
+		m_pTaskConsole->TermOnce();
 	}
 	AudioListenerManager::SetStalkReset();
 	AudioListenerManager::SetEnableRangeCheck(false);
+	SoundManager::get_SE()->ClearListener();   // the app's Sound3DListener goes with it
 	KingdomGlobal::PacnRollSys->SetTopMenuMode(false);
 	// TODO(unity): RenderSettings.fog = false;
 	if (nullptr != KingdomGlobal::PacnRollSys->PostProcess)
@@ -616,7 +630,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 		_switch1_1u:
 			if (m_pTaskFade->IsEnd())
 			{
-				if (!KingdomGlobal::PacnRollSys->IsRetry())
+				if (!KingdomGlobal::PacnRollSys->IsRetry() && !devtools::G03SkipTitle())   // devtools: --g03-skip-title takes the retry path (no stage name card; not 1:1)
 				{
 					NextMode(n, 1u);
 					m_pTaskConsole->TitleStart();
@@ -679,29 +693,11 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			m_pTaskConsole->StartStart();
 			if (KingdomGlobal::PacnRollSys->nWorld() == 1 && KingdomGlobal::PacnRollSys->nStage() == 0)
 			{
+				// DOL 0x800b4d8c: ONE river sound at (158, -206, -115) through the app's 3D actor (+0x3ac), handle +0x388 (the C# placed three
+				// Unity objects at other points instead)
 				Vector4 v = Vector4::zero;
 				::Constants::jetGeoVecSet(v, 158.0f, -206.0f, -115.0f, 1.0f);
-				if (nullptr == m_riverPosObj1)
-				{
-					// TODO(unity): m_riverPosObj1 = new GameObject();
-					// TODO(unity): m_riverPosObj1.name = "RiverSEPosObject_1";
-					// TODO(unity): m_riverPosObj1.transform.position = new Vector3(-190f, -206f, -132f);
-				}
-				if (nullptr == m_riverPosObj2)
-				{
-					// TODO(unity): m_riverPosObj2 = new GameObject();
-					// TODO(unity): m_riverPosObj2.name = "RiverSEPosObject_2";
-					// TODO(unity): m_riverPosObj2.transform.position = new Vector3(-190f, -206f, -80f);
-				}
-				if (nullptr == m_riverPosObj3)
-				{
-					// TODO(unity): m_riverPosObj3 = new GameObject();
-					// TODO(unity): m_riverPosObj3.name = "RiverSEPosObject_3";
-					// TODO(unity): m_riverPosObj3.transform.position = new Vector3(-190f, -206f, -20f);
-				}
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE043_RIVER, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eLATE_IMMEDIATE, SoundSeObject::ESeGroup::eNORMAL, m_riverPosObj1, 1.0f, 50.0f, 7.5f, false);
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE043_RIVER, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eLATE_IMMEDIATE, SoundSeObject::ESeGroup::eNORMAL, m_riverPosObj2, 1.0f, 50.0f, 7.5f, false);
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE043_RIVER, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eLATE_IMMEDIATE, SoundSeObject::ESeGroup::eNORMAL, m_riverPosObj3, 1.0f, 50.0f, 7.5f, false);
+				SoundManager::get_SE()->PlaySE3D(ESEKind::PACN_ROLL_SND_SE043_RIVER, v);
 			}
 			AudioListenerManager::SetEnableRangeCheck(true);
 			goto _switch3_1u;
@@ -1032,10 +1028,8 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			break;
 		}
 	}
-	Vector4(0.0f, 1.0f, 0.0f, 1.0f);
-	m_pTaskCamera->vTarget();
-	Vector4 _discard10;
-	::Constants::jetGeoVecCopy(_discard10, m_pTaskCamera->vPos());
+	// DOL 0x800b57dc: the sound listener (app +0x2cc) follows the camera: look-at (camera +0x1d0 eye, +0x1f0 target, up (0, 1, 0)) -> 0x80137824
+	SoundManager::get_SE()->SetListener(m_pTaskCamera->vPos(), m_pTaskCamera->vTarget(), Vector4(0.0f, 1.0f, 0.0f, 1.0f));
 	return true;
 }
 
@@ -1159,6 +1153,7 @@ void cAppG03PacnRollGame::Dispose(string key)
 {
 	pTaskPtkMan() = new cTaskEffect();
 	// the placement model: only its node tree is used
+	if (devtools::G03Explore()) { ((cTaskEffect*)pTaskPtkMan())->Regist(); devtools::G03ExploreStage(m_pTaskStage, m_pTaskBgList, m_pTaskBgHitList); return; } // devtools: --g03-explore (not 1:1)
 	ResMdl* resMdl = new ResMdl(kingdom::LoadModelObject(key));
 	ResNode* resNode0 = resMdl->GetResNode("effect");
 	if (resNode0->IsValid())
@@ -1189,7 +1184,8 @@ void cAppG03PacnRollGame::Dispose(string key)
 		}
 	}
 	resNode0 = resMdl->GetResNode("hit");
-	if (resNode0->IsValid())
+	if (devtools::G03BgCollision()) devtools::G03BgCollisionStage(m_pTaskStage, m_pTaskBgList, m_pTaskBgHitList); // devtools: --g03-bg-collision (not 1:1)
+	else if (resNode0->IsValid())
 	{
 		childIdx = 0;
 		resNode1 = resNode0->GetChildNode(childIdx);

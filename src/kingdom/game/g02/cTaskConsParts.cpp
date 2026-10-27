@@ -101,14 +101,29 @@ cTaskConsFuel::cTaskConsFuel(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	SetPosLayer(8, 7, 0);
 }
 
-// the fuel half of DOL 0x80065db0 (single player: player index 0, the 1-player layer tables)
+// the fuel half of DOL 0x80065db0: nPlayer = the car's player index (0 in single player). The layout patterns come from tables by the player
+// count N: the gauge (anitas 0..2) at gauge[N][car], the six parts (3..8) at parts[N][car][0..5]:
+//   N = 1: gauge 4 (0x80476d48), parts 5..10 (0x8036bc40 +0xc)
+//   N = 2: gauge {0xe, 0xf} (0x80476d50), parts {0x10..0x15} / {0x16..0x1b} (0x8036bc64 / 0x8036bc88, via 0x8047a8e8)
+//   N = 3: gauge {0xe, 0x24, 0xf} (0x80390f48), parts of cars 0..2 at 0x8036bc64 / 0x8036bcac {0x25..0x2a} / 0x8036bc88 (0x8036bcf4)
+//   N = 4: gauge {0xe, 0x24, 0xf, 0x2f} (0x80390f58), parts as N = 3 and car 3 at 0x8036bcd0 {0x30..0x35} (0x8036bd00)
 void cTaskConsFuel::SetCar(kingdom::cTaskModel* pCar, int nPlayer)
 {
 	m_pCar = pCar;
 	m_nPlayer = nPlayer;
-	if (m_pConsole == nullptr || m_pConsole->nPlayer() != 1) return;   // NOT PORTED: the 2..4 player layouts
-	for (uint i = 0; i < 3; i++) SetPosLayer(i, FUEL_PAT_1P_GAUGE, 0);
-	for (uint i = 0; i < 6; i++) SetPosLayer(3 + i, FUEL_PAT_1P[i], 0);
+	const int n = m_pConsole != nullptr ? m_pConsole->nPlayer() : 1;
+	static const int GAUGE[5][4] = {{}, {4}, {0xe, 0xf}, {0xe, 0x24, 0xf}, {0xe, 0x24, 0xf, 0x2f}};
+	static const int PARTS_A[6] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15};   // 0x8036bc64 +0xc
+	static const int PARTS_B[6] = {0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b};   // 0x8036bc88
+	static const int PARTS_C[6] = {0x25, 0x26, 0x27, 0x28, 0x29, 0x2a};   // 0x8036bcac
+	static const int PARTS_D[6] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35};   // 0x8036bcd0
+	if (n < 1 || n > 4 || (uint)nPlayer >= (uint)n) return;
+	const int gauge = GAUGE[n][nPlayer];
+	const int* parts = FUEL_PAT_1P;
+	if (n == 2) parts = nPlayer == 0 ? PARTS_A : PARTS_B;
+	else if (n >= 3) parts = nPlayer == 0 ? PARTS_A : (nPlayer == 1 ? PARTS_C : (nPlayer == 2 ? PARTS_B : PARTS_D));
+	for (uint i = 0; i < 3; i++) SetPosLayer(i, gauge, 0);
+	for (uint i = 0; i < 6; i++) SetPosLayer(3 + i, parts[i], 0);
 }
 
 // DOL 0x8006957c

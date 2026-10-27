@@ -17,6 +17,9 @@ const char* const cG02RallyXSys::STAGE_ARC[31] = {
 	"g02_rallyx/g02w11s01.lzs", "g02_rallyx/g02w11s02.lzs", "g02_rallyx/g02w11s03.lzs", "g02_rallyx/g02w11s04.lzs", "g02_rallyx/g02w11s05.lzs",
 	"g02_rallyx/g02w11s06.lzs"};
 
+const int cG02RallyXSys::FLAG_COUNT[6] = {1, 5, 10, 15, 20, 0};            // DOL 0x80371160
+const int cG02RallyXSys::TIME_MS[4] = {60000, 180000, 300000, 0};          // DOL 0x80371178
+
 // DOL 0x800c54e0. Not ported yet: the SE group "GROUP_rallyx_SE" (FUN_80137648), cParamDefaultRecord (CSV 0x410233cd) and the save block 1
 // (0x250 bytes, version 0x20070824 at +4, reset by FUN_800c6024).
 cG02RallyXSys::cG02RallyXSys()
@@ -43,7 +46,7 @@ void cG02RallyXSys::JobInit()
 {
 	delete KingdomGlobal::RallyXSys;
 	KingdomGlobal::RallyXSys = new cG02RallyXSys();
-	Kingdom_SetJobNo(0x0c200000u, false, 0);
+	Kingdom_SetJobNo(job::RALLYX_MENU, false, 0);
 }
 
 // DOL 0x800c64a8
@@ -51,7 +54,7 @@ void cG02RallyXSys::JobEnd()
 {
 	delete KingdomGlobal::RallyXSys;
 	KingdomGlobal::RallyXSys = nullptr;
-	Kingdom_SetJobNo(0x08a00000u, false, 0);
+	Kingdom_SetJobNo(job::MENU, false, 0);
 }
 
 // DOL 0x800c5ba8

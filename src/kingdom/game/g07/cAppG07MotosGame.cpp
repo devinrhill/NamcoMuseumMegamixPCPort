@@ -1,3 +1,4 @@
+#include "platform/devtools_g07edit.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 #include <cstdio>
 #include <cstdlib>
@@ -405,6 +406,7 @@ void cAppG07MotosGame::Init()
 	m_pBoss = nullptr;
 	CustomKingdomUtil::Assert(KingdomGlobal::g_pMotosGame == nullptr, "muripo");
 	KingdomGlobal::g_pMotosGame = this;
+	KingdomGlobal::pMotosGameSys->nGameLevel() = devtools::G07Level(); // devtools: dev window difficulty, 0 = the DOL (not 1:1)
 	m_bGimmick = false;
 	for (int j = 0; j < (int)std::size(m_naMultiPlayerDrawList); j++)
 	{
@@ -412,7 +414,7 @@ void cAppG07MotosGame::Init()
 	}
 	cParamAxisAttack* obj = new cParamAxisAttack();
 	obj->RegistData("CSV_AXIS_ATTACK");
-	Constants::set_g_AxisAttack(obj->pAxisAttackLevel(0u));
+	Constants::set_g_AxisAttack(obj->pAxisAttackLevel((uint)devtools::G07Level())); // devtools: dev window difficulty, 0 = the DOL (not 1:1)
 	m_nPlayerParamSet = 0u;
 	m_nPlayerNo = 0u;
 	for (int k = 0; k < (int)std::size(m_nLandCount); k++)
@@ -456,13 +458,14 @@ void cAppG07MotosGame::Init()
 	{
 		cParamEnemy* cParamEnemy2 = new cParamEnemy();
 		(void)(Constants::get_g_MoEnemyParam()[num7]);
-		cParamEnemy2->RegistData("CSV_CHAR_PARAM_NORMAL", num7);
+		cParamEnemy2->RegistData(devtools::G07LevelCsv("CSV_CHAR_PARAM_NORMAL"), num7); // devtools: dev window difficulty (not 1:1)
 		Constants::get_g_MoEnemyParam()[num7] = cParamEnemy2->pMotosParams();
 	}
 	KingdomGlobal::MotosSys->AttachStageData();
 	{
 		// the stage's light sets (SCN0 files): 0 background, 1 panels / gimmicks, 2 characters; one native 3D pass draws every model
 		kingdom::NativeScene::Reset();
+		kingdom::NativeScene::SetPerFrame(true);   // models submitted by the task Draws this frame only (g07 cTaskChar::Draw 0x801e3048, cTaskPanel 0x801fda7c, ...)
 		static const char* const kLights[3] = {"SCA_BG", "SCA_PANEL", "SCA_CHAR"};
 		for (int i = 0; i < 3; i++)
 		{
@@ -480,6 +483,24 @@ void cAppG07MotosGame::Init()
 		ConnectChild(new kingdom::cTaskNativeScene());
 	}
 	ConnectChild(m_pTaskCamera = new cTaskCamera(nullptr, "CSV_CAMERA"));
+	// DOL 0x800a4824..0x800a493c: the depth shadow light (cTaskScnRoot +0x1f8 = 1; mode 0, target = the camera task's +0x1d0 vector (UNVERIFIED: its
+	// first Vector4), +5 up (stage 39: +0.5 first), angles (pi/2, pi, 0), ortho 18 x 18 near 1 far 44 (+0xcd8 flag, taken as multiplayer: 30 / 46), radius 40 / 30)
+	{
+		kingdom::NativeScene::SetShadow(true);
+		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
+		const Vector4 t = m_pTaskCamera->vPosition();
+		float y = t[1];
+		if (KingdomGlobal::MotosSys->nStageIdx() == 39u) y = 0.5f;
+		y += 5.0f;
+		float radius = 40.0f, far = 3.0f + (1.0f + 40.0f);
+		if (m_bMultiPlay) { radius = 30.0f; far = 15.0f + (1.0f + 30.0f); }
+		sh.SetMode(0);
+		sh.SetTarget(t[0], y, t[2]);
+		sh.SetAngles(1.5707964f, 3.1415927f, 0.0f);
+		sh.SetOrtho(18.0f, 18.0f, 1.0f, far);
+		sh.SetRadius(radius);
+		sh.SetOrtho(18.0f, 18.0f, 1.0f, 2.0f + far);
+	}
 	m_pTaskEffect = nullptr;
 	m_pTaskEffect = new cTaskEffect();
 	CustomKingdomUtil::Assert(m_pTaskEffect != nullptr, "nullpo");
@@ -509,6 +530,7 @@ void cAppG07MotosGame::Init()
 
 void cAppG07MotosGame::Term()
 {
+	devtools::G07EditItemRestore(KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum); // devtools: Motos editor test stock back (not 1:1)
 	KingdomGlobal::MotosSys->DetachStageData();
 	if (m_bMultiPlay && nStep(0) == 5)
 	{
@@ -521,20 +543,20 @@ void cAppG07MotosGame::Term()
 	KingdomGlobal::pMotosGameSys->OffSlaveFlag(Constants::MY_ID(), std::numeric_limits<uint>::max());
 	if (m_pTaskConsoleMan != nullptr)
 	{
-		m_pTaskConsoleMan->Free();
+		m_pTaskConsoleMan->TermOnce();   // Free() = Term()
 	}
-	m_pTaskBG->Term();
-	m_pTaskMap->Term();
+	m_pTaskBG->TermOnce();
+	m_pTaskMap->TermOnce();
 	for (int i = 0; i < (int)std::size(m_pChars); i++)
 	{
 		if (m_pChars[i] != nullptr)
 		{
-			m_pChars[i]->Term();
+			m_pChars[i]->TermOnce();
 		}
 	}
 	if (pTaskPtkMan() != nullptr)
 	{
-		pTaskPtkMan()->Term();
+		pTaskPtkMan()->TermOnce();
 	}
 }
 
@@ -645,7 +667,7 @@ bool cAppG07MotosGame::Execute(cJetTask* pParam)
 	{
 		HomeButtonCheck();
 	}
-	if (!IsPause())
+	if (!IsPause() && !(devtools::G07EditFrozen() && (nStep(0) == 7 || nStep(0) == 8))) // devtools: the Motos editor freezes READY / GAME (not 1:1)
 	{
 		switch (nStep(0))
 		{
@@ -1005,6 +1027,7 @@ void cAppG07MotosGame::LandPoints()
 void cAppG07MotosGame::StepItemSet()
 {
 	int padNum = InGamePadManager::GetPadNum((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[m_nPlayerParamSet]->nCtrl);
+	if (!m_bMultiPlay) devtools::G07EditItemStock(KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum); // devtools: Motos editor test stock 99 (not 1:1)
 	if (nStep(3)++ == 0)
 	{
 		m_nPlayerParamSet = 0u;
@@ -1033,7 +1056,7 @@ void cAppG07MotosGame::StepItemSet()
 	}
 	if (nStep(1) != 4)
 	{
-		if (InGamePadManager::GetEnterKeyDown(padNum))
+		if (InGamePadManager::GetEnterKeyDown(padNum) || devtools::G07SkipItemSet()) // devtools: the Motos editor's "Skip the item settings" (not 1:1)
 		{
 			nStep(1) = 3;
 			nStep(2) = 0;
@@ -1452,7 +1475,7 @@ void cAppG07MotosGame::StepClearDirection()
 			{
 				break;
 			}
-			if (!m_bMultiPlay)
+			if (!m_bMultiPlay && !devtools::G07EditItemRestore(KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum)) // devtools: test stock back, nothing used (not 1:1)
 			{
 				for (uint num = 1u; num < 4; num++)
 				{

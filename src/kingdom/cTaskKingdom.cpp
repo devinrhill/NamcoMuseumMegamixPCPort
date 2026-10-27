@@ -22,6 +22,19 @@ void cTaskKingdom::Term()
 {
 }
 
+void cTaskKingdom::TermOnce()
+{
+	if (m_bTermDone) return;
+	m_bTermDone = true;
+	ReleaseTerm();
+}
+
+// DOL 0x80009dc8 (delete this: the dtor chain = ReleaseTerm)
+void cTaskKingdom::DeleteExecute()
+{
+	TermOnce();
+}
+
 cTaskKingdom::cTaskKingdom()
 	
 {

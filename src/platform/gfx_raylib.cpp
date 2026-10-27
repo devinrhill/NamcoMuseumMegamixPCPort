@@ -1,6 +1,7 @@
 // raylib / rlgl backend of gfx/Gfx.hpp
 #include "gfx/Gfx.hpp"
 #include "platform/platform.hpp"
+#include "platform/devui.hpp"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -15,6 +16,10 @@
 #include <cstring>
 #include <vector>
 
+// the game area: the window minus the dev window's strip on the right (devtools; the whole window without --devui)
+static int GameScreenWidth() { return GetScreenWidth() - devui::ReservedWidth(); }
+static int GameRenderWidth() { const int sw = GetScreenWidth(); return sw > 0 ? GetRenderWidth() * GameScreenWidth() / sw : GetRenderWidth(); }
+
 namespace gfx
 {
 namespace
@@ -28,6 +33,7 @@ struct Tex
 std::unordered_map<TexId, Tex> g_tex;
 Blend g_blend = BLEND_ALPHA;
 bool g_blendSet = false;
+float g_xs = 1.0f, g_ys = 1.0f, g_xt = 0.0f, g_yt = 0.0f;   // Set2DTransform
 
 // game screen space -> window pixels
 struct View
@@ -36,7 +42,7 @@ struct View
 };
 View CurrentView()
 {
-	const float w = (float)GetScreenWidth(), h = (float)GetScreenHeight();
+	const float w = (float)GameScreenWidth(), h = (float)GetScreenHeight();
 	const float s = std::min(w / SCREEN_W, h / SCREEN_H);
 	return {w * 0.5f, h * 0.5f, s};
 }
@@ -46,7 +52,13 @@ void SetBlend(Blend b)
 	if (g_blendSet && g_blend == b) return;
 	rlDrawRenderBatchActive(); // flush what was queued with the previous blend
 	if (g_blendSet) EndBlendMode();
-	BeginBlendMode(b == BLEND_ADD ? BLEND_ADDITIVE : BLEND_ALPHA);
+	if (b == BLEND_NONE)
+	{
+		rlSetBlendFactors(RL_ONE, RL_ZERO, RL_FUNC_ADD);   // GX_BM_NONE
+		BeginBlendMode(BLEND_CUSTOM);
+	}
+	else
+		BeginBlendMode(b == BLEND_ADD ? BLEND_ADDITIVE : BLEND_ALPHA);
 	g_blend = b;
 	g_blendSet = true;
 }
@@ -103,6 +115,20 @@ bool DecodeJpeg(const std::uint8_t* data, std::size_t size, int& width, int& hei
 	return true;
 }
 
+void Set2DTransform(float sx, float sy, float tx, float ty)
+{
+	g_xs = sx;
+	g_ys = sy;
+	g_xt = tx;
+	g_yt = ty;
+}
+
+void Reset2DTransform()
+{
+	g_xs = g_ys = 1.0f;
+	g_xt = g_yt = 0.0f;
+}
+
 void DrawQuad(TexId tex, const float xy[8], const float uv[8], std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
               Blend blend, bool linearFilter)
 {
@@ -138,7 +164,7 @@ void DrawQuad(TexId tex, const float xy[8], const float uv[8], std::uint8_t r, s
 	{
 		const int i = order[k];
 		rlTexCoord2f(uv[i * 2], uv[i * 2 + 1]);
-		rlVertex2f(v.cx + xy[i * 2] * v.s, v.cy - xy[i * 2 + 1] * v.s);
+		rlVertex2f(v.cx + (xy[i * 2] * g_xs + g_xt) * v.s, v.cy - (xy[i * 2 + 1] * g_ys + g_yt) * v.s);
 	}
 	rlEnd();
 	rlSetTexture(0);
@@ -156,7 +182,7 @@ void DrawLetterbox()
 		g_blendSet = false;
 	}
 	const View v = CurrentView();
-	const float w = (float)GetScreenWidth(), h = (float)GetScreenHeight();
+	const float w = (float)GameScreenWidth(), h = (float)GetScreenHeight();
 	const float x0 = v.cx - 0.5f * SCREEN_W * v.s, x1 = v.cx + 0.5f * SCREEN_W * v.s;
 	const float y0 = v.cy - 0.5f * SCREEN_H * v.s, y1 = v.cy + 0.5f * SCREEN_H * v.s;
 	if (x0 > 0.0f) DrawRectangleRec({0.0f, 0.0f, x0, h}, BLACK);
@@ -205,6 +231,12 @@ namespace gfx
 namespace
 {
 bool g_in3d = false;
+// depth shadows: the light pass renders into g_shFbo (a depth texture only matters, the colour attachment keeps the framebuffer complete)
+bool g_shadowPass = false;
+unsigned g_shFbo = 0, g_shColor = 0, g_shDepth = 0;
+int g_shW = 0, g_shH = 0;
+bool g_shRecv = false;          // receiver materials use g_shDepth with g_shLightVP
+float g_shLightVP[16];
 float g_view[16], g_proj[16];
 void SetWrap(unsigned id, Wrap s, Wrap t)
 {
@@ -220,13 +252,37 @@ static void BeginPass(const float view[16], const float proj[16], bool fit4x3, b
 
 void Begin3D(const float view[16], const float proj[16], bool fit4x3) { BeginPass(view, proj, fit4x3, true); }
 
+// the split screen's viewports (DOL cTaskScnRoot::Draw 0x8009bc4c: Camera::SetViewport + SetScissor of the camera's rectangle in the 640 x 480 screen)
+void Begin3DRect(const float view[16], const float proj[16], float gx, float gy, float gw, float gh)
+{
+	std::copy(view, view + 16, g_view);
+	std::copy(proj, proj + 16, g_proj);
+	rlDrawRenderBatchActive();
+	if (g_blendSet) { EndBlendMode(); g_blendSet = false; }
+	const int w = GameRenderWidth(), h = GetRenderHeight();
+	const int vw4 = std::min(w, h * 4 / 3), vh4 = vw4 * 3 / 4;
+	const int vx4 = (w - vw4) / 2, vy4 = (h - vh4) / 2;
+	const float sx = (float)vw4 / (float)SCREEN_W, sy = (float)vh4 / (float)SCREEN_H;
+	const int x = vx4 + (int)(gx * sx), width = (int)(gw * sx), height = (int)(gh * sy);
+	const int y = vy4 + (int)(((float)SCREEN_H - gy - gh) * sy);   // GL: origin bottom-left
+	rlViewport(x, y, width, height);
+	rlEnableScissorTest();
+	rlScissor(x, y, width, height);
+	using GlClearFn = void (*)(unsigned);
+	static GlClearFn glClearFn = (GlClearFn)rlGetProcAddress("glClear");
+	if (glClearFn != nullptr) glClearFn(0x00000100u); // GL_DEPTH_BUFFER_BIT
+	else rlClearScreenBuffers();
+	rlEnableDepthTest();
+	g_in3d = true;
+}
+
 static void BeginPass(const float view[16], const float proj[16], bool fit4x3, bool clearDepth)
 {
 	std::copy(view, view + 16, g_view);
 	std::copy(proj, proj + 16, g_proj);
 	rlDrawRenderBatchActive();
 	if (g_blendSet) { EndBlendMode(); g_blendSet = false; }
-	const int w = GetRenderWidth(), h = GetRenderHeight();
+	const int w = GameRenderWidth(), h = GetRenderHeight();
 	int vx = 0, vy = 0, vw = w, vh = h;
 	if (fit4x3)
 	{
@@ -330,8 +386,53 @@ void End3D()
 	rlDisableBackfaceCulling();
 	rlSetBlendMode(RL_BLEND_ALPHA);
 	rlEnableColorBlend();
+	rlDisableScissorTest();
 	rlViewport(0, 0, GetRenderWidth(), GetRenderHeight());
 	g_in3d = false;
+}
+
+// rlgl's immediate batch with the pass's view / projection (its matrix stack is otherwise unused in 3D, see BeginPass)
+void DrawLines3D(const LineVertex* v, std::size_t n, bool depthTest)
+{
+	if (!g_in3d || n < 2) return;
+	rlDrawRenderBatchActive();
+	const auto toMatrix = [](const float a[16]) {
+		Matrix m;
+		m.m0 = a[0]; m.m1 = a[1]; m.m2 = a[2]; m.m3 = a[3]; m.m4 = a[4]; m.m5 = a[5]; m.m6 = a[6]; m.m7 = a[7];
+		m.m8 = a[8]; m.m9 = a[9]; m.m10 = a[10]; m.m11 = a[11]; m.m12 = a[12]; m.m13 = a[13]; m.m14 = a[14]; m.m15 = a[15];
+		return m;
+	};
+	const Matrix oldProj = rlGetMatrixProjection(), oldView = rlGetMatrixModelview();
+	rlSetMatrixProjection(toMatrix(g_proj));
+	rlSetMatrixModelview(toMatrix(g_view));
+	using DepthRangeFn = void (*)(double, double);
+	static DepthRangeFn depthRange = (DepthRangeFn)rlGetProcAddress("glDepthRange");
+	if (depthTest) { rlEnableDepthTest(); if (depthRange != nullptr) depthRange(0.0, 0.9999); }
+	else rlDisableDepthTest();
+	rlDisableDepthMask();
+	rlDisableBackfaceCulling();
+	rlSetBlendMode(RL_BLEND_ALPHA);
+	rlEnableColorBlend();
+	rlSetTexture(0);
+	const std::size_t chunk = 4096;   // vertices per batch (rlgl flushes when its buffer is full only between rlBegin / rlEnd calls)
+	for (std::size_t s = 0; s + 1 < n; s += chunk)
+	{
+		const std::size_t e = std::min(n, s + chunk) & ~(std::size_t)1;
+		rlCheckRenderBatchLimit((int)(e - s));
+		rlBegin(RL_LINES);
+		for (std::size_t i = s; i < e; i++)
+		{
+			rlColor4ub(v[i].rgba[0], v[i].rgba[1], v[i].rgba[2], v[i].rgba[3]);
+			rlVertex3f(v[i].pos[0], v[i].pos[1], v[i].pos[2]);
+		}
+		rlEnd();
+	}
+	rlDrawRenderBatchActive();
+	if (depthRange != nullptr) depthRange(0.0, 1.0);
+	rlEnableDepthMask();
+	rlEnableDepthTest();
+	rlSetMatrixProjection(oldProj);
+	rlSetMatrixModelview(oldView);
 }
 }
 
@@ -407,6 +508,10 @@ uniform int uRigN;          // > 0: the g3d light set below replaces the single 
 uniform vec3 uRigDir[4];
 uniform vec3 uRigCol[4];
 uniform vec4 uRigSpec[4];   // rgb, shininess (0 = no specular part)
+uniform vec4 uRigPos[4];    // w = 1: point / spot light at xyz (diffuse direction from the position), 0: directional (uRigDir)
+uniform vec3 uRigSpotDir[4];
+uniform vec3 uRigAttnA[4];
+uniform vec3 uRigAttnK[4];
 uniform vec3 uSceneAmb;
 uniform vec3 uViewDir;      // world space direction towards the viewer (GX's (0, 0, 1) of view space)
 uniform sampler2D uTex0;
@@ -414,6 +519,10 @@ uniform sampler2D uTex1;
 uniform sampler2D uTex2;
 uniform sampler2D uTex3;
 uniform int uTexOk[4];
+uniform int uShadowOn;         // depth shadow receiver: maps uShadowMaps.x (ramp16_tex) / .y (depth_tex) are made from the world position
+uniform ivec2 uShadowMaps;
+uniform mat4 uLightVP;         // world -> light clip space (orthographic)
+uniform sampler2D uShadowTex;  // the light camera's depth map
 uniform int uNum;
 uniform ivec4 uS0[16]; // colour a b c d
 uniform ivec4 uS1[16]; // colour bias sub clamp scale
@@ -422,10 +531,11 @@ uniform ivec4 uS3[16]; // alpha clamp, alpha scale, texmap, texcoord
 uniform ivec4 uS4[16]; // tex enable, chan, konst colour sel, konst alpha sel
 uniform ivec4 uS5[16]; // alpha a b c d
 uniform ivec4 uS6[16]; // indirect: stage + 1 (0 = none), format, bias bits, matrix id
-uniform ivec4 uS7[16]; // indirect: wrap, add the previous coordinate, unused, unused
+uniform ivec4 uS7[16]; // indirect: wrap, add the previous coordinate, bump alpha select, unused
 uniform int uNumInd;
 uniform ivec4 uInd[4];    // indirect stage: texture map, texture coordinate, shift s, shift t
 uniform vec3 uIndMtx[6];  // IND_MTX 0..2, two rows each, scaled: offset in texels = row . (s, t, u)
+uniform vec3 uIndScale;   // 2^(scale - 17) of IND_MTX 0..2 (the dynamic S / T matrices)
 uniform vec4 uColor[4];
 uniform vec4 uKonst[4];
 uniform vec4 uChanMat[2];
@@ -437,8 +547,31 @@ out vec4 finalColor;
 
 vec2 coordUv(int coord) { return coord == 0 ? vUv0 : coord == 1 ? vUv1 : coord == 2 ? vUv2 : vUv3; }
 
+// The engine's ramp16_tex / depth_tex lookups of a shadow receiver (DOL: texgens 1 / 2 project the position through camera 4 and the ramp maps the
+// light space depth onto two 8 bit texture coordinates): the 16 bit depth of the receiver / of the nearest caster as the GR16 compare reads it
+// (R = low byte, G = high byte; the swap table of the original material is folded in). Outside the depth map nothing casts (the DOL draws a
+// border of maximum depth around the map).
+vec4 shadowSample(bool depthMap)
+{
+	vec4 lp = uLightVP*vec4(vPos, 1.0);
+	vec3 n = lp.xyz/lp.w;
+	float d = n.z*0.5 + 0.5;
+	if (depthMap)
+	{
+		vec2 luv = n.xy*0.5 + 0.5;
+		d = (luv.x < 0.0 || luv.x > 1.0 || luv.y < 0.0 || luv.y > 1.0) ? 1.0 : texture(uShadowTex, luv).r;
+	}
+	int z = int(floor(clamp(d, 0.0, 1.0)*65535.0 + 0.5));
+	return vec4(float(z & 255)/255.0, float(z >> 8)/255.0, 0.0, 0.0);
+}
+
 vec4 sampleMapUv(int map, vec2 uv)
 {
+	if (uShadowOn != 0)
+	{
+		if (map == uShadowMaps.x) return shadowSample(false);
+		if (map == uShadowMaps.y) return shadowSample(true);
+	}
 	// engine generated maps (ramp16_tex, depth_tex of the depth shadow receivers) are not produced: white = "not in shadow"
 	if (uTexOk[map] == 0) return vec4(1.0);
 	if (map == 0) return texture(uTex0, uv);
@@ -503,18 +636,33 @@ vec4 rasChannel(int i)
 			for (int k = 0; k < 4; k++)
 			{
 				if (k >= uRigN) break;
-				float nl = dot(n, uRigDir[k]);
+				vec3 ld = uRigDir[k];
+				float att = 1.0;
+				if (!spec && uRigPos[k].w > 0.5)
+				{
+					// GX per light: L = normalize(lpos - pos); GX_AF_SPOT (bits 9 + 10) adds the cos / distance attenuation
+					vec3 lv = uRigPos[k].xyz - vPos;
+					float dist = length(lv);
+					ld = dist > 0.0 ? lv/dist : n;
+					if ((cc & 1536) == 1536)
+					{
+						float c = max(dot(ld, -uRigSpotDir[k]), 0.0);
+						vec3 a = uRigAttnA[k], kk = uRigAttnK[k];
+						att = max(a.x + a.y*c + a.z*c*c, 0.0)/max(kk.x + kk.y*dist + kk.z*dist*dist, 1e-6);
+					}
+				}
+				float nl = dot(n, ld);
 				if (spec)
 				{
 					if (uRigSpec[k].w <= 0.0) continue;
 					vec3 h = normalize(uRigDir[k] + uViewDir);
 					float x = nl >= 0.0 ? max(dot(n, h), 0.0) : 0.0;
 					float sh = uRigSpec[k].w*0.5;
-					float att = x*x/max(sh + (1.0 - sh)*x*x, 1e-6);
+					att = x*x/max(sh + (1.0 - sh)*x*x, 1e-6);
 					float d = dfn == 0 ? 1.0 : dfn == 1 ? nl : max(nl, 0.0);
 					sum += uRigSpec[k].rgb*att*d;
 				}
-				else sum += uRigCol[k]*(dfn == 0 ? 1.0 : dfn == 1 ? nl : max(nl, 0.0));
+				else sum += uRigCol[k]*att*(dfn == 0 ? 1.0 : dfn == 1 ? nl : max(nl, 0.0));
 			}
 			col = col*clamp(amb + sum, 0.0, 1.0);
 		}
@@ -569,27 +717,46 @@ void main()
 		}
 	}
 	vec2 tevcoord = vec2(0.0);
+	float alphabump = 0.0;   // Dolphin: the last stage with a bump alpha select sets it (0 at the start)
 	for (int s = 0; s < uNum; s++)
 	{
 		ivec4 s0 = uS0[s], s1 = uS1[s], s2 = uS2[s], s3 = uS3[s], s4 = uS4[s], s5 = uS5[s];
 		// indirect offset: (fmt-masked, biased (s, t, u)) times the matrix, in texels of this stage's map (GX: fixed point coordinates)
 		ivec4 s6 = uS6[s], s7 = uS7[s];
 		vec2 off = vec2(0.0);
+		vec2 size = mapSize(s3.z);
+		vec2 uvt = coordUv(s3.w) * size;   // the stage's coordinate in texels (Dolphin's fixpoint_uv / 128)
 		if (s6.x != 0)
 		{
+			ivec3 raw = ivec3(indc[s6.x - 1]);
 			int mask = s6.y == 0 ? 255 : s6.y == 1 ? 31 : s6.y == 2 ? 15 : 7;
-			ivec3 ic = ivec3(indc[s6.x - 1]) & ivec3(mask);
+			// bump alpha: the raw value of the selected component, low bits cleared by the format (Dolphin: 0xf8 / 0xe0 / 0xf0 / 0xf8)
+			if (s7.z != 0)
+			{
+				int bmask = s6.y == 1 ? 224 : s6.y == 2 ? 240 : 248;
+				alphabump = float((s7.z == 1 ? raw.x : s7.z == 2 ? raw.y : raw.z) & bmask);
+			}
+			ivec3 ic = raw & ivec3(mask);
 			int badd = s6.y == 0 ? -128 : 1;
 			if ((s6.z & 1) != 0) ic.x += badd;
 			if ((s6.z & 2) != 0) ic.y += badd;
 			if ((s6.z & 4) != 0) ic.z += badd;
 			vec3 c = vec3(ic);
 			if (s6.w >= 1 && s6.w <= 3) { int k = (s6.w - 1)*2; off = vec2(dot(uIndMtx[k], c), dot(uIndMtx[k + 1], c)); }
+			// dynamic matrices (Dolphin): S = the texel coordinate times s / 256, T = times t / 256, scaled by the matrix (id & 3) - 1
+			else if (s6.w >= 5 && s6.w <= 7) off = uvt * (c.x / 256.0) * uIndScale[s6.w - 5];
+			else if (s6.w >= 9 && s6.w <= 11) off = uvt * (c.y / 256.0) * uIndScale[s6.w - 9];
+			// indirect wrap of the regular coordinate before the offset: 1..5 = 256 / 128 / 64 / 32 / 16 texels, 6 = 0
+			int ws = s7.x & 7, wt = s7.x >> 3 & 7;
+			if (ws == 6) uvt.x = 0.0; else if (ws >= 1 && ws <= 5) uvt.x = mod(uvt.x, float(256 >> (ws - 1)));
+			if (wt == 6) uvt.y = 0.0; else if (wt >= 1 && wt <= 5) uvt.y = mod(uvt.y, float(256 >> (wt - 1)));
 		}
-		vec2 uv = coordUv(s3.w) + off / mapSize(s3.z);
+		vec2 uv = (uvt + off) / size;
 		tevcoord = s7.y != 0 ? tevcoord + uv : uv;
 		vec4 t = s4.x != 0 ? sampleMapUv(s3.z, tevcoord) : vec4(0.0);
-		vec4 r = s4.y == 0 ? ras0 : s4.y == 1 ? ras1 : vec4(0.0);
+		// raster input: colour 0 / 1, 5 = alpha bump, 6 = alpha bump normalised (ab | ab >> 5), 7 = zero
+		float abn = float(int(alphabump) | (int(alphabump) >> 5));
+		vec4 r = s4.y == 0 ? ras0 : s4.y == 1 ? ras1 : s4.y == 5 ? vec4(alphabump / 255.0) : s4.y == 6 ? vec4(abn / 255.0) : vec4(0.0);
 		vec3 kc = konstColor(s4.z);
 		float ka = konstAlpha(s4.w);
 		vec4 prev = reg[0];
@@ -698,9 +865,10 @@ bool g_tevTried = false;
 struct TevLocs
 {
 	int eye, lit, lightDir, lightColor, specColor, shininess, chanAmb;
-	int rigN, rigDir, rigCol, rigSpec, sceneAmb, viewDir, viewRot, envMask;
+	int rigN, rigDir, rigCol, rigSpec, rigPos, rigSpotDir, rigAttnA, rigAttnK, sceneAmb, viewDir, viewRot, envMask;
 	int fogType, fog, fogColor;
-	int mvp, world, tm, tex[4], texOk, num, s[8], numInd, ind, indMtx, color, konst, chanMat, chanC, chanA, alpha, alphaOp;
+	int shadowOn, shadowMaps, lightVP, shadowTex;
+	int mvp, world, tm, tex[4], texOk, num, s[8], numInd, ind, indMtx, indScale, color, konst, chanMat, chanC, chanA, alpha, alphaOp;
 } g_loc;
 constexpr std::size_t kMaxVerts = 65535, kMaxIndices = 300000;
 
@@ -731,14 +899,16 @@ TevLocs LoadLocs(unsigned prog)
 	g_loc.eye = L("uEye"); g_loc.lit = L("uLit"); g_loc.lightDir = L("uLightDir"); g_loc.lightColor = L("uLightColor");
 	g_loc.specColor = L("uSpecColor"); g_loc.shininess = L("uShininess"); g_loc.chanAmb = L("uChanAmb");
 	g_loc.rigN = L("uRigN"); g_loc.rigDir = L("uRigDir"); g_loc.rigCol = L("uRigCol"); g_loc.rigSpec = L("uRigSpec");
+	g_loc.rigPos = L("uRigPos"); g_loc.rigSpotDir = L("uRigSpotDir"); g_loc.rigAttnA = L("uRigAttnA"); g_loc.rigAttnK = L("uRigAttnK");
 	g_loc.sceneAmb = L("uSceneAmb"); g_loc.viewDir = L("uViewDir"); g_loc.viewRot = L("uViewRow"); g_loc.envMask = L("uEnvMask");
 	const char* tn[4] = {"uTex0", "uTex1", "uTex2", "uTex3"};
 	for (int i = 0; i < 4; i++) g_loc.tex[i] = L(tn[i]);
 	g_loc.texOk = L("uTexOk");
+	g_loc.shadowOn = L("uShadowOn"); g_loc.shadowMaps = L("uShadowMaps"); g_loc.lightVP = L("uLightVP"); g_loc.shadowTex = L("uShadowTex");
 	g_loc.num = L("uNum");
 	const char* sn[8] = {"uS0", "uS1", "uS2", "uS3", "uS4", "uS5", "uS6", "uS7"};
 	for (int i = 0; i < 8; i++) g_loc.s[i] = L(sn[i]);
-	g_loc.numInd = L("uNumInd"); g_loc.ind = L("uInd"); g_loc.indMtx = L("uIndMtx");
+	g_loc.numInd = L("uNumInd"); g_loc.ind = L("uInd"); g_loc.indMtx = L("uIndMtx"); g_loc.indScale = L("uIndScale");
 	g_loc.color = L("uColor");
 	g_loc.konst = L("uKonst");
 	g_loc.chanMat = L("uChanMat");
@@ -790,7 +960,7 @@ void StageInts(const TevStage& t, int out[8][4])
 {
 	const int v[8][4] = {{t.ca, t.cb, t.cc, t.cd}, {t.cbias, t.csub, t.cclamp, t.cscale}, {t.cdest, t.adest, t.abias, t.asub},
 	                     {t.aclamp, t.ascale, t.texmap, t.texcoord}, {t.texen, t.chan, t.kc, t.ka}, {t.aa, t.ab, t.ac, t.ad},
-	                     {t.ind, t.ifmt, t.ibias, t.imtx}, {t.iwrap, t.iaddprev, 0, 0}};
+	                     {t.ind, t.ifmt, t.ibias, t.imtx}, {t.iwrap, t.iaddprev, t.ibump, 0}};
 	std::memcpy(out, v, sizeof v);
 }
 
@@ -845,8 +1015,20 @@ const TevProgram& ProgramFor(const MaterialDraw& m)
 namespace
 {
 // GL state, shader uniforms and texture units of a material (the TEV program stays bound until EndMaterial)
-void ApplyMaterial(const MaterialDraw& m)
+void ApplyMaterial(const MaterialDraw& mIn)
 {
+	// the light pass (DOL 0x80024ce4: ForceDrawMode, colour update off, GX_CULL_FRONT, z compare LEQUAL with writes): no blending, no alpha test
+	MaterialDraw shadowCopy;
+	if (g_shadowPass)
+	{
+		shadowCopy = mIn;
+		shadowCopy.blend = false;
+		shadowCopy.cull = CULL_FRONT;
+		shadowCopy.depthTest = shadowCopy.depthWrite = true;
+		shadowCopy.alphaComp[0] = shadowCopy.alphaComp[1] = 7;
+		shadowCopy.shadowRampMap = shadowCopy.shadowDepthMap = -1;
+	}
+	const MaterialDraw& m = g_shadowPass ? shadowCopy : mIn;
 	// state
 	if (m.blend)
 	{
@@ -922,6 +1104,10 @@ void ApplyMaterial(const MaterialDraw& m)
 			rlSetUniform(g_loc.rigDir, m.rigDir, RL_SHADER_UNIFORM_VEC3, 4);
 			rlSetUniform(g_loc.rigCol, m.rigCol, RL_SHADER_UNIFORM_VEC3, 4);
 			rlSetUniform(g_loc.rigSpec, m.rigSpec, RL_SHADER_UNIFORM_VEC4, 4);
+			rlSetUniform(g_loc.rigPos, m.rigPos, RL_SHADER_UNIFORM_VEC4, 4);
+			rlSetUniform(g_loc.rigSpotDir, m.rigSpotDir, RL_SHADER_UNIFORM_VEC3, 4);
+			rlSetUniform(g_loc.rigAttnA, m.rigAttnA, RL_SHADER_UNIFORM_VEC3, 4);
+			rlSetUniform(g_loc.rigAttnK, m.rigAttnK, RL_SHADER_UNIFORM_VEC3, 4);
 		}
 		rlSetUniform(g_loc.sceneAmb, m.sceneAmb, RL_SHADER_UNIFORM_VEC3, 1);
 		// view matrix rows (column-major g_view: row r = v[r], v[4 + r], v[8 + r]); the viewer direction = view row 2
@@ -966,6 +1152,25 @@ void ApplyMaterial(const MaterialDraw& m)
 		rlSetUniform(g_loc.tex[i], &i, RL_SHADER_UNIFORM_INT, 1);
 	}
 	rlSetUniform(g_loc.texOk, texOk, RL_SHADER_UNIFORM_INT, 4);
+	{
+		const int on = g_shRecv && m.shadowDepthMap >= 0 && m.shadowRampMap >= 0 ? 1 : 0;
+		rlSetUniform(g_loc.shadowOn, &on, RL_SHADER_UNIFORM_INT, 1);
+		if (on)
+		{
+			const int maps[2] = {m.shadowRampMap, m.shadowDepthMap};
+			rlSetUniform(g_loc.shadowMaps, maps, RL_SHADER_UNIFORM_IVEC2, 1);
+			Matrix lv;
+			const float* c = g_shLightVP;
+			lv.m0 = c[0]; lv.m1 = c[1]; lv.m2 = c[2]; lv.m3 = c[3]; lv.m4 = c[4]; lv.m5 = c[5]; lv.m6 = c[6]; lv.m7 = c[7];
+			lv.m8 = c[8]; lv.m9 = c[9]; lv.m10 = c[10]; lv.m11 = c[11]; lv.m12 = c[12]; lv.m13 = c[13]; lv.m14 = c[14]; lv.m15 = c[15];
+			rlSetUniformMatrix(g_loc.lightVP, lv);
+			const int unit = 4;
+			rlActiveTextureSlot(unit);
+			rlEnableTexture(g_shDepth);
+			rlSetUniform(g_loc.shadowTex, &unit, RL_SHADER_UNIFORM_INT, 1);
+			rlActiveTextureSlot(0);
+		}
+	}
 
 	int s[8][16][4] = {};
 	for (int i = 0; i < m.numStages && i < 16 && g_loc.s[0] >= 0; i++)
@@ -985,6 +1190,7 @@ void ApplyMaterial(const MaterialDraw& m)
 		rlSetUniform(g_loc.numInd, &m.numInd, RL_SHADER_UNIFORM_INT, 1);
 		rlSetUniform(g_loc.ind, ind, RL_SHADER_UNIFORM_IVEC4, 4);
 		rlSetUniform(g_loc.indMtx, mtx, RL_SHADER_UNIFORM_VEC3, 6);
+		rlSetUniform(g_loc.indScale, m.indScale, RL_SHADER_UNIFORM_VEC3, 1);
 	}
 	float color[4][4], konst[4][4], chan[2][4];
 	for (int i = 0; i < 4; i++)
@@ -1020,7 +1226,7 @@ void ApplyMaterial(const MaterialDraw& m)
 
 void EndMaterial()
 {
-	for (int i = 3; i >= 0; i--)
+	for (int i = 4; i >= 0; i--)
 	{
 		rlActiveTextureSlot(i);
 		rlDisableTexture();
@@ -1100,4 +1306,65 @@ void DrawMaterialMesh(MeshId mesh, const MaterialDraw& m)
 	rlDisableVertexArray();
 	EndMaterial();
 }
+
+// Depth shadows (DOL cKingdomShadow update 0x80024ce4): the light pass writes only depth (GXSetColorUpdate(0)) into a depth texture
+bool ShadowBeginPass(const float view[16], const float proj[16], int w, int h)
+{
+	if (g_in3d || w <= 0 || h <= 0 || !EnsureTev()) return false;
+	if (g_shFbo == 0 || g_shW != w || g_shH != h)
+	{
+		if (g_shFbo != 0) { rlUnloadFramebuffer(g_shFbo); rlUnloadTexture(g_shColor); rlUnloadTexture(g_shDepth); }
+		g_shFbo = rlLoadFramebuffer();
+		g_shColor = rlLoadTexture(nullptr, w, h, RL_PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, 1);
+		g_shDepth = rlLoadTextureDepth(w, h, false);
+		rlFramebufferAttach(g_shFbo, g_shColor, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
+		rlFramebufferAttach(g_shFbo, g_shDepth, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_TEXTURE2D, 0);
+		if (!rlFramebufferComplete(g_shFbo))
+		{
+			std::fprintf(stderr, "gfx: the shadow map framebuffer is incomplete\n");
+			rlUnloadFramebuffer(g_shFbo); rlUnloadTexture(g_shColor); rlUnloadTexture(g_shDepth);
+			g_shFbo = g_shColor = g_shDepth = 0;
+			return false;
+		}
+		g_shW = w; g_shH = h;
+	}
+	std::copy(view, view + 16, g_view);
+	std::copy(proj, proj + 16, g_proj);
+	rlDrawRenderBatchActive();
+	if (g_blendSet) { EndBlendMode(); g_blendSet = false; }
+	rlEnableFramebuffer(g_shFbo);
+	rlViewport(0, 0, w, h);
+	rlDisableScissorTest();
+	rlEnableDepthMask();
+	rlEnableDepthTest();
+	rlClearScreenBuffers();   // colour + depth of the shadow framebuffer
+	rlColorMask(false, false, false, false);
+	g_in3d = true;
+	g_shadowPass = true;
+	return true;
+}
+
+void ShadowEndPass()
+{
+	if (!g_shadowPass) return;
+	rlDrawRenderBatchActive();
+	rlColorMask(true, true, true, true);
+	rlDisableFramebuffer();
+	g_shadowPass = false;
+	End3D();   // restores the window viewport and the 2D state
+}
+
+void SetShadowReceiver(const float view[16], const float proj[16])
+{
+	if (view == nullptr || proj == nullptr || g_shDepth == 0) { g_shRecv = false; return; }
+	for (int c = 0; c < 4; c++)
+		for (int r = 0; r < 4; r++)
+		{
+			float v = 0;
+			for (int k = 0; k < 4; k++) v += proj[k * 4 + r] * view[c * 4 + k];
+			g_shLightVP[c * 4 + r] = v;
+		}
+	g_shRecv = true;
+}
+
 }

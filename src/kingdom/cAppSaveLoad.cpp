@@ -101,7 +101,7 @@ void cAppSaveLoad::ShowMessage(int index)
 	if (index != s_last)
 	{
 		s_last = index;
-		std::printf("cAppSaveLoad: message %d\n", index);
+		// std::printf("cAppSaveLoad: message %d\n", index);
 	}
 }
 
@@ -184,7 +184,7 @@ bool cAppSaveLoad::Execute(cJetTask* pParam)
 	if (S != s_lastLogged)
 	{
 		s_lastLogged = S;
-		std::printf("cAppSaveLoad: state %u (force=%d)\n", S, (int)m_bForce);
+		// std::printf("cAppSaveLoad: state %u (force=%d)\n", S, (int)m_bForce);
 	}
 
 	auto layer = [this](int i) { return m_Anita.pAnita(i); };

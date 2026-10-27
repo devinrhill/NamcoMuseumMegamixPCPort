@@ -242,6 +242,9 @@ public:
 	int AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _base = 0);
 
 	int ForceAdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int input_dir = 0);
+
+protected:
+	void ReleaseTerm() override { cTaskPanelMan::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

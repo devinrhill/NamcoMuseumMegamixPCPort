@@ -35,7 +35,7 @@ private:
 	int m_nWait{};                     // +0x1d0
 	kingdom::cKingdomPtkHnd m_Hnd;     // +0x1e0
 	int m_nOn{};                       // +0x230
-	std::mt19937 m_Rand{0x20061206u};  // +0x234 (cKingdomRand, seed 0x20061206; UNVERIFIED: = std::mt19937)
+	std::mt19937 m_Rand{0x20061206u};  // +0x234 (cKingdomRand, seed 0x20061206; = std::mt19937, checked: see cTaskEnemy.hpp)
 	uint m_nMin{}, m_nRange{1};        // cParamEffect +0x20 / +0x24 (rows 0 / 1, seconds)
 	float m_fScale[2]{1.0f, 1.0f};     // cParamEffect +0x28 / +0x2c (rows 2 / 3)
 };

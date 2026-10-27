@@ -4,7 +4,11 @@
 #include <cstdio>
 
 #include "kingdom/cKingdomModel.hpp"
+#include "kingdom/game/g02/cG02RallyXRecord.hpp"
 #include "kingdom/game/g02/cG02RallyXSys.hpp"
+#include "kingdom/game/g02/cTaskMap.hpp"
+#include "kingdom/game/g02/cTaskUnit.hpp"
+#include "kingdom/cAppKingdom.hpp"
 #include "KingdomGlobal.hpp"
 
 namespace kingdom::game::g02
@@ -68,12 +72,93 @@ bool cTaskItem::OnHit(cTaskUnit* pUnit)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
+// the multiplayer items
+
+namespace
+{
+cRallyUnitHost* ItemHost()
+{
+	return KingdomGlobal::KingSys != nullptr ? dynamic_cast<cRallyUnitHost*>(KingdomGlobal::KingSys->pAppMain()) : nullptr;
+}
+}
+
+// DOL 0x80070c5c .. 0x80070708 (after the single player item part): +0x1e4 = +0x1e8 = 0 (FLOAT_8047a980)
+cTaskItemMulti::cTaskItemMulti(const char* key, int nKind) : cTaskItem(key), m_nKind(nKind)
+{
+	m_fTimer = 0.0f;
+	m_fPeriod = 0.0f;
+}
+
+// DOL 0x800754c4 (identical: 0x80074e00 / 0x800746dc / 0x80074018): in game state 4 the timer counts down and a finished timer relocates the item; the
+// rest is the single player Execute
+bool cTaskItemMulti::Execute(cJetTask* pParam)
+{
+	const cRallyUnitHost* host = ItemHost();
+	if (host != nullptr && host->nUnitGameState() == 4 && cTaskUnit::Down(0.0f, -1.0f, m_fTimer) && !Respawn()) m_fTimer = m_fPeriod;
+	return cTaskItem::Execute(pParam);
+}
+
+// DOL 0x800751c0 (0x80074a9c / 0x800743d8 / 0x80073cb4): the collector's relocation time first
+bool cTaskItemMulti::OnHit(cTaskUnit* pUnit)
+{
+	m_fPeriod = pUnit != nullptr ? pUnit->fRelocation(m_nKind) : 0.0f;
+	m_fTimer = m_fPeriod;
+	return cTaskItem::OnHit(pUnit);
+}
+
+namespace
+{
+// the list a kind picks its spawn point from: map record type 2 fuel, 3 paint, 4 armor, 5 smoke
+int SpawnList(int nKind) { return nKind == 2 ? 2 : (nKind == 0 ? 3 : (nKind == 1 ? 4 : 5)); }
+}
+
+// DOL 0x80075414 (fuel) / 0x8007462c (smoke): an inactive item shows again at a random spawn point
+bool cTaskItemMulti::Respawn()
+{
+	if (IsActive()) return false;
+	const cRallyUnitHost* host = ItemHost();
+	cTaskMap* map = host != nullptr ? host->pUnitMap() : nullptr;
+	if (map == nullptr) return false;
+	if (kingdom::cKingdomModel* m = pModel(0)) m->Visible();   // FUN_8001a1f4
+	const int n = map->nSpawnCount(SpawnList(m_nKind));
+	if (n > 0) map->SpawnCell(SpawnList(m_nKind), std::rand() % n, pCell());
+	Enable();   // vtable +0x58
+	return true;
+}
+
+// DOL 0x80074cf0: the paint waits while a player has the chameleon effect or another paint item is out
+bool cTaskItemMultiChameleonPaint::Respawn()
+{
+	if (IsActive()) return false;
+	const cRallyUnitHost* host = ItemHost();
+	cTaskMap* map = host != nullptr ? host->pUnitMap() : nullptr;
+	if (map == nullptr) return false;
+	for (int i = 0; i < cG02RallyXSysExt::nPlayer; i++)
+		if (const cTaskUnit* u = host->pUnit(i); u != nullptr && u->IsChameleon()) return false;
+	if (map->pGimmickMan()->IsTypeActive(0x27)) return false;
+	return cTaskItemMulti::Respawn();
+}
+
+// DOL 0x80073f08: the armor waits while a player has armor left or another armor item is out
+bool cTaskItemMultiSpecialArmor::Respawn()
+{
+	if (IsActive()) return false;
+	const cRallyUnitHost* host = ItemHost();
+	cTaskMap* map = host != nullptr ? host->pUnitMap() : nullptr;
+	if (map == nullptr) return false;
+	for (int i = 0; i < cG02RallyXSysExt::nPlayer; i++)
+		if (const cTaskUnit* u = host->pUnit(i); u != nullptr && u->nArmorLeft() != 0) return false;
+	if (map->pGimmickMan()->IsTypeActive(0x29)) return false;
+	return cTaskItemMulti::Respawn();
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
 // cTaskItemFlag
 
 cTaskItemFlag::cTaskItemFlag()
 {
 	SetName("g02::cTaskItemFlag");
-	// +0x210 cKingdomSndActor (FUN_8002654c): NOT PORTED
+	// +0x210 cKingdomSndActor (FUN_8002654c): natively none (Execute 0x800b2b3c moves it, but no cue plays on it)
 	InitFlag();   // vtable +0x3c with the cTaskItemFlag vtable
 }
 

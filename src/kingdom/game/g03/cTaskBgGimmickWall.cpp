@@ -11,6 +11,7 @@
 #include "ResMdl.hpp"
 #include "ResNode.hpp"
 #include <Constants.hpp>
+#include "platform/devtools.hpp"
 
 namespace kingdom::game::g03
 {
@@ -40,9 +41,13 @@ void cTaskBgGimmickWall::Init()
 	IsDrawShadowDepth(true);
 	Constants::PACN_APP();
 	ResMdl* resMdl = pFaceList()->pResMdl();
-	for (uint num2 = 0u; (long)num2 < (long)resMdl->GetChildResNodeNumEntries(); num2++)
+	// DOL 0x80154078: every node of the hit model by its index (nw4r ResMdl::GetResNode(i)); the converted loop only searched the children of the
+	// first child (same miss as cTaskBgGimmickPillar::Init)
+	const int nodeNum = resMdl->Mdl != nullptr ? (int)resMdl->Mdl->nodes.size() : 0;
+	for (int num2 = 0; num2 < nodeNum; num2++)
 	{
-		ResNode* firstChildChildResNode = resMdl->GetFirstChildChildResNode((int)num2);
+		ResNode node(resMdl->Mdl, resMdl->Mdl->nodes[num2].id);
+		ResNode* firstChildChildResNode = &node;
 		if (!firstChildChildResNode->IsValid() || !CustomKingdomUtil::strstr(firstChildChildResNode->GetName(), "effect"))
 		{
 			continue;
@@ -229,7 +234,8 @@ void cTaskBgGimmickWall::HitCallbackWall(Constants::sFace* face, Vector4 hitPosL
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
 	Vector4 v = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 	::Constants::jetGeoVecTrans(v, pMtxRotate(), face->vNorm);
-	if (v[1] > 0.0f)
+	// DOL 0x8015481c: damage when the rotated normal points DOWN (the falling wall's face lands on Pac-Man); the converted test was "> 0" (no damage, w4s2)
+	if (v[1] < 0.0f)
 	{
 		if (!cTaskCharPacman2->IsState(8u))
 		{
@@ -261,6 +267,7 @@ bool cTaskBgGimmickWall::AreaCheck()
 	::Constants::jetGeoMtx44to34(m2, m);
 	AABB target = AABB(min, max, false);
 	target.Set(target, m2);
+	{ const Vector3 a = target.This.min(), b = target.This.max(); const float mn[3] = {a.x, a.y, a.z}, mx[3] = {b.x, b.y, b.z}; devtools::G03HitBox(mn, mx, 0xff64b4ffu); } // devtools: --g03-show-gimmick-hit (not 1:1): the fall trigger area
 	Vector3 trans = Vector3();
 	trans.x = cTaskCharPacman2->vTrans()[0];
 	trans.y = cTaskCharPacman2->vTrans()[1];

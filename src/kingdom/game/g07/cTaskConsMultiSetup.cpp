@@ -13,6 +13,7 @@
 #include "MotosUIManager.hpp"
 #include "MotosUIMotosStartText.hpp"
 #include <Constants.hpp>
+#include "gfx/FontWriter.hpp"
 
 namespace kingdom::game::g07
 {
@@ -96,15 +97,23 @@ void cTaskConsMultiSetup::Setup()
 {
 }
 
+// DOL 0x8010183c (names: the 0x80016e88 calls of the setup / result branches)
 bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 {
+	m_names.clear();
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())
 	{
 		return cTaskConsoleBase::Execute(pParam);
 	}
 	if (KingdomGlobal::g_pMotosGame->nStep(0) == 1)
 	{
-		(void)(KingdomGlobal::MotosSys->pGetMatchingData()->Info[KingdomGlobal::g_pMotosGame->nPlayerParam()]);
+		{
+			// the adjusting player's name at (320 + 160, 240 - 54) in the player's colour (table 0x8036ec50), black shadow
+			static const uint kColor[4] = {0xb4b4ffffu, 0x96ff96ffu, 0xe6ff32ffu, 0xffb4e6ffu};
+			const uint p = KingdomGlobal::g_pMotosGame->nPlayerParam();
+			const sMatchingData::InfoData* info = KingdomGlobal::MotosSys->pGetMatchingData()->Info[p];
+			if (info != nullptr && p < 4) QueueName(320.0f + FONT_POS[0], 240.0f - FONT_POS[1], info->Name, kColor[p], 0xffu);
+		}
 		for (uint num = 0u; num < 2; num++)
 		{
 			m_pPlayerNo[num]->bExec() = true;
@@ -171,7 +180,9 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 		if (KingdomGlobal::g_pMotosGame->nMultiBattleResult() != 2)
 		{
 			int num5 = KingdomGlobal::g_pMotosGame->n1stPointPlayer();
-			(void)(KingdomGlobal::MotosSys->pGetMatchingData()->Info[num5]);
+			// the winner's name at (320 + 0, 240 + 70), white, black shadow
+			if (const sMatchingData::InfoData* info = KingdomGlobal::MotosSys->pGetMatchingData()->Info[num5])
+				QueueName(320.0f + FONT_POS_WIN[0], 240.0f - FONT_POS_WIN[1], info->Name, 0xffffffffu, 0xffu);
 			for (uint num6 = 0u; num6 < 4; num6++)
 			{
 				uint set = num6 + 8;
@@ -196,9 +207,11 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 				int drawPlayer = KingdomGlobal::g_pMotosGame->GetDrawPlayer(num8);
 				if (drawPlayer != cAppG07MotosGame::DRAW_PLAYER_NONE)
 				{
-					(void)(KingdomGlobal::MotosSys->pGetMatchingData()->Info[drawPlayer]);
 					Vector4 pos = Vector4();
 					pAnita(0u)->GetLayerPos(pos, 0u, (int)(53 + num8));
+					// each tied player's name at layer 0 pattern 53 + i (screen = 320 + x, 240 - y), white, black shadow
+					if (const sMatchingData::InfoData* info = KingdomGlobal::MotosSys->pGetMatchingData()->Info[drawPlayer])
+						QueueName(320.0f + pos[0], 240.0f - pos[1], info->Name, 0xffffffffu, 0xffu);
 					uint num9 = (uint)(drawPlayer + 8);
 					pAnita(0u)->GetLayerPos(pos, 0u, (int)(48 + num8));
 					pAnita(num9)->vTrans()[0] = pos[0];
@@ -262,9 +275,29 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 	return cTaskConsoleBase::Execute(pParam);
 }
 
+// the DOL queues the shadow (colour `shadow`) at (x, y), then the text at (x - 1, y - 1); both truncated to int
+void cTaskConsMultiSetup::QueueName(float x, float y, const std::string& text, uint color, uint shadow)
+{
+	if (text.empty()) return;
+	m_names.push_back({(float)(int)x, (float)(int)y, text, shadow});
+	m_names.push_back({(float)((int)x - 1), (float)((int)y - 1), text, color});
+}
+
+// DOL 0x80102190: the anitas, then (multiplayer, sys +0xcd8) the font writer queue
 void cTaskConsMultiSetup::Draw(int nState, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nState, pParam);
+	if (!KingdomGlobal::g_pMotosGame->bMultiPlay() || m_names.empty()) return;
+	gfx::TextStyle st;
+	st.font = "RESIDENT_FONT_MII";   // UNVERIFIED: KingSys +0xa68 (as the other ports of that font slot)
+	const int height = gfx::FontHeight(st.font);
+	st.scaleX = st.scaleY = (float)FONT_SIZE / (float)(height > 0 ? height : 32);
+	st.vorigin = gfx::TextStyle::VOrigin::Baseline;
+	for (const sName& n : m_names)
+	{
+		st.color = n.color;
+		gfx::DrawText(n.x, n.y, n.text, st, gfx::TextAlign::Center);
+	}
 }
 
 }

@@ -44,6 +44,9 @@ private:
 	uint GetDelay(ResNode* node);
 
 	void RegistPreset();
+
+protected:
+	void ReleaseTerm() override { cTaskEffect::Term(); cTaskPBPtkMan::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

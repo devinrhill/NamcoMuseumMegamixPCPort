@@ -96,6 +96,9 @@ private:
 	int PointLineSide(Vector2 pos, Vector2 seg1, Vector2 seg2);
 
 	int SearchRoute(int result, int& next_area_id, int area_id, ulong target_id_flag, ulong through = 0uL, int count = 0);
+
+protected:
+	void ReleaseTerm() override { cTaskGhostArea::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

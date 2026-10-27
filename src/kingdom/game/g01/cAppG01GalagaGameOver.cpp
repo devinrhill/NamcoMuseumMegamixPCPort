@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cAppG01GalagaGameOver.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "cSysCoreStructure.hpp"
@@ -18,7 +19,7 @@ cAppG01GalagaGameOver::cAppG01GalagaGameOver()
 	pAnita(0u)->RegistData("ANT_GAMEOVER");
 	pAnita(0u)->SetAnimNo(0);
 	nAnita() = 0u;               // +0x294
-	nNextJob() = 0x0b200000u;    // +0x298
+	nNextJob() = job::GALAGA_MENU;    // +0x298
 }
 
 }

@@ -244,6 +244,9 @@ private:
 	void ModeAppear();
 
 	void ModeDeath();
+
+protected:
+	void ReleaseTerm() override { cTaskBoss03::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

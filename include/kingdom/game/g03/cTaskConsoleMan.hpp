@@ -176,6 +176,9 @@ public:
 	void Visible();
 
 	bool IsVisible();
+
+protected:
+	void ReleaseTerm() override { cTaskConsoleMan::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

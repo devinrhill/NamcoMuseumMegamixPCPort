@@ -17,6 +17,7 @@ std::string g_saveDir = "save";
 std::string g_dolPath = "main.dol";
 bool g_audio = true;
 float g_volume = 1.0f;
+int g_remoteSpeaker = 0;   // remote_speaker: the Wii's Wiimote speaker volume setting (WPADGetSpeakerVolume, 0..127); 0 = off
 
 std::string Trim(const std::string& s)
 {
@@ -46,6 +47,7 @@ void Init(const std::string& cfgPath)
 		else if (key == "save_dir") g_saveDir = val;
 		else if (key == "dol_path") g_dolPath = val;
 		else if (key == "audio") g_audio = !(val == "off" || val == "0" || val == "false" || val == "no");
+		else if (key == "remote_speaker") g_remoteSpeaker = std::max(0, std::min(127, std::atoi(val.c_str())));
 		else if (key == "volume") g_volume = std::max(0.0f, std::min(100.0f, (float)std::atof(val.c_str()))) / 100.0f;
 		else std::fprintf(stderr, "%s: unknown key '%s'\n", cfgPath.c_str(), key.c_str());
 	}
@@ -59,6 +61,7 @@ void Init(const std::string& cfgPath)
 bool AudioEnabled() { return g_audio; }
 void SetAudioEnabled(bool on) { g_audio = on; }
 float Volume() { return g_volume; }
+int RemoteSpeakerVolume() { return g_remoteSpeaker; }
 
 const std::string& DolPath() { return g_dolPath; }
 const std::string& DataRoot() { return g_dataRoot; }

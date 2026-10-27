@@ -1,4 +1,5 @@
 #include "kingdom/game/g02/cTaskPause.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "kingdom/game/g02/cG02RallyXSys.hpp"
@@ -13,7 +14,7 @@ cTaskPause::cTaskPause()
 	SetName("g02::cTaskPause");
 	const bool multi = KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsMulti();   // 0x800c5ca0
 	RegistData("COMMON_ANITA_PAUSE", "COMMON_ANITA_POINTER", nullptr);   // 0x80147a64
-	nMenuJob() = multi ? 0x0c800000u : 0x0c200000u;                      // +0x1c8
+	nMenuJob() = multi ? job::RALLYX_MULTI_MENU : job::RALLYX_MENU;                      // +0x1c8
 }
 
 // DOL 0x8012734c

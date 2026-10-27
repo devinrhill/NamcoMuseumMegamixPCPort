@@ -147,7 +147,20 @@ cTaskGrobdaEnemy::cTaskGrobdaEnemy(uint type)
 	m_bEnter = true;
 }
 
-// DOL 0x800271e8 (Term)
+// DOL 0x800271e8 (Term, run by cTaskKingdom::TermOnce when the job releases the task): each handle is detached (FUN_8008a508(.., 1)) and
+// destroyed (vtable +0x10 with 1)
+void cTaskGrobdaEnemy::ReleaseTerm()
+{
+	for (kingdom::cKingdomPtkHnd** h : {&m_pSpark, &m_pFragment})
+		if (*h != nullptr)
+		{
+			(*h)->Detach(true);
+			delete *h;
+			*h = nullptr;
+		}
+	cTaskGrobdaModel::ReleaseTerm();
+}
+
 cTaskGrobdaEnemy::~cTaskGrobdaEnemy()
 {
 	delete m_pSpark;
@@ -826,10 +839,25 @@ void cTaskGrobdaEnemyTank::Phase5()
 		}
 }
 
-// DOL 0x8002c7d0
+// DOL 0x8002c7d0; the colours' own Execute (Orange 0x8002e464, Purple 0x8002eb34, Yellow 0x8002f108) are the same wrapper around it: the
+// KingSys +0xa40 / +0x1b4 test only gates get_pad1(0) (0x800219bc, an address computation whose result is dropped).
+// Orange / Yellow's Term: cTaskGrobdaEnemyTank::ReleaseTerm.
 bool cTaskGrobdaEnemyTank::Execute(cJetTask* pParam)
 {
 	return cTaskGrobdaEnemy::Execute(pParam);
+}
+
+// DOL 0x8002e404 / 0x8002f0a8 (Orange / Yellow Term): detach the shield +0xc8c (FUN_8008a508(.., 1)), destroy it, clear it; then the
+// enemy's Term (the DOL dtor chain)
+void cTaskGrobdaEnemyTank::ReleaseTerm()
+{
+	if (m_pShield != nullptr)
+	{
+		m_pShield->Detach(true);
+		delete m_pShield;
+		m_pShield = nullptr;
+	}
+	cTaskGrobdaEnemy::ReleaseTerm();
 }
 
 // DOL 0x8002e4c4 / 0x8002f168 (Orange / Yellow): a hit that does not kill shows the shield for 120 ms

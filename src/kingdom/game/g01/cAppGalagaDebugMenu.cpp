@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cAppGalagaDebugMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
@@ -11,7 +12,7 @@ namespace kingdom::game::g01
 {
 namespace
 {
-constexpr uint JOB_MENU = 0x0b200000u, JOB_STAGE = 0x0b300000u;
+constexpr uint JOB_MENU = job::GALAGA_MENU, JOB_STAGE = job::GALAGA_GAME;
 // 0x8036f540: label of each stage (index = stage, 0 unused)
 const char* const STAGE_NAME[11] = {nullptr, "World1 Stage1", "World1 Stage2", "World1 Stage3", "World2 Stage1", "World2 Stage2",
                                     "World2 Stage3", "World3 Stage1", "World3 Stage2", "World3 Stage3", "World3 Boss"};
@@ -21,7 +22,7 @@ const char* const STAGE_NAME[11] = {nullptr, "World1 Stage1", "World1 Stage2", "
 cAppGalagaDebugMenu::cAppGalagaDebugMenu()
 {
 	SetName("Galaga Debug Menu");
-	SetMenu("Galaga", {{"MENU", JOB_MENU}, {"STAGE", JOB_STAGE}, {"EXIT", 0x0bf00000u}});
+	SetMenu("Galaga", {{"MENU", JOB_MENU}, {"STAGE", JOB_STAGE}, {"EXIT", job::GALAGA_TERM}});
 	m_nPlayer = 1;
 	const int stage = KingdomGlobal::GalagaSys->nStage();
 	m_nStage = stage > 10 ? 10 : stage;

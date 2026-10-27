@@ -48,7 +48,7 @@ cTaskEnemy::cTaskEnemy(cRallyUnitHost* pHost, int nColour, int nIndex) : cTaskUn
 	InitEnemy();
 }
 
-// (the DOL deleting dtor 0x8006f784 runs after Term; natively non-app tasks never run Term, so the dtor frees what Term would)
+// (the DOL deleting dtor 0x8006f784 runs after Term; natively tasks are never deleted: Term runs through cTaskKingdom::TermOnce, this dtor is kept for completeness)
 cTaskEnemy::~cTaskEnemy()
 {
 	delete m_pEnemyParam;

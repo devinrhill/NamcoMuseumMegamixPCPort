@@ -15,6 +15,9 @@
 // +0x4c AddHitArray 0x80108798.
 namespace kingdom::game::g02
 {
+// the MENU_LIGHT_BG / MENU_LIGHT_MODEL lights and the scene camera of the menu (shared with the multiplayer menu app)
+void SetupMenuScene();
+
 class cTaskConsMenuArrow;
 class cTaskConsMenuBack;
 class cTaskConsMenuBar;

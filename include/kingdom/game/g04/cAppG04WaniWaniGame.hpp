@@ -22,7 +22,7 @@ namespace kingdom { class cTaskFade; }
 //   stops); the timer's end -> 6   4 the retry's fade in -> 5   5 READY (m04se_12start, m04se_01tabetyau, READY at 0, GO + m04bgm_Game1 at 120,
 //   the game at 180)   6 time up (m04se_15result) -> 7   7 the result (the tortoise turns, the rank board) -> 8 (alone) / 0xb   8 Play again?
 //   -> the game job again with sys +0x164 (yes) or not (no)   9 fade out, save the record, the next job   10 / 0xb the multiplayer end.
-// NOT PORTED: multiplayer (job 230's consoles, Mii icons), the lens flare and the birds, the remote speaker / rumble, the Nunchuk check.
+// NOT PORTED: the Mii icons (+0x2b0) and the Mii listeners (out of scope). The remote speaker plays through WiiSnd::PlayRemote.
 namespace kingdom::game::g04
 {
 class cTaskBG;
@@ -56,6 +56,11 @@ class cTaskPause : public kingdom::game::cTaskGameBasePause
 public:
 	cTaskPause();
 	~cTaskPause() override;
+
+private:
+	// the DOL hands the base pause cG04WaniWaniSys +4 (sWaniMatching) in multiplayer; natively the converted sMatchingData built from it
+	kingdom::sMatchingData m_Matching;
+	kingdom::sMatchingData::InfoData m_Info[4];
 };
 
 class cAppG04WaniWaniGame : public kingdom::cAppKingdom
@@ -65,7 +70,7 @@ public:
 	cAppG04WaniWaniGame();
 	~cAppG04WaniWaniGame() override;
 	void Init();                       // DOL 0x80090fb8
-	void Free() override;              // DOL 0x80094480 (partial)
+	void Free() override;              // DOL 0x80094480 / 0x80092018
 	bool Execute(cJetTask* pParam) override;   // DOL 0x8009219c
 
 	static cAppG04WaniWaniGame* Instance() { return s_pApp; }   // the DOL reaches the app through KingSys +0xa40 / the Execute parameter

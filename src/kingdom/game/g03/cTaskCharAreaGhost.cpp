@@ -317,7 +317,8 @@ bool cTaskCharAreaGhost::Execute(cJetTask* pParam)
 				SetAnmState(1u);
 				pHitChar(0)->FlagOff(2u);
 			}
-			if (pModel(nType())->GetFrameMaxAnmChr(0u) < pModel(nType())->GetFrameAnmChr(0u))
+			// "max <= frame": the port's one-time clips stop at max (the DOL's "max < frame" never fired: ghosts froze in the ijike start, state 6)
+			if (pModel(nType())->GetFrameMaxAnmChr(0u) <= pModel(nType())->GetFrameAnmChr(0u))
 			{
 				SetAnmState(2u);
 				nStat() = 7;
@@ -499,6 +500,7 @@ bool cTaskCharAreaGhost::Execute(cJetTask* pParam)
 	return cTaskCharEnemy::Execute(pParam);
 }
 
+// DOL 0x8015c874 (the Visible / Invisible toggles are the C#'s; the DOL only submits the current model)
 void cTaskCharAreaGhost::Draw(int nStatus, cJetTask* pParam)
 {
 	Matrix4x4 m;
@@ -509,6 +511,7 @@ void cTaskCharAreaGhost::Draw(int nStatus, cJetTask* pParam)
 	::Constants::jetGeoMtx44to34(_discard6, m);
 	DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 	DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
+	pCurrentModel()->UpdateMatrix();   // DOL 0x8015ca20: the current model's push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 	if (nStat() != 11)
 	{
 		if (nType() == 0)

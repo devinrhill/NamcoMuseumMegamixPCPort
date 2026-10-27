@@ -52,6 +52,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	uint AreaCheck(Vector4 trans, float radius, Vector4& outWaterForce, float& outWaterHeight);
+
+protected:
+	void ReleaseTerm() override { cTaskWater::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

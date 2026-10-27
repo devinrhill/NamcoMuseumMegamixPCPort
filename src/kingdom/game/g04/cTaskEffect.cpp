@@ -53,7 +53,7 @@ bool cTaskEffectBird::Execute(cJetTask* pParam)
 	if (m_nWait == 0)
 	{
 		m_Hnd.Generate(0x16u, true, true, true, 0.0f, m_vPos);   // 0x80021a9c: PTK_EFFECT23_TORI01
-		std::mt19937 rnd(0x20061206u);                            // 0x801412b4; genrand 0x8014146c (UNVERIFIED: = std::mt19937)
+		std::mt19937 rnd(0x20061206u);                            // 0x801412b4; genrand 0x8014146c (= std::mt19937: init 0x6c078965, matrix 0x9908b0df, tempering 0x9d2c5680 / 0xefc60000 checked)
 		const uint r = (uint)rnd();
 		m_nWait = (int)((r % (m_nRange != 0 ? m_nRange : 1u) + m_nMin) * 60u);
 	}

@@ -145,6 +145,15 @@ bool cTaskMap::PlayerStart(int n, int& x, int& z) const
 	return false;
 }
 
+// DOL 0x80079fe4 / 0x8007a004 / 0x8007a024 / 0x8007a044: the idx-th spawn point of a record type into the item's cell
+bool cTaskMap::SpawnCell(int nRecType, int nIdx, int cell[2]) const
+{
+	if ((unsigned)nRecType >= 6u || nIdx < 0 || (std::size_t)nIdx >= m_Spawn[nRecType].size()) return false;
+	cell[0] = m_Spawn[nRecType][(std::size_t)nIdx].first;
+	cell[1] = m_Spawn[nRecType][(std::size_t)nIdx].second;
+	return true;
+}
+
 // DOL 0x80079ad0
 int cTaskMap::nFlagTotal() const
 {
@@ -468,7 +477,8 @@ void cTaskMap::PlaceObjects()
 	u32 nCand = 0;
 	for (u32 i = 0; i < count; i++)
 		if (BE32(m_pObj + off + i * 0x40) == 6) nCand++;
-	// multiplayer: the count comes from the sys (FUN_800c5950) and FUN_8007765c places them; not ported
+	const bool multi = sys != nullptr && sys->IsMulti();
+	if (multi) nFlag = (u32)std::max(0, sys->nFlagCount());   // the count comes from the sys (0x800c5950)
 	// a random order of the candidates ({index, rand} insertion-sorted by rand), then the first nFlag + 1 sorted by index (the DOL's loop
 	// reaches one entry past nFlag)
 	std::vector<std::pair<u32, u32>> order;
@@ -479,13 +489,44 @@ void cTaskMap::PlaceObjects()
 	}
 	const std::size_t sorted = std::min<std::size_t>(order.size(), (std::size_t)nFlag + 1);
 	std::sort(order.begin(), order.begin() + (std::ptrdiff_t)sorted, [](const auto& a, const auto& b) { return a.first < b.first; });
+	// multiplayer (DOL 0x8007765c): the spawn points of the four item kinds (record types 3 / 4 / 2 / 5, counted first), one random point of each
+	// kind gets its item now (a random index per list, drawn in the order paint, armor, fuel, smoke), the other points only respawn them later
+	int chosen[6] = {};
+	if (multi)
+	{
+		for (auto& l : m_Spawn) l.clear();
+		for (u32 i = 0; i < count; i++)
+		{
+			const u8* rec = m_pObj + off + i * 0x40;
+			const u32 type = BE32(rec);
+			if (type < 2 || type > 5) continue;
+			int x = 0, z = 0;
+			ObjCell(rec, x, z);
+			m_Spawn[type].push_back({x, z});
+		}
+		for (int t : {3, 4, 2, 5}) chosen[t] = m_Spawn[t].empty() ? -1 : (int)((u32)std::rand() % (u32)m_Spawn[t].size());
+		m_nPlayer = m_nEnemy = 0;
+	}
 	u32 cand = 0, placed = 0;
 	std::size_t next = 0;
+	int seen[6] = {};
 	for (u32 i = 0; i < count; i++)
 	{
 		const u8* rec = m_pObj + off + i * 0x40;
 		const u32 type = BE32(rec);
 		bool use = true;
+		if (multi && type != 6)
+		{
+			// FUN_80078020: the chosen record of an item kind creates its multiplayer item (record 2 -> 0x26, 3 -> 0x27, 4 -> 0x29, 5 -> 0x28)
+			if (type >= 2 && type <= 5 && seen[type]++ == chosen[type])
+			{
+				int cx = 0, cz = 0;
+				ObjCell(rec, cx, cz);
+				static const int ITEM[6] = {0, 0, 0x26, 0x27, 0x29, 0x28};
+				if (cx >= 0 && cz >= 0 && cx < nWidth() && cz < nHeight()) m_pGimmickMan->Create(ITEM[type], cx, cz, 0);
+			}
+			continue;
+		}
 		if (type == 6)
 		{
 			use = false;

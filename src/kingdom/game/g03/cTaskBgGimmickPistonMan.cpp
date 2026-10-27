@@ -31,7 +31,7 @@ void cTaskBgGimmickPistonMan::Term()
 	{
 		if (item->pTaskBgGimmick != nullptr)
 		{
-			item->pTaskBgGimmick->Term();
+			item->pTaskBgGimmick->TermOnce();
 		}
 	}
 }

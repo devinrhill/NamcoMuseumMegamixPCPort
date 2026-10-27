@@ -136,6 +136,9 @@ public:
 	Vector4& vRotate();
 
 	float& vRotate(int n);
+
+protected:
+	void ReleaseTerm() override { cTaskPanel::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

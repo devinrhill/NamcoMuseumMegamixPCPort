@@ -33,8 +33,11 @@ private:
 	bool m_bObjA50Flag0{};
 	bool m_bUnkA95{};            // DOL cKingdomSys + 0xa95, read by cAppSaveLoad
 	void* m_pUnkA90{};           // DOL cKingdomSys + 0xa90, cAppSaveLoad stores the save manager here on its error screens
-	cKingdomSave* m_pSave{};     // DOL cKingdomSys + 0xa8c (created by the cKingdomSys init; creation site not traced yet)
+	cKingdomSave* m_pSave{};     // DOL cKingdomSys + 0xa8c (created in the cKingdomSys ctor at 0x8000ac08: cKingdomSave ctor 0x8000b490)
 	bool m_bObjA50Flag1{};
+	int m_nRsoGame{};            // DOL cKingdomSys + 0xa70: the arcade game index the RSO jobs run (0..8 vol 1, 9..17 vol 2)
+	int m_nRsoA74{};             // DOL cKingdomSys + 0xa74 (the RSO debug menu stores 2; meaning not traced)
+	bool m_bRsoResult[3]{};      // DOL cKingdomSys + 0xa92..0xa94: the module's result flags (job 143 hands them to FUN_8009dcb0)
 
 public:
 	cKingdomSys(); // DOL 0x8000a344: names the task "cKingdomSys" (string 0x803684e0)
@@ -50,7 +53,10 @@ public:
 	// DOL 0x8000d8cc / 0x8000d8d4: the save manager's block copies (cKingdomSave::ReadBlock / WriteBlock); false without a manager
 	bool LoadGameData(uint block, void* dst, uint size);
 	bool SaveGameData(uint block, const void* src, uint size);
-	bool& bUnkA95() { return m_bUnkA95; }
+	bool& bUnkA95() { return m_bUnkA95; }   // also set by cAppRSOOriginal when the module returned result flags
+	int& nRsoGame() { return m_nRsoGame; }
+	int& nRsoA74() { return m_nRsoA74; }
+	bool* bRsoResult() { return m_bRsoResult; }
 	void*& pUnkA90() { return m_pUnkA90; }
 	bool bObjA50Flag1() const { return m_bObjA50Flag1; }
 

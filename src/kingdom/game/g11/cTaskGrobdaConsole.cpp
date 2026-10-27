@@ -602,6 +602,165 @@ bool cTaskGrobdaConsoleGage::Execute(cJetTask* pParam)
 	return cTaskGrobdaConsoleBase::Execute(pParam);
 }
 
+// ---- Icon (multiplayer) ----
+
+// DOL 0x8012f1b4
+cTaskGrobdaConsoleIcon::cTaskGrobdaConsoleIcon(int player)
+{
+	SetName("cTaskGrobdaConsoleIcon");
+	m_nMode = 0;
+	m_nPlayer = player;
+	pAnita(0)->RegistData("m11c_game01.anp");
+	SetVisible(0, false);
+	// + the cTaskFaceIcon child (+0x1d0, hidden: +0x7c = 0) with the player's Mii (sys player block 0x8000ed90 +0x44 / +0x48), at layer 0
+	// pattern player + 10, scale (0.5, 0.5): NOT PORTED (RFL)
+}
+
+// DOL 0x8012f5d0
+void cTaskGrobdaConsoleIcon::Start()
+{
+	m_nMode = 1;
+	pAnita(0)->SetAnimNo(m_nPlayer * 3 + 0x4f, true);
+	SetVisible(0, true);
+}
+
+// DOL 0x8012f644
+void cTaskGrobdaConsoleIcon::End()
+{
+	m_nMode = 3;
+	pAnita(0)->SetAnimNo(m_nPlayer * 3 + 0x51, true);
+	// face icon +0x7c = 0 (NOT PORTED)
+}
+
+// DOL 0x8012f498
+bool cTaskGrobdaConsoleIcon::Execute(cJetTask* pParam)
+{
+	if (!Running()) return true;
+	if (m_nMode == 1)
+	{
+		if (IsAnimEnd(0))
+		{
+			m_nMode = 2;
+			pAnita(0)->SetAnimNo(m_nPlayer * 3 + 0x50, true);
+			// face icon +0x7c = 1 (NOT PORTED)
+		}
+	}
+	else if (m_nMode == 3 && IsAnimEnd(0))
+	{
+		m_nMode = 4;
+		SetVisible(0, false);
+	}
+	return cTaskGrobdaConsoleBase::Execute(pParam);
+}
+
+// ---- Result (multiplayer) ----
+
+// DOL 0x80131288
+cTaskGrobdaConsoleResult::cTaskGrobdaConsoleResult()
+{
+	SetName("cTaskGrobdaConsoleResult");
+	m_nMode = 0;
+	m_bDraw = false;
+	m_nWait = 0;
+	for (uint i = 0; i < 5; i++)
+	{
+		pAnita(i)->RegistData("m11c_game01.anp");
+		SetVisible(i, false);
+	}
+	// + a cTaskFaceIcon child (+0x1dc) for the winners' Miis: NOT PORTED (RFL)
+}
+
+// DOL 0x80131604
+void cTaskGrobdaConsoleResult::Start(const int* scores)
+{
+	const uint count = (uint)cG11GrobdaSys::Instance()->nPlayer();
+	m_nMode = 1;
+	int top = 0;
+	for (uint i = 0; i < count; i++)
+		if (top < scores[i]) top = scores[i];
+	m_vWinner.clear();
+	for (uint i = 0; i < count; i++)
+		if (scores[i] == top) m_vWinner.push_back((int)i);
+	const uint winners = (uint)m_vWinner.size();
+	pAnita(0)->SetAnimNo(0x5b, true);
+	SetVisible(0, true);
+	if (count == winners)
+	{
+		m_bDraw = true;
+		pAnita(1)->SetAnimNo(0x40, true);
+		SetVisible(1, true);
+	}
+	else
+	{
+		pAnita(1)->SetAnimNo(0x3d, true);
+		SetVisible(1, true);
+		for (uint i = 0; i < winners; i++)
+		{
+			pAnita(i + 2)->SetAnimNo(m_vWinner[i] * 3 + 0x43, true);
+			PlaceLayer(i + 2, i, (int)(winners + 0x16), false);   // FUN_80014408(anita, anita +0x400, i, winners + 0x16)
+			SetVisible(i + 2, true);
+			// the winner's Mii face at layer i pattern winners + 0x19, scale 0.5: NOT PORTED
+		}
+	}
+}
+
+// DOL 0x80131d7c
+void cTaskGrobdaConsoleResult::Hold()
+{
+	m_nMode = 2;
+	m_nWait = 180;   // DAT_80477ed8
+	pAnita(0)->SetAnimNo(0x5c, true);
+	if (!m_bDraw)
+	{
+		pAnita(1)->SetAnimNo(0x3e, true);
+		for (uint i = 0; i < m_vWinner.size(); i++) pAnita(i + 2)->SetAnimNo(m_vWinner[i] * 3 + 0x44, true);   // + face icon i shown
+	}
+	else
+		pAnita(1)->SetAnimNo(0x41, true);
+}
+
+// DOL 0x80131c7c
+void cTaskGrobdaConsoleResult::End()
+{
+	m_nMode = 3;
+	pAnita(0)->SetAnimNo(0x5d, true);
+	if (!m_bDraw)
+	{
+		pAnita(1)->SetAnimNo(0x3f, true);
+		for (uint i = 0; i < m_vWinner.size(); i++) pAnita(i + 2)->SetAnimNo(m_vWinner[i] * 3 + 0x45, true);   // + face icon i hidden
+	}
+	else
+		pAnita(1)->SetAnimNo(0x42, true);
+}
+
+// DOL 0x8013147c
+bool cTaskGrobdaConsoleResult::Execute(cJetTask* pParam)
+{
+	if (!Running()) return true;
+	if (m_nMode == 1)
+	{
+		bool end = true;
+		for (uint i = 0; end && i < 3; i++) end = IsAnimEnd(i);
+		if (end) Hold();
+	}
+	else if (m_nMode == 2)
+	{
+		if (--m_nWait < 0) End();   // vtable +0x4c
+	}
+	else if (m_nMode == 3)
+	{
+		bool end = true;
+		for (uint i = 0; end && i < 3; i++) end = IsAnimEnd(i);
+		if (end)
+			for (uint i = 0; i < 5; i++)
+			{
+				m_nMode = 4;
+				SetVisible(i, false);
+			}
+	}
+	return cTaskGrobdaConsoleBase::Execute(pParam);
+}
+
 // ---- Manager ----
 
 // DOL 0x8012f7c8 (single player branch; priorities as the builder sets them)
@@ -626,15 +785,27 @@ cTaskGrobdaConsoleManager::cTaskGrobdaConsoleManager(int nPlayer)
 		m_pGage[i]->nDrawPriority(0x80000005u);
 		ConnectChild(m_pGage[i]);
 	}
-	if (!cG11GrobdaSys::Instance()->IsMulti())   // DOL 0x80130008: the high score panel (+0x214) is single player only; multi builds the result console (0x80131288, NOT PORTED) and per-player icons (0x8012f1b4, NOT PORTED)
+	if (!cG11GrobdaSys::Instance()->IsMulti())   // FUN_8000ed74: high score (+0x210) and combo (+0x214) are single player only
 	{
 		m_pHigh = new cTaskGrobdaConsoleHighScore();
 		m_pHigh->nDrawPriority(0x80000004u);
 		ConnectChild(m_pHigh);
+		m_pCombo = new cTaskGrobdaConsoleCombo();
+		m_pCombo->nDrawPriority(0x80000007u);
+		ConnectChild(m_pCombo);
 	}
-	m_pCombo = new cTaskGrobdaConsoleCombo();
-	m_pCombo->nDrawPriority(0x80000007u);
-	ConnectChild(m_pCombo);
+	else   // the result console (+0x1dc, priority 0x8000000a; its face icon 0x8000000b) and an icon panel per player (+0x1e0.., 0x80000002)
+	{
+		m_pResult = new cTaskGrobdaConsoleResult();
+		m_pResult->nDrawPriority(0x8000000au);
+		ConnectChild(m_pResult);
+		for (int i = 0; i < 4 && i < nPlayer; i++)
+		{
+			m_pIcon[i] = new cTaskGrobdaConsoleIcon(i);
+			m_pIcon[i]->nDrawPriority(0x80000002u);
+			ConnectChild(m_pIcon[i]);
+		}
+	}
 	pAnita(0)->RegistData("m11c_game01.anp");
 	SetVisible(0, false);
 	nDrawPriority(0x80000001u);
@@ -651,6 +822,7 @@ void cTaskGrobdaConsoleManager::Start()
 	{
 		if (m_pScore[i]) m_pScore[i]->Start();
 		if (m_pGage[i]) m_pGage[i]->Start();
+		if (m_pIcon[i]) m_pIcon[i]->Start();
 	}
 	if (m_pHigh) m_pHigh->Start();
 }
@@ -665,6 +837,7 @@ void cTaskGrobdaConsoleManager::End()
 	{
 		if (m_pScore[i]) m_pScore[i]->End();
 		if (m_pGage[i]) m_pGage[i]->End();
+		if (m_pIcon[i]) m_pIcon[i]->End();
 	}
 	if (m_pHigh) m_pHigh->End();
 }
@@ -689,7 +862,7 @@ bool cTaskGrobdaConsoleManager::IsReadyDone() const
 	return m_pReadyGo->Mode() > 2 && m_pFinish->Mode() < 1;
 }
 
-// DOL 0x80130778 (the multiplayer branches, the Result task +0x1dc and mode 4 are NOT PORTED)
+// DOL 0x80130778
 bool cTaskGrobdaConsoleManager::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -720,8 +893,18 @@ bool cTaskGrobdaConsoleManager::Execute(cJetTask* pParam)
 		if (m_pFinish->Mode() == 4)
 		{
 			if (!cG11GrobdaSys::Instance()->IsMulti()) End();   // vtable +0x4c
-			// multiplayer: the Result task (+0x1dc) is NOT PORTED
+			else
+			{
+				m_nMode = 4;
+				int scores[4];
+				for (int i = 0; i < 4; i++) scores[i] = m_pScore[i] != nullptr ? m_pScore[i]->nScore() : -1;   // +0x200.. +0x204
+				m_pResult->Start(scores);   // FUN_80131604
+			}
 		}
+	}
+	else if (m_nMode == 4)
+	{
+		if (m_pResult->Mode() == 4) End();   // vtable +0x4c
 	}
 	else if (m_nMode == 5)
 	{

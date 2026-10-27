@@ -5,6 +5,7 @@
 #include "GamePad.hpp"
 #include "kingdom/cKingdomAnita.hpp"
 #include "kingdom/cKingdomCSV.hpp"
+#include "kingdom/game/g02/cPBView.hpp"
 #include "kingdom/game/g02/cTaskConsole.hpp"
 
 // Rally-X Remix (g02) the mud splats on the screen (kingdom::game::g02::cTaskConsMud). Ported from main.dol (no C# exists for Rally-X).
@@ -222,6 +223,8 @@ bool cTaskConsMud::Execute(cJetTask* pParam)
 void cTaskConsMud::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_bDraw) return;
+	ScopedPBView view(m_nPlayer);   // the split screen: the splats of player i are drawn in camera i's viewport (cTaskPBAnita camera +0x1b8)
+	if (!view.ok()) return;
 	cTaskAnita::Draw(nStatus, pParam);
 }
 

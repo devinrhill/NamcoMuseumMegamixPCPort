@@ -44,6 +44,9 @@ public:
 	void Draw(int nState, cJetTask* pParam) override;
 
 	bool AreaCheck(sCameraSetData pData);
+
+protected:
+	void ReleaseTerm() override { cTaskCameraSet::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

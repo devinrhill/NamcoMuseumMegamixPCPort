@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cTaskPanelMan.hpp"
+#include "platform/devtools_g07edit.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
 
 #include <iterator>
@@ -128,7 +129,7 @@ void cTaskPanelMan::Init()
 	if (!Constants::IS_LANPLAY())
 	{
 		uint stageNum = KingdomGlobal::MotosSys->nStageIdx();
-		cParamStage* cParamStage2 = new cParamStage("CSV_STAGE_PARAM_NORMAL_PARAM", stageNum);
+		cParamStage* cParamStage2 = new cParamStage(devtools::G07LevelCsv("CSV_STAGE_PARAM_NORMAL_PARAM"), stageNum); // devtools: dev window difficulty (not 1:1)
 		m_MeteoInfo = cParamStage2->pMeteoInfo();
 		m_SlopeInfo = cParamStage2->pSlopeInfo();
 		m_pMeteoTask = new cTaskCharMeteo();
@@ -148,12 +149,12 @@ void cTaskPanelMan::Term()
 	{
 		if (m_pTaskPanels[i] != nullptr)
 		{
-			m_pTaskPanels[i]->Term();
+			m_pTaskPanels[i]->TermOnce();
 		}
 	}
 	if (m_pMeteoTask != nullptr)
 	{
-		m_pMeteoTask->Term();
+		m_pMeteoTask->TermOnce();
 	}
 }
 

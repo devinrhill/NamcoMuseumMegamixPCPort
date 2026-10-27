@@ -20,6 +20,9 @@ public:
 	void Term() override;
 
 	bool Create(uint no) override;
+
+protected:
+	void ReleaseTerm() override { cTaskCharItemPower::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

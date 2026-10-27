@@ -209,6 +209,7 @@ void BuildMaterial(const wii::Mdl0Material& mat, gfx::MaterialDraw& md, int texg
 			auto s11 = [](std::uint32_t v) { return (float)((int)(v & 0x7ff) - ((v & 0x400) ? 0x800 : 0)) / 1024.0f; };
 			const int scale = (int)(a >> 22 & 3) | (int)(b >> 22 & 3) << 2 | (int)(c >> 22 & 3) << 4;
 			const float f = std::ldexp(1.0f, scale - 17);
+			md.indScale[k] = f;
 			md.indMtx[k][0][0] = s11(a) * f;       md.indMtx[k][1][0] = s11(a >> 11) * f;   // ma, mb (column 0)
 			md.indMtx[k][0][1] = s11(b) * f;       md.indMtx[k][1][1] = s11(b >> 11) * f;   // mc, md
 			md.indMtx[k][0][2] = s11(c) * f;       md.indMtx[k][1][2] = s11(c >> 11) * f;   // me, mf
@@ -220,10 +221,12 @@ void BuildMaterial(const wii::Mdl0Material& mat, gfx::MaterialDraw& md, int texg
 		std::uint32_t cmd = 0;
 		bp(0x10 + s, cmd);
 		const int bt = cmd & 3, mtx = cmd >> 9 & 15;
-		// a stage uses its indirect stage when it has one and something to do with it (a matrix, a wrap or adding the previous offset)
-		const bool used = bt < md.numInd && (mtx != 0 || (cmd >> 13 & 0x3f) != 0 || (cmd >> 20 & 1));
+		// a stage uses its indirect stage when it has one and something to do with it (a matrix, a wrap, adding the previous offset or bump
+		// alpha: Dolphin's TevStageIndirect::IsActive)
+		const bool used = bt < md.numInd && (mtx != 0 || (cmd >> 13 & 0x3f) != 0 || (cmd >> 20 & 1) || (cmd >> 7 & 3));
 		t.ind = used ? (std::int8_t)(bt + 1) : 0;
 		t.ifmt = cmd >> 2 & 3; t.ibias = cmd >> 4 & 7; t.imtx = (std::int8_t)mtx; t.iwrap = cmd >> 13 & 0x3f; t.iaddprev = cmd >> 20 & 1;
+		t.ibump = used ? (std::int8_t)(cmd >> 7 & 3) : 0;
 		if (!used && (cmd >> 20 & 1)) { t.ind = 0; t.iaddprev = 1; }
 	}
 	if (md.numInd > 0 && std::getenv("MEGAMIX_IND_LOG"))   // debug: materials with indirect texture stages
@@ -326,10 +329,13 @@ void ModelDraw::SetPose(const std::vector<ChrLayer>& layers)
 		{
 			wii::BoneKey k;
 			if (l.anim == nullptr || l.weight <= 0 || !l.anim->Sample(n.name, l.frame, k)) continue;
-			// channels a layer does not animate contribute the bind value
-			const float* sc = k.hasScale ? k.scale : n.scale;
-			const float* tr = k.hasTrans ? k.trans : n.translate;
-			Quat lq = k.hasRotate ? EulerQuat(k.rotate) : EulerQuat(n.rotate);
+			// a channel the CHR0 node has no data for is the identity (scale 1, rotate 0, trans 0), NOT the bind value: g3d's
+			// ResAnmChr::GetAnmResult picks GetAnmResult_{,S,R,T,..} by the REQUIRE flags and fills the others with 1 / identity / 0
+			// (g3d_resanmchr.cpp); the model's value only comes back through ResNode::PatchChrAnmResult (USE_MODEL), which
+			// CalcWorld calls for the "ignore translation" case alone. Nodes the CHR0 does not list keep the bind pose (Sample fails).
+			const float* sc = k.scale;
+			const float* tr = k.trans;
+			Quat lq = EulerQuat(k.rotate);
 			float dot = lq[0] * qSum[0] + lq[1] * qSum[1] + lq[2] * qSum[2] + lq[3] * qSum[3];
 			if (dot < 0) for (float& v : lq) v = -v; // shortest way round
 			for (int c = 0; c < 3; c++) { sSum[c] += sc[c] * l.weight; tSum[c] += tr[c] * l.weight; }
@@ -541,6 +547,11 @@ void ModelDraw::Draw(const float world[16])
 					md.rigCol[i][k] = m_rig.rig[i].color[k];
 					md.rigSpec[i][k] = m_rig.rig[i].hasSpec ? m_rig.rig[i].spec[k] : 0.0f;
 					md.rigSpec[i][3] = m_rig.rig[i].hasSpec ? m_rig.rig[i].shininess : 0.0f;
+					md.rigPos[i][k] = m_rig.rig[i].pos[k];
+					md.rigPos[i][3] = m_rig.rig[i].type != 1 ? 1.0f : 0.0f;
+					md.rigSpotDir[i][k] = m_rig.rig[i].spotDir[k];
+					md.rigAttnA[i][k] = m_rig.rig[i].attnA[k];
+					md.rigAttnK[i][k] = m_rig.rig[i].attnK[k];
 				}
 			for (int k = 0; k < 3; k++) md.sceneAmb[k] = m_rig.numRig > 0 ? m_rig.ambient[k] : 1.0f;
 		}
@@ -580,12 +591,14 @@ void ModelDraw::Draw(const float world[16])
 		{
 			if (slot.mapId < 0 || slot.mapId > 3) continue;
 			std::string texName = slot.texName;
-			if (m_pat)
+			for (const PatLayer& l : m_pats)
 			{
-				const std::string p = m_pat->Sample(mat->name, slot.mapId, m_patFrame);
-				if (!p.empty()) texName = p;
+				const std::string p = l.anim->Sample(mat->name, slot.mapId, l.frame);
+				if (!p.empty()) { texName = p; break; }
 			}
 			md.tex[slot.mapId] = TextureFor(texName);
+			if (texName == "ramp16_tex") md.shadowRampMap = slot.mapId;     // the engine's shadow maps (cTaskScnRoot ctor 0x8009ac1c names them)
+			else if (texName == "depth_tex") md.shadowDepthMap = slot.mapId;
 			md.wrapS[slot.mapId] = (Wrap)slot.wrapS;
 			md.wrapT[slot.mapId] = (Wrap)slot.wrapT;
 		}
@@ -596,12 +609,14 @@ void ModelDraw::Draw(const float world[16])
 		for (int t = 0; t < mc.numTexGens; t++)
 		{
 			wii::TexSrt anm;
-			if (m_srt && m_srt->Sample(mat->name, t, wii::ClipFrame(m_srtFrame, m_srt->numFrame, m_srt->loops), anm))
-			{
-				wii::TexMatrix(m_srt->texMtxMode, anm, tm[t]);
-				hasTm[t] = true;
-			}
-			else hasTm[t] = StaticTexMatrix(*mat, t, tm[t]);
+			for (const SrtLayer& l : m_srts)
+				if (l.anim->Sample(mat->name, t, wii::ClipFrame(l.frame, l.anim->numFrame, l.anim->loops), anm))
+				{
+					wii::TexMatrix(l.anim->texMtxMode, anm, tm[t]);
+					hasTm[t] = true;
+					break;
+				}
+			if (!hasTm[t]) hasTm[t] = StaticTexMatrix(*mat, t, tm[t]);
 		}
 
 		const bool skinned = !m_skin.empty();

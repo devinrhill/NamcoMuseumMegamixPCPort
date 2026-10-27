@@ -83,6 +83,9 @@ protected:
 	int& Hp() { return m_n940; }              // +0x940
 	int& BaseScore() { return m_n944; }       // +0x944
 	int& ComboStep() { return m_n948; }       // +0x948
+
+protected:
+	void ReleaseTerm() override;   // DOL 0x800271e8 (Term: the spark / fragment handles)
 };
 
 // one level of EnmTank*Param.csv: rows 0..10 of a column
@@ -133,5 +136,8 @@ private:
 	kingdom::cKingdomPtkHnd* m_pShield{};   // +0xc8c (Orange / Yellow, slot 0x1e)
 	std::string m_sAnim[2][2];      // the registered clips (blend 0 / 1, chr / other)
 	uint m_nKindType{};
+
+protected:
+	void ReleaseTerm() override;   // Orange / Yellow Term 0x8002e404 / 0x8002f0a8 (the shield handle)
 };
 }

@@ -51,6 +51,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	bool HitCheck();
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickArrow::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -285,8 +285,8 @@ void cTaskCharPacman::Init()
 		}
 	}
 	SetType(0u);
-	SetState(0u);
-	SetAnmState(0u, 0u, 0u);
+	SetState(STATE_NORMAL);
+	SetAnmState(ANIME_STATE_NORMAL, 0u, 0u);
 	::Constants::jetGeoVecSet(vTrans(), 0.0f, 1.0f, 0.0f, 1.0f);
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
 	if (KingdomGlobal::PacnRollSys->IsRetry() && cAppG03PacnRollGame2->pTaskPoint()->nRetryIdx() >= 0)
@@ -391,751 +391,81 @@ void cTaskCharPacman::Term()
 	cTaskChar::Term();
 }
 
+// DOL 0x80164f3c (Execute, 0x3350 bytes). The port splits it into one function per mode (EProc) and, for ePROC_NORMAL, into the blocks of the
+// play step (NormalPlay); the statements run in the DOL's / the converted code's order.
+//
+// Terms used below:
+//   pHitObj(1) / pHitFace(1)  the BG object / face Pac-Man stands on (nullptr = in the air); index 0 is the wall he touches.
+//   vMove                      the speed added to vTrans each frame (by the collision push, cTaskCollision::CollisionPacman2BG).
+//   vAccel                     the stick force of this frame (set by Control).
+//   STATE_HIT_BG               asks the collision to push Pac-Man against the BG this frame; without it he does not move by vMove.
+//
+// Every mode runs the same three-part pattern of cTaskKingdom: on the first frame in the mode (step 0) the "enter" part runs, then the
+// "update" part runs every frame; when the update picked another mode (NextMode), the "leave" part runs at once and the step goes back to 0,
+// so the next mode starts with its own "enter" part on the next frame.
 bool cTaskCharPacman::Execute(cJetTask* pParam)
 {
-	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
-	if (Constants::IS_PAC_PAUSE() || cAppG03PacnRollGame2->IsNakajimaPause(this))
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	if (Constants::IS_PAC_PAUSE() || app->IsNakajimaPause(this))
 	{
 		return true;
 	}
-	int pad1No = InGamePadManager::GetPad1No();
+
+	// Remember last frame's position and state, then clear everything that is rebuilt each frame.
 	::Constants::jetGeoVecCopy(vTransOld(), vTrans());
 	::Constants::jetGeoVecCopy(vTransOld2(), vTrans());
 	SetStateOld(nState());
 	::Constants::jetGeoVecUnit(vAccel());
 	::Constants::jetGeoVecZero(vForceMove());
 	::Constants::jetGeoVecZero(m_vForceMoveStock);
-	OffState(32u);
-	OffState(64u);
-	OffState(1024u);
-	OffState(2048u);
+	OffState(STATE_BRAKE);
+	OffState(STATE_HIT_BG);
+	OffState(STATE_WATER_UP);
+	OffState(STATE_WATER_IN);
 	::Constants::jetGeoVecUnit(m_vWaterForce);
 	::Constants::jetGeoMtxIdentity(m_mAnm);
-	m_fStickX = (m_fStickY = 0.0f);
+	m_fStickY = 0.0f;
+	m_fStickX = 0.0f;
 	HitObjTick();
-	uint n = 0u;
-	if (nModeState(n) == 0)
+
+	switch (nModeState(0u))
 	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch2_0u:
-			nModeStep(n) = 1u;
-			cAppG03PacnRollGame2->pTaskCamera()->SetCameraType(3u);
-			goto _switch2_1u;
-		case 1u:
-		_switch2_1u:
-			vMove()[1] -= GetParam()->fGravityFall;
-			cAppG03PacnRollGame2->pTaskCollision()->PushBackChar(this);
-			OnState(64u);
-			if (cAppG03PacnRollGame2->IsStart())
-			{
-				NextMode(n, 1u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch2_2u;
-		case 2u:
-		_switch2_2u:
-			nModeStep(n) = 0u;
-			cAppG03PacnRollGame2->pTaskCamera()->SetCameraType(0u);
-			break;
-		}
+	case ePROC_START_WAIT:
+		ProcStartWait();
+		break;
+	case ePROC_NORMAL:
+		ProcNormal();
+		break;
+	case ePROC_HANG:
+		ProcHang();
+		break;
+	case ePROC_GEARS:
+		ProcGears();
+		break;
+	case ePROC_MISS:
+		ProcMiss();
+		break;
+	case ePROC_GOAL:
+		ProcGoal();
+		break;
+	case ePROC_JOY:
+		ProcJoy();
+		break;
+	case ePROC_HELL:
+		ProcHell();
+		break;
+	case ePROC_RETIRE:
+		ProcRetire();
+		break;
 	}
-	else if (1 == nModeState(n))
+
+	// Fell off the stage: keep falling (no collision) at most 0.6 per frame, stopped at y = -2000. Once the retry prompt is up he falls straight down.
+	if (IsState(STATE_HELL))
 	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
+		if (app->pTaskConsRetry()->IsVisible())
 		{
-		case 0u:
-		_switch3_0u:
-			nModeStep(n) = 1u;
-			goto _switch3_1u;
-		case 1u:
-		_switch3_1u:
-			if (pHitObj(1) != nullptr)
-			{
-				::Constants::jetGeoVecCopy(vLastFloorPos(), vTrans());
-			}
-			if (m_nHP == 0)
-			{
-				m_PtkHndPowerCookie->Detach(true);
-				SetState(256u);
-				NextMode(n, 4u);
-			}
-			else if (IsState(8192u))
-			{
-				NextMode(n, 3u);
-			}
-			else if (cAppG03PacnRollGame2->pTaskGoal()->IsGoal())
-			{
-				::Constants::jetGeoVecZero(vMove());
-				m_PtkHndPowerCookie->Detach(true);
-				SetState(0u);
-				NextMode(n, 6u);
-			}
-			else if (cAppG03PacnRollGame2->IsClear())
-			{
-				DisposeEffect();
-				Constants::PACN_APP()->StopIjikeSnd();
-				SetState(0u);
-				NextMode(n, 7u);
-			}
-			else if (IsState(16u))
-			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE092_PAC_SIGAMI);
-				NextMode(n, 2u);
-			}
-			else if (CheckFallArea())
-			{
-				cAppG03PacnRollGame2->pTaskCamera()->SetCameraType(2u);
-				SetState(384u);
-				NextMode(n, 4u);
-			}
-			else
-			{
-				bool flag = false;
-				if (CustomKingdomUtil::IF(m_vJumpVec[0]) || CustomKingdomUtil::IF(m_vJumpVec[1]) || CustomKingdomUtil::IF(m_vJumpVec[2]))
-				{
-					vMove()[0] += m_vJumpVec[0];
-					vMove()[1] = m_vJumpVec[1];
-					vMove()[2] += m_vJumpVec[2];
-					::Constants::jetGeoVecZero(m_vJumpVec);
-					OnState(16384u);
-					flag = true;
-				}
-				if (CustomKingdomUtil::IF(m_vAfterMove[0]) || CustomKingdomUtil::IF(m_vAfterMove[1]) || CustomKingdomUtil::IF(m_vAfterMove[2]))
-				{
-					::Constants::jetGeoVecAdd(vMove(), vMove(), m_vAfterMove);
-					::Constants::jetGeoVecZero(m_vAfterMove);
-				}
-				if (CustomKingdomUtil::IF(m_vFloorDashVec[0]) || CustomKingdomUtil::IF(m_vFloorDashVec[1]) || CustomKingdomUtil::IF(m_vFloorDashVec[2]))
-				{
-					::Constants::jetGeoVecAdd(vMove(), vMove(), m_vFloorDashVec);
-					::Constants::jetGeoVecZero(m_vFloorDashVec);
-				}
-				if (m_nNoBoundCnt != 0)
-				{
-					m_nNoBoundCnt--;
-				}
-				if (m_nNoDashCnt != 0)
-				{
-					m_nNoDashCnt--;
-				}
-				if (IsState(8u))
-				{
-					pHitChar(0)->FlagOff(4u);
-					if (++m_nDamageCnt >= m_ParamCommon->nDamageTime)
-					{
-						OffState(8u);
-						pHitChar(0)->FlagOn(4u);
-						m_nDamageCnt = 0u;
-						m_bBrink = false;
-					}
-					else if (m_nDamageCnt % 2 == 0)
-					{
-						m_bBrink = true;
-					}
-					else
-					{
-						m_bBrink = false;
-					}
-				}
-				Vector4 _discard4;
-				::Constants::jetGeoVecCopy(_discard4, vMove());
-				// WII (80165458): the idle count also requires pac-man to be standing still
-				// (|vMove|^2 < 2.350989e-38f, tested after Control()); the Unity port dropped that test.
-				bool bControl = Control();
-				if (!bControl && pHitObj(1) != nullptr && !pHitObj(1)->IsMove() && ::Constants::jetGeoVecInnerProduct(vMove(), vMove()) < 2.350989e-38f && !IsState(32u) && !m_bRollCheck)
-				{
-					m_nAloneCnt++;
-					if (m_nAloneCnt == m_ParamCommon->nWaitAnimeTime)
-					{
-						LookCameraRollMatrix();
-						if (Random::Range(0, 2) == 0)
-						{
-							SetAnmState(11u, 0u, 0u);
-						}
-						else
-						{
-							SetAnmState(12u, 0u, 0u);
-						}
-					}
-				}
-				else
-				{
-					if (m_nAloneCnt >= m_ParamCommon->nWaitAnimeTime)
-					{
-						SetAnmState(0u, 0u, 0u);
-					}
-					m_nAloneCnt = 0u;
-				}
-				uint num = nState();
-				switch (cAppG03PacnRollGame2->pTaskWater()->AreaCheck(vTrans(), fRadius(), m_vWaterForce, m_fWaterHeight))
-				{
-				case 1u:
-					OnState(1024u);
-					break;
-				case 2u:
-					OnState(2048u);
-					break;
-				}
-				if (pHitObj(1) == nullptr && !IsState(3072u) && vMove()[1] >= 0.2f && IsState(1u))
-				{
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE090_PAC_DASH_DANSA, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
-				}
-				if (IsState(2048u) && !CustomKingdomUtil::IF(num & 0x800) && nType() != 2)
-				{
-					if (::Constants::fabs(vMove()[0]) >= 0.1f || ::Constants::fabs(vMove()[1]) >= 0.05f || ::Constants::fabs(vMove()[2]) >= 0.1f)
-					{
-						// WII (8016556c): the splash effect is spawned every frame (the port: 1 frame in 3)
-						cAppG03PacnRollGame2->SetEffect(9u, vTrans(), Vector4());
-						m_splashPtcCnt++;
-						if (nullptr == m_SndHndInWater2)
-						{
-							m_nWaterCount = 0u;
-							m_SndHndInWater2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
-						}
-					}
-				}
-				else
-				{
-					m_splashPtcCnt = 0;
-				}
-				if (IsState(2048u) && !CustomKingdomUtil::IF(num & 0x800) && nType() == 2 && m_nHitKindFace != 5)
-				{
-					if (!m_PtkHndWaterIn->IsValid() && pHitFace(1) == nullptr)
-					{
-						cAppG03PacnRollGame2->SetEffect(9u, vTrans(), Vector4(), m_PtkHndWaterIn);
-					}
-					if (nullptr == m_SndHndInWater)
-					{
-						m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
-					}
-				}
-				if (IsState(1024u) && nType() != 2)
-				{
-					m_nWaterCount++;
-					if (!m_PtkHndRipple->IsValid())
-					{
-						cAppG03PacnRollGame2->SetEffect(8u, vTrans(), Vector4(), m_PtkHndRipple);
-					}
-					if ((::Constants::fabs(vMove()[0]) >= 0.05f || ::Constants::fabs(vMove()[1]) >= 0.2f || ::Constants::fabs(vMove()[2]) >= 0.05f) && (m_nWaterCount & 3) == 0)   // WII (80165638): every 4th frame; the port used % 6
-					{
-						cAppG03PacnRollGame2->SetEffect(8u, vTrans(), Vector4());
-					}
-					Vector4 v2;
-					::Constants::jetGeoVecCopy(v2, vMove());
-					v2[1] = 0.0f;
-					float num2 = ::Constants::jetGeoVecLength(v2);
-					if (nullptr == m_SndHndInWater && num2 >= 0.1f && nullptr == m_SndHndInWater2)
-					{
-						m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
-					}
-				}
-				if (IsState(2048u))
-				{
-					if (nullptr == m_SndHndSwim && m_fWaterHeight - vTrans()[1] >= 0.7f && nType() == 2)
-					{
-						m_SndHndSwim = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE038_SUITYUU);
-						cAppG03PacnRollGame2->SetEffect(11u, vTrans(), Vector4());
-					}
-				}
-				else if (nullptr != m_SndHndSwim)
-				{
-					SoundManager::get_SE()->Stop(m_SndHndSwim);
-				}
-				if (nType() == 1 && pHitObj(1) == nullptr && !IsState(1024u) && !IsState(2048u))
-				{
-					if (vMove()[1] < 0.0f)
-					{
-						if (!m_PtkHndWing->IsValid())
-						{
-							cAppG03PacnRollGame2->SetEffect(7u, vTrans(), Vector4(), m_PtkHndWing);
-						}
-						m_nEffWingCnt++;
-						if (m_nEffWingCnt % 3 == 0)
-						{
-							cAppG03PacnRollGame2->SetEffect(7u, vTrans(), Vector4());
-						}
-					}
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE052_KAKYUU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
-				}
-				else
-				{
-					SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE052_KAKYUU);
-				}
-				if (pHitFace(1) != nullptr && nullptr == m_SndHndOnField && m_nJumpCnt >= 10)
-				{
-					switch (nType())
-					{
-					case 0u:
-						m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE061_TYAKUTI1);
-						break;
-					case 1u:
-						m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE062_TYAKUTI2);
-						break;
-					case 2u:
-						m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE063_TYAKUTI3);
-						break;
-					}
-				}
-				// DOL 0x80165b9c: dash = the remote swung faster than PAD_SWING_SPEED_DASH (get_pad1(0) + 0x44 = KPAD acc_speed); the C# used the A button
-				if ((pHitObj(1) != nullptr || IsState(1024u)) && m_nNoDashCnt == 0 && m_ParamCommon->fPadSwingSpeedDash < GamePad::Get(0).accSpeed && !IsState(49u) && !IsStateOld(16u) && Constants::IsVecNormalize(vAccel()) && (CustomKingdomUtil::IF(m_fStickX) || CustomKingdomUtil::IF(m_fStickY)) && !IsStateOld(32768u))
-				{
-					OnState(1u);
-					m_nDashCnt = 0u;
-					if (m_nHitKindFace == 5)
-					{
-						m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH);
-					}
-					else
-					{
-						m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
-						m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE093_PAC_DASH2);
-					}
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
-					if (m_PtkHndDash->IsValid())
-					{
-						m_PtkHndDash->Detach(true);
-					}
-					cAppG03PacnRollGame2->SetEffect(0u, vTrans(), Vector4(), m_PtkHndDash);
-					Vector4 v3;
-					::Constants::jetGeoVecNormalize(v3, vAccel());
-					if (Constants::IsVecNormalize(vMove()))
-					{
-						float t = ::Constants::jetGeoVecLength(vMove());
-						::Constants::jetGeoVecScale(vMove(), v3, t);
-					}
-					else
-					{
-						::Constants::jetGeoVecCopy(vMove(), vAccel());
-					}
-					SetAnmState(2u, 5u, 0u);
-				}
-				if (IsState(1u))
-				{
-					if (!flag && (pHitObj(1) != nullptr || IsState(1024u)) && m_nDashCnt < GetParam()->nDashAccelTime)
-					{
-						Vector4 v4;
-						::Constants::jetGeoVecCopy(v4, vMove());
-						if (pHitObj(1) != nullptr)
-						{
-							Vector4 v5 = Vector4::zero;
-							bool flag2 = true;
-							Vector4 v6 = Vector4();
-							Vector4 v7;
-							if (m_pHitFaceFloorOld != nullptr)
-							{
-								::Constants::jetGeoVecTrans(v6, m_pHitObjFloorOld->pMtxRotate(), m_pHitFaceFloorOld->vNorm);
-								if (IsState(32768u) && v6[1] <= 0.002f)
-								{
-									::Constants::jetGeoVecScale(v7, v6, -0.1f);
-									v4[0] = v7[0];
-									v4[2] = v7[2];
-								}
-							}
-							Vector4 v8;
-							::Constants::jetGeoVecTrans(v8, pHitObj(1)->pMtxRotate(), pHitFace(1)->vNorm);
-							if (v8[1] < 0.002f)
-							{
-								flag2 = false;
-							}
-							else if (m_pHitFaceFloorOld != nullptr && m_pHitFaceFloorOld != pHitFace(1))
-							{
-								float num3 = ::Constants::jetGeoVecInnerProduct(v6, v8);
-								if (0.6f > num3)
-								{
-									flag2 = false;
-								}
-							}
-							if (flag2)
-							{
-								Vector4 v9;
-								::Constants::jetGeoVecTrans(v9, pHitObj(1)->pMtxOld(), pHitFace(1)->vVrt[0]);
-								Vector4 v10;
-								::Constants::jetGeoVecTrans(v10, pHitObj(1)->pMtxRotateOld(), pHitFace(1)->vNorm);
-								::Constants::jetGeoVecScale(v7, v10, 0.0f - fRadius());
-								Vector4 v11;
-								::Constants::jetGeoVecAdd(v11, vTrans(), v7);
-								::Constants::jetGeoVecCopy(v7, v4);
-								v7[1] = 0.0f;
-								::Constants::jetGeoVecAdd(v11, v11, v7);
-								::Constants::jetGeoVecSet(v5, 0.0f, -1.0f, 0.0f, 1.0f);
-								Vector4 vOutCross;
-								if (cTaskCollision::CollisionLinePlane(v11, v5, v9, v10, vOutCross))
-								{
-									v4[1] = vOutCross[1] - v11[1];
-								}
-							}
-						}
-						if (Constants::IsVecNormalize(v4))
-						{
-							float num4 = ::Constants::jetGeoVecLength(v4) * GetParam()->fDashForce;
-							::Constants::jetGeoVecNormalize(v4, v4);
-							if (num4 < GetParam()->fDashSpeedMin)
-							{
-								num4 = GetParam()->fDashSpeedMin;
-							}
-							::Constants::jetGeoVecScale(vMove(), v4, num4);
-						}
-						else if (Constants::IsVecNormalize(vAccel()))
-						{
-							float num4 = ::Constants::jetGeoVecLength(vAccel()) * GetParam()->fDashForce;
-							::Constants::jetGeoVecNormalize(v4, vAccel());
-							if (num4 < GetParam()->fDashSpeedMin)
-							{
-								num4 = GetParam()->fDashSpeedMin;
-							}
-							::Constants::jetGeoVecScale(vMove(), v4, num4);
-						}
-					}
-					if (++m_nDashCnt > GetParam()->nDashTime || IsState(32u))
-					{
-						OffState(1u);
-						SetAnmState(0u, 5u, 0u);
-						m_PtkHndDash->Detach(true);
-					}
-					if (nType() == 2 && IsStateOld(2048u) && !IsState(2048u) && nullptr != m_SndHndDash)
-					{
-						SoundManager::get_SE()->Stop(m_SndHndDash, 5.0f);
-					}
-				}
-				else
-				{
-					m_PtkHndDash->Detach(true);
-				}
-				if (IsState(2u) && (++m_nFloorDashCnt > GetParam()->nDashFloorTime || IsState(32u)))
-				{
-					OffState(2u);
-				}
-				if (!IsState(1u))
-				{
-					m_PtkHndDash->Detach(true);
-				}
-				AdjustSpeed();
-				OffState(16384u);
-				if (IsState(3072u))
-				{
-					WaterForce();
-				}
-				else
-				{
-					vMove()[1] -= GetParam()->fGravityFall;
-				}
-				BrakeAnime();
-				cAppG03PacnRollGame2->pTaskCollision()->PushBackChar(this);
-				OnState(64u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch3_2u;
-		case 2u:
-		_switch3_2u:
-			nModeStep(n) = 0u;
-			m_PtkHndFlame->Detach(true);
-			m_PtkHndChange->Detach(true);
-			m_PtkHndSweat->Detach(true);
-			m_PtkHndBrake->Detach(true);
-			m_PtkHndPoson->Detach(true);
-			m_PtkHndDash->Detach(true);
-			m_PtkHndWing->Detach(true);
-			m_bBrink = false;
-			m_nNoBoundCnt = 0u;
-			m_nNoDashCnt = 0u;
-			::Constants::jetGeoVecZero(m_vFloorDashVec);
-			break;
-		}
-	}
-	else if (2 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch7_0u:
-			nModeStep(n) = 1u;
-			if (m_PtkHndDash->IsValid())
-			{
-				m_PtkHndDash->Detach(true);
-			}
-			cAppG03PacnRollGame2->SetEffect(13u, vTrans(), Vector4(), m_PtkHndSweat);
-			OffState(8u);
-			pHitChar(0)->FlagOn(4u);
-			SetAnmState(7u, 0u, 0u);
-			goto _switch7_1u;
-		case 1u:
-		_switch7_1u:
-			Control();
-			if (!Hanging() || pHitObj(1) == nullptr)
-			{
-				NextMode(n, 1u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch7_2u;
-		case 2u:
-		_switch7_2u:
-			nModeStep(n) = 0u;
-			OffState(16u);
-			m_PtkHndSweat->Detach(true);
-			SetAnmState(0u, 0u, 0u);
-			break;
-		}
-	}
-	else if (3 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch8_0u:
-			nModeStep(n) = 1u;
-			::Constants::jetGeoVecCopy(vMove(), m_vJumpVec);
-			::Constants::jetGeoVecZero(m_vJumpVec);
-			goto _switch8_1u;
-		case 1u:
-		_switch8_1u:
-			vMove()[1] -= GetParam()->fGravityFall;
-			::Constants::jetGeoVecAdd(vTrans(), vTrans(), vMove());
-			if (vMove()[1] <= 0.0f)
-			{
-				OffState(8192u);
-				NextMode(n, 1u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch8_2u;
-		case 2u:
-		_switch8_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	else if (4 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch9_0u:
-			nModeStep(n) = 1u;
-			// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454): every looping SE fades out over
-			// 10 frames and no new loops start until the next round. The port has no loop-sound manager.
-			if (nullptr != m_SndHndMove)
-			{
-				SoundManager::get_SE()->Stop(m_SndHndMove);
-			}
-			if (m_nLife != 0)
-			{
-				m_nLife--;
-			}
-			else
-			{
-				m_bGameOver = true;
-			}
-			m_fAnmCharMissFrame = 0.0f;
-			SetAnmState(10u, 0u, 0u);
-			goto _switch9_1u;
-		case 1u:
-		_switch9_1u:
-			if (IsState(128u))
-			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
-				NextMode(n, 5u);
-			}
-			else
-			{
-				// DOL 0x80166fa0 (state 4, step 1): the miss clip (m_AnmChrMiss[type], +0x67c) is sampled directly: translate of "root" at frame 0, scale + rotation of
-				// "base" at the current frame (+0x6a0, then +1). The base TRANSLATION is dropped (the DOL zeroes it in the 4x4 it builds), unlike the Unity TRS.
-				Matrix4x4 m;
-				::Constants::jetGeoMtxIdentity(m);
-				Matrix4x4 m2;
-				::Constants::jetGeoMtxIdentity(m2);
-				const std::shared_ptr<wii::ChrAnim> clip = cKingdomModelBase::ChrAnimOf(m_AnmChrMiss[nType()]);
-				wii::BoneKey root, base;
-				if (clip != nullptr)
-				{
-					clip->Sample("root", 0.0f, root);
-					clip->Sample("base", m_fAnmCharMissFrame, base);
-				}
-				Vector4 v12 = Vector4(root.trans[0], root.trans[1], root.trans[2], 1.0f);
-				::Constants::jetGeoMtxTrans(m, m, v12);
-				m_fAnmCharMissFrame++;
-				::Constants::jetGeoMtxScale(m, m, Vector4(base.scale[0], base.scale[1], base.scale[2], 1.0f));
-				m2 = cKingdomModelBase::BoneRt(base, false);   // rotation only: the DOL zeroes the translation of the 4x4 it builds
-				::Constants::jetGeoMtxIdentity(m_mAnm);
-				::Constants::jetGeoMtxMult(m_mAnm, m_mAnm, m2);
-				::Constants::jetGeoMtxMult(m_mAnm, m_mAnm, m);
-				if (clip == nullptr || (float)clip->numFrame <= m_fAnmCharMissFrame)
-				{
-					OnState(512u);
-					::Constants::jetGeoVecSet(vScale(), 0.0f, 0.0f, 0.0f, 1.0f);   // DOL 0x80167108: +0x220 = (0, 0, 0, 1): the model shrinks away
-					NextMode(n, 8u);
-				}
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch9_2u;
-		case 2u:
-		_switch9_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	else if (6 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch10_0u:
-			nModeStep(n) = 1u;
-			if (nullptr != m_SndHndMove)
-			{
-				SoundManager::get_SE()->Stop(m_SndHndMove);
-			}
-			goto _switch10_1u;
-		case 1u:
-		_switch10_1u:
-			if (MoveGoalCenter())
-			{
-				::Constants::jetGeoVecZero(vMove());
-				::Constants::jetGeoVecUnit(vRotate());
-				NextMode(n, 7u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch10_2u;
-		case 2u:
-		_switch10_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	else if (7 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch11_0u:
-			nModeStep(n) = 1u;
-			m_bGoal = true;
-			cAppG03PacnRollGame2->SetEffect(19u, vTrans(), Vector4());
-			if (cAppG03PacnRollGame2->IsBossStage())
-			{
-				vRotate()[1] = Get2GameraRot();
-			}
-			else
-			{
-				vRotate()[1] = cAppG03PacnRollGame2->pTaskGoal()->Model->vRotate()[1];
-			}
-			goto _switch11_1u;
-		case 1u:
-		_switch11_1u:
-			if (ResetRollMatrix())
-			{
-				SetAnmState(9u, 0u, 0u);
-				NextMode(n, 8u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch11_2u;
-		case 2u:
-		_switch11_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	else if (5 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch12_0u:
-			nModeStep(n) = 1u;
-			m_nFreeFallCnt = 0u;
-			// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454), as in the miss state above.
-			if (nullptr != m_SndHndMove)
-			{
-				SoundManager::get_SE()->Stop(m_SndHndMove);
-			}
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE023_RAKKA);
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE095_RAKKA);
-			goto _switch12_1u;
-		case 1u:
-		_switch12_1u:
-			if (++m_nFreeFallCnt > 40)
-			{
-				OnState(512u);
-				NextMode(n, 8u);
-			}
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch12_2u;
-		case 2u:
-		_switch12_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	else if (8 == nModeState(n))
-	{
-		nOldState(n) = nModeState(n);
-		switch (nModeStep(n))
-		{
-		case 0u:
-		_switch13_0u:
-			nModeStep(n) = 1u;
-			goto _switch13_1u;
-		case 1u:
-		_switch13_1u:
-			if (nOldState(n) == nModeState(n))
-			{
-				break;
-			}
-			nModeStep(n) = 2u;
-			goto _switch13_2u;
-		case 2u:
-		_switch13_2u:
-			nModeStep(n) = 0u;
-			break;
-		}
-	}
-	if (IsState(128u))
-	{
-		if (cAppG03PacnRollGame2->pTaskConsRetry()->IsVisible())
-		{
-			Vector4& reference = vMove();
-			float value = (vMove()[2] = 0.0f);
-			reference[0] = value;
+			vMove()[2] = 0.0f;
+			vMove()[0] = 0.0f;
 		}
 		vMove()[1] -= GetParam()->fGravityFall;
 		if (vMove()[1] < -0.6f)
@@ -1148,7 +478,9 @@ bool cTaskCharPacman::Execute(cJetTask* pParam)
 		}
 		::Constants::jetGeoVecAdd(vTrans(), vTrans(), vMove());
 	}
-	if (pHitFace(1) != nullptr || IsState(1024u) || IsState(2048u))
+
+	// Frames spent in the air (reset on the floor or in water); NormalAirSound plays the landing sound after 10 or more.
+	if (pHitFace(1) != nullptr || IsState(STATE_WATER_UP) || IsState(STATE_WATER_IN))
 	{
 		m_nJumpCnt = 0u;
 	}
@@ -1156,16 +488,828 @@ bool cTaskCharPacman::Execute(cJetTask* pParam)
 	{
 		m_nJumpCnt++;
 	}
+
+	// This frame's floor becomes "last frame's floor" for the next one; the collision results are cleared for the next push.
 	m_pHitFaceFloorOld = pHitFace(1);
 	m_pHitObjFloorOld = pHitObj(1);
 	ClearHitParam();
-	OffState(32768u);
+	OffState(STATE_CLIMB);
 	return true;
+}
+
+// part of DOL 0x80164f3c: ePROC_START_WAIT. Before the start signal Pac-Man only falls onto the floor; the camera shows the stage opening.
+void cTaskCharPacman::ProcStartWait()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	const uint n = 0u;   // Pac-Man has one mode flow
+	nOldState(n) = nModeState(n);
+
+	// enter
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		app->pTaskCamera()->SetCameraType(cTaskCamera::eTYPE_INITGAME);
+	}
+
+	// update: gravity and the BG push, no stick control
+	vMove()[1] -= GetParam()->fGravityFall;
+	app->pTaskCollision()->PushBackChar(this);
+	OnState(STATE_HIT_BG);
+	if (app->IsStart())
+	{
+		NextMode(n, ePROC_NORMAL);
+	}
+
+	// leave: the free play camera
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+		app->pTaskCamera()->SetCameraType(cTaskCamera::eTYPE_FREE);
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_NORMAL, rolling under the player's control. The update first checks the events that end the mode (in this
+// order: no HP, thrown by a gear, goal, stage clear, hanging from an edge, fallen off); when none happened it runs the play step.
+void cTaskCharPacman::ProcNormal()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: nothing to set up
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+	}
+
+	// update
+	if (pHitObj(1) != nullptr)
+	{
+		// the last point he stood on
+		::Constants::jetGeoVecCopy(vLastFloorPos(), vTrans());
+	}
+	if (m_nHP == 0)
+	{
+		m_PtkHndPowerCookie->Detach(true);
+		SetState(STATE_MISS);
+		NextMode(n, ePROC_MISS);
+	}
+	else if (IsState(STATE_GEARS))
+	{
+		NextMode(n, ePROC_GEARS);
+	}
+	else if (app->pTaskGoal()->IsGoal())
+	{
+		::Constants::jetGeoVecZero(vMove());
+		m_PtkHndPowerCookie->Detach(true);
+		SetState(STATE_NORMAL);
+		NextMode(n, ePROC_GOAL);
+	}
+	else if (app->IsClear())
+	{
+		DisposeEffect();
+		app->StopIjikeSnd();
+		SetState(STATE_NORMAL);
+		NextMode(n, ePROC_JOY);
+	}
+	else if (IsState(STATE_HANG))
+	{
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE092_PAC_SIGAMI);
+		NextMode(n, ePROC_HANG);
+	}
+	else if (devtools::G03Fly())
+	{
+		devtools::G03FlyStep(this);   // devtools: --g03-fly replaces control / gravity / collision / the fall-off miss (not 1:1)
+	}
+	else if (devtools::G03ExploreFell(this))
+	{
+		// devtools: --g03-explore put him back at the start (not 1:1)
+	}
+	else if (CheckFallArea())
+	{
+		// below the stage's fall line: a miss with the free fall camera
+		app->pTaskCamera()->SetCameraType(cTaskCamera::eTYPE_FREEFALL);
+		SetState(STATE_HELL | STATE_MISS);
+		NextMode(n, ePROC_MISS);
+	}
+	else
+	{
+		NormalPlay();
+	}
+
+	// leave: stop every effect that belongs to rolling
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+		m_PtkHndFlame->Detach(true);
+		m_PtkHndChange->Detach(true);
+		m_PtkHndSweat->Detach(true);
+		m_PtkHndBrake->Detach(true);
+		m_PtkHndPoson->Detach(true);
+		m_PtkHndDash->Detach(true);
+		m_PtkHndWing->Detach(true);
+		m_bBrink = false;
+		m_nNoBoundCnt = 0u;
+		m_nNoDashCnt = 0u;
+		::Constants::jetGeoVecZero(m_vFloorDashVec);
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_HANG, Pac-Man hangs over a ledge edge (sweat effect) until he rolls back or drops off.
+void cTaskCharPacman::ProcHang()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: no dash, the damage blink ends
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		if (m_PtkHndDash->IsValid())
+		{
+			m_PtkHndDash->Detach(true);
+		}
+		app->SetEffect(13u, vTrans(), Vector4(), m_PtkHndSweat);   // effect 13 (m_PtkHndSweat)
+		OffState(STATE_DAMAGE);
+		pHitChar(0)->FlagOn(cHitChar::FLAG_DEFENSE);
+		SetAnmState(ANIME_STATE_HANG, 0u, 0u);
+	}
+
+	// update: the stick still works; Hanging() keeps him on the edge
+	Control();
+	if (!Hanging() || pHitObj(1) == nullptr)
+	{
+		NextMode(n, ePROC_NORMAL);
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+		OffState(STATE_HANG);
+		m_PtkHndSweat->Detach(true);
+		SetAnmState(ANIME_STATE_NORMAL, 0u, 0u);
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_GEARS, thrown up by a gear: flies along the jump vector without collision until he starts to come down.
+void cTaskCharPacman::ProcGears()
+{
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: the jump vector the gear queued becomes the speed
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		::Constants::jetGeoVecCopy(vMove(), m_vJumpVec);
+		::Constants::jetGeoVecZero(m_vJumpVec);
+	}
+
+	// update: gravity, moved here directly (no BG push)
+	vMove()[1] -= GetParam()->fGravityFall;
+	::Constants::jetGeoVecAdd(vTrans(), vTrans(), vMove());
+	if (vMove()[1] <= 0.0f)
+	{
+		OffState(STATE_GEARS);
+		NextMode(n, ePROC_NORMAL);
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_MISS. A life is lost; a fall goes on to ePROC_HELL, any other miss plays the miss clip and the model shrinks away.
+void cTaskCharPacman::ProcMiss()
+{
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: take a life (none left = game over)
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454): every looping SE fades out over
+		// 10 frames and no new loops start until the next round. The port has no loop-sound manager.
+		if (nullptr != m_SndHndMove)
+		{
+			SoundManager::get_SE()->Stop(m_SndHndMove);
+		}
+		if (m_nLife != 0)
+		{
+			m_nLife--;
+		}
+		else
+		{
+			m_bGameOver = true;
+		}
+		m_fAnmCharMissFrame = 0.0f;
+		SetAnmState(ANIME_STATE_GAME_OVER, 0u, 0u);
+	}
+
+	// update
+	if (IsState(STATE_HELL))
+	{
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
+		NextMode(n, ePROC_HELL);
+	}
+	else
+	{
+		// DOL 0x80166fa0 (state 4, step 1): the miss clip (m_AnmChrMiss[type], +0x67c) is sampled directly: translate of "root" at frame 0, scale + rotation of
+		// "base" at the current frame (+0x6a0, then +1). The base TRANSLATION is dropped (the DOL zeroes it in the 4x4 it builds), unlike the Unity TRS.
+		// The result goes to m_mAnm, which Draw multiplies into the model matrix.
+		Matrix4x4 rootMoveScale;
+		::Constants::jetGeoMtxIdentity(rootMoveScale);
+		Matrix4x4 baseRotate;
+		::Constants::jetGeoMtxIdentity(baseRotate);
+		const std::shared_ptr<wii::ChrAnim> clip = cKingdomModelBase::ChrAnimOf(m_AnmChrMiss[nType()]);
+		wii::BoneKey root;
+		wii::BoneKey base;
+		if (clip != nullptr)
+		{
+			clip->Sample("root", 0.0f, root);
+			clip->Sample("base", m_fAnmCharMissFrame, base);
+		}
+		const Vector4 rootTrans = Vector4(root.trans[0], root.trans[1], root.trans[2], 1.0f);
+		::Constants::jetGeoMtxTrans(rootMoveScale, rootMoveScale, rootTrans);
+		m_fAnmCharMissFrame++;
+		::Constants::jetGeoMtxScale(rootMoveScale, rootMoveScale, Vector4(base.scale[0], base.scale[1], base.scale[2], 1.0f));
+		baseRotate = cKingdomModelBase::BoneRt(base, false);   // rotation only: the DOL zeroes the translation of the 4x4 it builds
+		::Constants::jetGeoMtxIdentity(m_mAnm);
+		::Constants::jetGeoMtxMult(m_mAnm, m_mAnm, baseRotate);
+		::Constants::jetGeoMtxMult(m_mAnm, m_mAnm, rootMoveScale);
+		if (clip == nullptr || (float)clip->numFrame <= m_fAnmCharMissFrame)
+		{
+			// the clip has played out
+			OnState(STATE_MISS_FINISH);
+			::Constants::jetGeoVecSet(vScale(), 0.0f, 0.0f, 0.0f, 1.0f);   // DOL 0x80167108: +0x220 = (0, 0, 0, 1): the model shrinks away
+			NextMode(n, ePROC_RETIRE);
+		}
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_GOAL. On the goal: MoveGoalCenter rolls him to the centre of the goal, then the clear pose follows.
+void cTaskCharPacman::ProcGoal()
+{
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: the rolling sound stops
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		if (nullptr != m_SndHndMove)
+		{
+			SoundManager::get_SE()->Stop(m_SndHndMove);
+		}
+	}
+
+	// update
+	if (MoveGoalCenter())
+	{
+		::Constants::jetGeoVecZero(vMove());
+		::Constants::jetGeoVecUnit(vRotate());
+		NextMode(n, ePROC_JOY);
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_JOY, the stage clear: Pac-Man turns to face the camera (boss stage) or the goal's direction, rolls upright,
+// then plays the clear animation.
+void cTaskCharPacman::ProcJoy()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		m_bGoal = true;
+		app->SetEffect(19u, vTrans(), Vector4());
+		if (app->IsBossStage())
+		{
+			vRotate()[1] = Get2GameraRot();
+		}
+		else
+		{
+			vRotate()[1] = app->pTaskGoal()->Model->vRotate()[1];
+		}
+	}
+
+	// update: wait until ResetRollMatrix reports the roll reset
+	if (ResetRollMatrix())
+	{
+		SetAnmState(ANIME_STATE_STAGE_CLEAR, 0u, 0u);
+		NextMode(n, ePROC_RETIRE);
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_HELL, fallen off the stage. Execute's STATE_HELL block does the falling; after 40 frames the miss is finished.
+void cTaskCharPacman::ProcHell()
+{
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter: the falling sounds
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+		m_nFreeFallCnt = 0u;
+		// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454), as in the miss state above.
+		if (nullptr != m_SndHndMove)
+		{
+			SoundManager::get_SE()->Stop(m_SndHndMove);
+		}
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE023_RAKKA);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE095_RAKKA);
+	}
+
+	// update
+	if (++m_nFreeFallCnt > 40)
+	{
+		OnState(STATE_MISS_FINISH);
+		NextMode(n, ePROC_RETIRE);
+	}
+
+	// leave
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: ePROC_RETIRE, the end of a miss or of the stage: Pac-Man does nothing until the game restarts him.
+void cTaskCharPacman::ProcRetire()
+{
+	const uint n = 0u;
+	nOldState(n) = nModeState(n);
+
+	// enter
+	if (nModeStep(n) == 0u)
+	{
+		nModeStep(n) = 1u;
+	}
+
+	// leave (the mode is only left from outside)
+	if (nOldState(n) != nModeState(n))
+	{
+		nModeStep(n) = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c: one frame of rolling under control (ePROC_NORMAL when no event ended the mode).
+void cTaskCharPacman::NormalPlay()
+{
+	if (const float j = devtools::G03JumpTrigger(pHitObj(1) != nullptr); j > 0.0f) { m_vJumpVec[1] = j; SetAnmState(ANIME_STATE_JUNP, 5u, 40u); SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE031_JUMP); } // devtools: --g03-jump (not 1:1)
+	const bool jumped = NormalImpulse();
+	NormalCounters();
+	NormalIdle();
+	NormalWater();
+	NormalAirSound();
+	NormalDash(jumped);
+	NormalMoveEnd();
+}
+
+// part of DOL 0x80164f3c (play step): the pushes queued since last frame (the jump vector, the "after move" of a moving floor that
+// Draw adds, the dash floor's boost) go into the speed. A jump replaces the vertical speed. Returns true when a jump was applied.
+bool cTaskCharPacman::NormalImpulse()
+{
+	bool jumped = false;
+	if (CustomKingdomUtil::IF(m_vJumpVec[0]) || CustomKingdomUtil::IF(m_vJumpVec[1]) || CustomKingdomUtil::IF(m_vJumpVec[2]))
+	{
+		vMove()[0] += m_vJumpVec[0];
+		vMove()[1] = m_vJumpVec[1];
+		vMove()[2] += m_vJumpVec[2];
+		::Constants::jetGeoVecZero(m_vJumpVec);
+		OnState(STATE_JUMP);
+		jumped = true;
+	}
+	if (CustomKingdomUtil::IF(m_vAfterMove[0]) || CustomKingdomUtil::IF(m_vAfterMove[1]) || CustomKingdomUtil::IF(m_vAfterMove[2]))
+	{
+		::Constants::jetGeoVecAdd(vMove(), vMove(), m_vAfterMove);
+		::Constants::jetGeoVecZero(m_vAfterMove);
+	}
+	if (CustomKingdomUtil::IF(m_vFloorDashVec[0]) || CustomKingdomUtil::IF(m_vFloorDashVec[1]) || CustomKingdomUtil::IF(m_vFloorDashVec[2]))
+	{
+		::Constants::jetGeoVecAdd(vMove(), vMove(), m_vFloorDashVec);
+		::Constants::jetGeoVecZero(m_vFloorDashVec);
+	}
+	return jumped;
+}
+
+// part of DOL 0x80164f3c (play step): the bounce / dash cooldowns count down; after a hit Pac-Man blinks (every other frame) for nDamageTime frames,
+// with the hit char's FLAG_DEFENSE off.
+void cTaskCharPacman::NormalCounters()
+{
+	if (m_nNoBoundCnt != 0)
+	{
+		m_nNoBoundCnt--;
+	}
+	if (m_nNoDashCnt != 0)
+	{
+		m_nNoDashCnt--;
+	}
+	if (IsState(STATE_DAMAGE))
+	{
+		pHitChar(0)->FlagOff(cHitChar::FLAG_DEFENSE);
+		if (++m_nDamageCnt >= m_ParamCommon->nDamageTime)
+		{
+			OffState(STATE_DAMAGE);
+			pHitChar(0)->FlagOn(cHitChar::FLAG_DEFENSE);
+			m_nDamageCnt = 0u;
+			m_bBrink = false;
+		}
+		else if (m_nDamageCnt % 2 == 0)
+		{
+			m_bBrink = true;
+		}
+		else
+		{
+			m_bBrink = false;
+		}
+	}
+}
+
+// part of DOL 0x80164f3c (play step): the stick (Control sets vAccel), and the idle animation: standing still on a fixed floor without
+// touching the stick or braking for nWaitAnimeTime frames plays one of the two wait animations.
+void cTaskCharPacman::NormalIdle()
+{
+	// WII (80165458): the idle count also requires pac-man to be standing still
+	// (|vMove|^2 < 2.350989e-38f, tested after Control()); the Unity port dropped that test.
+	const bool stickUsed = Control();
+	const bool standingStill = pHitObj(1) != nullptr && !pHitObj(1)->IsMove() && ::Constants::jetGeoVecInnerProduct(vMove(), vMove()) < 2.350989e-38f;
+	if (!stickUsed && standingStill && !IsState(STATE_BRAKE) && !m_bRollCheck)
+	{
+		m_nAloneCnt++;
+		if (m_nAloneCnt == m_ParamCommon->nWaitAnimeTime)
+		{
+			LookCameraRollMatrix();
+			if (Random::Range(0, 2) == 0)
+			{
+				SetAnmState(ANIME_STATE_WAIT_A, 0u, 0u);
+			}
+			else
+			{
+				SetAnmState(ANIME_STATE_WAIT_B, 0u, 0u);
+			}
+		}
+	}
+	else
+	{
+		// moving again: back to the normal animation if a wait animation was playing
+		if (m_nAloneCnt >= m_ParamCommon->nWaitAnimeTime)
+		{
+			SetAnmState(ANIME_STATE_NORMAL, 0u, 0u);
+		}
+		m_nAloneCnt = 0u;
+	}
+}
+
+// part of DOL 0x80164f3c (play step): water. cTaskWater::AreaCheck reports shallow water (1 = STATE_WATER_UP, on the surface) or deep water
+// (2 = STATE_WATER_IN, under it) and fills m_vWaterForce / m_fWaterHeight. Then the splash / ripple effects and the water sounds; the knight
+// (TYPE_KNIGHT) sinks and swims, the others float.
+void cTaskCharPacman::NormalWater()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	// the state before the water check (Execute already cleared both water bits, so the STATE_WATER_IN tests on it below are always true; kept as converted)
+	const uint stateBefore = nState();
+	switch (app->pTaskWater()->AreaCheck(vTrans(), fRadius(), m_vWaterForce, m_fWaterHeight))
+	{
+	case 1u:
+		OnState(STATE_WATER_UP);
+		break;
+	case 2u:
+		OnState(STATE_WATER_IN);
+		break;
+	}
+
+	// a dash that leaves a ledge upwards
+	if (pHitObj(1) == nullptr && !IsState(STATE_WATER_UP | STATE_WATER_IN) && vMove()[1] >= 0.2f && IsState(STATE_DASH))
+	{
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE090_PAC_DASH_DANSA, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+	}
+
+	// deep water, not the knight: a splash while moving
+	if (IsState(STATE_WATER_IN) && !CustomKingdomUtil::IF(stateBefore & STATE_WATER_IN) && nType() != TYPE_KNIGHT)
+	{
+		const bool moving = ::Constants::fabs(vMove()[0]) >= 0.1f || ::Constants::fabs(vMove()[1]) >= 0.05f || ::Constants::fabs(vMove()[2]) >= 0.1f;
+		if (moving)
+		{
+			// WII (8016556c): the splash effect is spawned every frame (the port: 1 frame in 3)
+			app->SetEffect(9u, vTrans(), Vector4());   // effect 9 (the splash, also m_PtkHndWaterIn)
+			m_splashPtcCnt++;
+			if (nullptr == m_SndHndInWater2)
+			{
+				m_nWaterCount = 0u;
+				m_SndHndInWater2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+			}
+		}
+	}
+	else
+	{
+		m_splashPtcCnt = 0;
+	}
+
+	// deep water, the knight: one splash when he goes under (not on a swim face)
+	if (IsState(STATE_WATER_IN) && !CustomKingdomUtil::IF(stateBefore & STATE_WATER_IN) && nType() == TYPE_KNIGHT && m_nHitKindFace != Constants::eFACE_KIND_SWIM)
+	{
+		if (!m_PtkHndWaterIn->IsValid() && pHitFace(1) == nullptr)
+		{
+			app->SetEffect(9u, vTrans(), Vector4(), m_PtkHndWaterIn);
+		}
+		if (nullptr == m_SndHndInWater)
+		{
+			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+		}
+	}
+
+	// shallow water, not the knight: a ripple around him, more ripples while moving, the water sound once he moves sideways
+	if (IsState(STATE_WATER_UP) && nType() != TYPE_KNIGHT)
+	{
+		m_nWaterCount++;
+		if (!m_PtkHndRipple->IsValid())
+		{
+			app->SetEffect(8u, vTrans(), Vector4(), m_PtkHndRipple);   // effect 8 (m_PtkHndRipple)
+		}
+		const bool moving = ::Constants::fabs(vMove()[0]) >= 0.05f || ::Constants::fabs(vMove()[1]) >= 0.2f || ::Constants::fabs(vMove()[2]) >= 0.05f;
+		if (moving && (m_nWaterCount & 3) == 0)   // WII (80165638): every 4th frame; the port used % 6
+		{
+			app->SetEffect(8u, vTrans(), Vector4());
+		}
+		Vector4 flatMove;
+		::Constants::jetGeoVecCopy(flatMove, vMove());
+		flatMove[1] = 0.0f;
+		const float flatSpeed = ::Constants::jetGeoVecLength(flatMove);
+		if (nullptr == m_SndHndInWater && flatSpeed >= 0.1f && nullptr == m_SndHndInWater2)
+		{
+			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+		}
+	}
+
+	// deep water: the knight's swim sound once he is 0.7 under the surface; the sound stops on leaving the water
+	if (IsState(STATE_WATER_IN))
+	{
+		if (nullptr == m_SndHndSwim && m_fWaterHeight - vTrans()[1] >= 0.7f && nType() == TYPE_KNIGHT)
+		{
+			m_SndHndSwim = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE038_SUITYUU);
+			app->SetEffect(11u, vTrans(), Vector4());
+		}
+	}
+	else if (nullptr != m_SndHndSwim)
+	{
+		SoundManager::get_SE()->Stop(m_SndHndSwim);
+	}
+}
+
+// part of DOL 0x80164f3c (play step): in the air the wing Pac-Man (TYPE_WING) flaps (wing effect while falling, the flap sound); on the floor after
+// 10 or more frames in the air the landing sound of his type plays.
+void cTaskCharPacman::NormalAirSound()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	if (nType() == TYPE_WING && pHitObj(1) == nullptr && !IsState(STATE_WATER_UP) && !IsState(STATE_WATER_IN))
+	{
+		if (vMove()[1] < 0.0f)
+		{
+			if (!m_PtkHndWing->IsValid())
+			{
+				app->SetEffect(7u, vTrans(), Vector4(), m_PtkHndWing);   // effect 7 (m_PtkHndWing)
+			}
+			m_nEffWingCnt++;
+			if (m_nEffWingCnt % 3 == 0)
+			{
+				app->SetEffect(7u, vTrans(), Vector4());
+			}
+		}
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE052_KAKYUU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+	}
+	else
+	{
+		SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE052_KAKYUU);
+	}
+	if (pHitFace(1) != nullptr && nullptr == m_SndHndOnField && m_nJumpCnt >= 10)
+	{
+		switch (nType())
+		{
+		case TYPE_NORMAL:
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE061_TYAKUTI1);
+			break;
+		case TYPE_WING:
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE062_TYAKUTI2);
+			break;
+		case TYPE_KNIGHT:
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE063_TYAKUTI3);
+			break;
+		}
+	}
+}
+
+// part of DOL 0x80164f3c (play step): the dash. A remote swing starts it (on the floor or on the water surface, stick held, not braking /
+// hanging / climbing, no cooldown); it turns the current speed towards the stick. For nDashAccelTime frames it accelerates (NormalDashAccel),
+// after nDashTime frames or a brake it ends.
+void cTaskCharPacman::NormalDash(bool jumped)
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	const bool onGround = pHitObj(1) != nullptr || IsState(STATE_WATER_UP);
+	const bool stickHeld = CustomKingdomUtil::IF(m_fStickX) || CustomKingdomUtil::IF(m_fStickY);
+	// DOL 0x80165b9c: dash = the remote swung faster than PAD_SWING_SPEED_DASH (get_pad1(0) + 0x44 = KPAD acc_speed); the C# used the A button
+	const bool swung = m_ParamCommon->fPadSwingSpeedDash < GamePad::Get(0).accSpeed;
+	if (onGround && m_nNoDashCnt == 0 && swung && !IsState(STATE_DASH | STATE_HANG | STATE_BRAKE) && !IsStateOld(STATE_HANG) && Constants::IsVecNormalize(vAccel()) && stickHeld && !IsStateOld(STATE_CLIMB))
+	{
+		OnState(STATE_DASH);
+		m_nDashCnt = 0u;
+		if (m_nHitKindFace == Constants::eFACE_KIND_SWIM)
+		{
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH);
+		}
+		else
+		{
+			// both play; the handle keeps the second
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE093_PAC_DASH2);
+		}
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+		if (m_PtkHndDash->IsValid())
+		{
+			m_PtkHndDash->Detach(true);
+		}
+		app->SetEffect(0u, vTrans(), Vector4(), m_PtkHndDash);   // effect 0 (m_PtkHndDash)
+		// keep the speed but point it where the stick points (no speed yet: take the stick force)
+		Vector4 stickDir;
+		::Constants::jetGeoVecNormalize(stickDir, vAccel());
+		if (Constants::IsVecNormalize(vMove()))
+		{
+			const float speed = ::Constants::jetGeoVecLength(vMove());
+			::Constants::jetGeoVecScale(vMove(), stickDir, speed);
+		}
+		else
+		{
+			::Constants::jetGeoVecCopy(vMove(), vAccel());
+		}
+		SetAnmState(ANIME_STATE_DASH, 5u, 0u);
+	}
+	if (IsState(STATE_DASH))
+	{
+		if (!jumped && onGround && m_nDashCnt < GetParam()->nDashAccelTime)
+		{
+			NormalDashAccel();
+		}
+		if (++m_nDashCnt > GetParam()->nDashTime || IsState(STATE_BRAKE))
+		{
+			OffState(STATE_DASH);
+			SetAnmState(ANIME_STATE_NORMAL, 5u, 0u);
+			m_PtkHndDash->Detach(true);
+		}
+		if (nType() == TYPE_KNIGHT && IsStateOld(STATE_WATER_IN) && !IsState(STATE_WATER_IN) && nullptr != m_SndHndDash)
+		{
+			// the knight left deep water during the dash
+			SoundManager::get_SE()->Stop(m_SndHndDash, 5.0f);
+		}
+	}
+	else
+	{
+		m_PtkHndDash->Detach(true);
+	}
+}
+
+// part of DOL 0x80164f3c (play step): one frame of dash acceleration. The speed is scaled by fDashForce (at least fDashSpeedMin). On a floor the
+// direction first follows the floor: the vertical part is replaced by the drop / rise of the floor plane under the next position, unless the
+// floor is too steep (normal y < 0.002) or this frame's floor bends away from last frame's by more than about 53 degrees (dot < 0.6). While
+// climbing a wall the sideways part pushes him off the wall.
+void cTaskCharPacman::NormalDashAccel()
+{
+	Vector4 dashMove;
+	::Constants::jetGeoVecCopy(dashMove, vMove());
+	if (pHitObj(1) != nullptr)
+	{
+		Vector4 down = Vector4::zero;
+		bool followFloor = true;
+		Vector4 oldFloorNormal = Vector4();
+		Vector4 tmp;
+		if (m_pHitFaceFloorOld != nullptr)
+		{
+			::Constants::jetGeoVecTrans(oldFloorNormal, m_pHitObjFloorOld->pMtxRotate(), m_pHitFaceFloorOld->vNorm);
+			if (IsState(STATE_CLIMB) && oldFloorNormal[1] <= 0.002f)
+			{
+				// on a wall: sideways away from it
+				::Constants::jetGeoVecScale(tmp, oldFloorNormal, -0.1f);
+				dashMove[0] = tmp[0];
+				dashMove[2] = tmp[2];
+			}
+		}
+		Vector4 floorNormal;
+		::Constants::jetGeoVecTrans(floorNormal, pHitObj(1)->pMtxRotate(), pHitFace(1)->vNorm);
+		if (floorNormal[1] < 0.002f)
+		{
+			followFloor = false;
+		}
+		else if (m_pHitFaceFloorOld != nullptr && m_pHitFaceFloorOld != pHitFace(1))
+		{
+			const float bend = ::Constants::jetGeoVecInnerProduct(oldFloorNormal, floorNormal);
+			if (0.6f > bend)
+			{
+				followFloor = false;
+			}
+		}
+		if (followFloor)
+		{
+			// the floor plane (a vertex and the normal, last frame's matrices)
+			Vector4 planePoint;
+			::Constants::jetGeoVecTrans(planePoint, pHitObj(1)->pMtxOld(), pHitFace(1)->vVrt[0]);
+			Vector4 planeNormal;
+			::Constants::jetGeoVecTrans(planeNormal, pHitObj(1)->pMtxRotateOld(), pHitFace(1)->vNorm);
+			// the bottom of the ball, moved on by the flat part of the dash speed
+			::Constants::jetGeoVecScale(tmp, planeNormal, 0.0f - fRadius());
+			Vector4 probe;
+			::Constants::jetGeoVecAdd(probe, vTrans(), tmp);
+			::Constants::jetGeoVecCopy(tmp, dashMove);
+			tmp[1] = 0.0f;
+			::Constants::jetGeoVecAdd(probe, probe, tmp);
+			// straight down onto the plane: the height difference becomes the vertical speed
+			::Constants::jetGeoVecSet(down, 0.0f, -1.0f, 0.0f, 1.0f);
+			Vector4 vOutCross;
+			if (cTaskCollision::CollisionLinePlane(probe, down, planePoint, planeNormal, vOutCross))
+			{
+				dashMove[1] = vOutCross[1] - probe[1];
+			}
+		}
+	}
+	if (Constants::IsVecNormalize(dashMove))
+	{
+		float speed = ::Constants::jetGeoVecLength(dashMove) * GetParam()->fDashForce;
+		::Constants::jetGeoVecNormalize(dashMove, dashMove);
+		if (speed < GetParam()->fDashSpeedMin)
+		{
+			speed = GetParam()->fDashSpeedMin;
+		}
+		::Constants::jetGeoVecScale(vMove(), dashMove, speed);
+	}
+	else if (Constants::IsVecNormalize(vAccel()))
+	{
+		// standing still: dash in the stick's direction
+		float speed = ::Constants::jetGeoVecLength(vAccel()) * GetParam()->fDashForce;
+		::Constants::jetGeoVecNormalize(dashMove, vAccel());
+		if (speed < GetParam()->fDashSpeedMin)
+		{
+			speed = GetParam()->fDashSpeedMin;
+		}
+		::Constants::jetGeoVecScale(vMove(), dashMove, speed);
+	}
+}
+
+// part of DOL 0x80164f3c (play step): the end of the frame's movement. The dash floor's boost wears off, AdjustSpeed limits the speed, then
+// gravity (or the water's force), the brake animation and the BG push.
+void cTaskCharPacman::NormalMoveEnd()
+{
+	cAppG03PacnRollGame* app = Constants::PACN_APP();
+	if (IsState(STATE_DASH_FLOOR) && (++m_nFloorDashCnt > GetParam()->nDashFloorTime || IsState(STATE_BRAKE)))
+	{
+		OffState(STATE_DASH_FLOOR);
+	}
+	if (!IsState(STATE_DASH))
+	{
+		m_PtkHndDash->Detach(true);
+	}
+	AdjustSpeed();
+	OffState(STATE_JUMP);
+	if (IsState(STATE_WATER_UP | STATE_WATER_IN))
+	{
+		WaterForce();
+	}
+	else
+	{
+		vMove()[1] -= GetParam()->fGravityFall;
+	}
+	BrakeAnime();
+	app->pTaskCollision()->PushBackChar(this);
+	OnState(STATE_HIT_BG);
 }
 
 void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 {
-	if (m_pHitObjFloorOld != nullptr && m_pHitObjFloorOld->IsState(256u) && pHitFace(1) == nullptr && m_pHitObjFloorOld->IsMove() && m_pHitObjFloorOld != nullptr && (m_pHitObjFloorOld->IsMove() || IsState(16u)) && !IsState(3072u))
+	if (m_pHitObjFloorOld != nullptr && m_pHitObjFloorOld->IsState(256u) && pHitFace(1) == nullptr && m_pHitObjFloorOld->IsMove() && m_pHitObjFloorOld != nullptr && (m_pHitObjFloorOld->IsMove() || IsState(STATE_HANG)) && !IsState(STATE_WATER_UP | STATE_WATER_IN))
 	{
 		Vector4 v;
 		::Constants::jetGeoVecTrans(v, m_pHitObjFloorOld->pMtxInvOld(), vTransOld());
@@ -1176,7 +1320,7 @@ void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 	}
 	Vector4 v2 = Vector4::zero;
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
-	if (!Constants::IS_PAC_PAUSE() && !IsGoal() && !IsMiss() && !IsState(16u) && (pHitObj(1) == nullptr || !IsState(32u)))
+	if (!Constants::IS_PAC_PAUSE() && !IsGoal() && !IsMiss() && !IsState(STATE_HANG) && (pHitObj(1) == nullptr || !IsState(STATE_BRAKE)))
 	{
 		UpdateRollMatrix();
 	}
@@ -1196,16 +1340,11 @@ void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 		DummyNW4R::SetMtx(pPBModel(num)->pScnMdl(), m);
 		DummyNW4R::SetScale(pPBModel(num)->pScnMdl(), vScale()[0], vScale()[1], vScale()[2]);
 	}
+	// DOL 0x80167dc8: the current form's push-back draws itself (+0xd8 vtable +0x54 = 0x8009abe0: into this frame's scene list) unless Pac-Man
+	// blinks (+0x650); paused / HOME held it always draws. (The C# toggled Visible / Invisible here instead.)
 	if (!m_bBrink || Constants::IS_PAC_PAUSE())
 	{
-		if (!pCurrentModel()->IsVisible())
-		{
-			pCurrentModel()->Visible();
-		}
-	}
-	else if (pCurrentModel()->IsVisible())
-	{
-		pCurrentModel()->Invisible();
+		pCurrentModel()->UpdateMatrix();
 	}
 	if (m_PtkHndFlame->IsValid() && m_PtkHndFlame->IsActive())
 	{
@@ -1275,10 +1414,10 @@ void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 	}
 	else if (m_nAnmKeepTime != 0 && --m_nAnmKeepTime == 0)
 	{
-		SetAnmState(0u, 5u, 0u);
+		SetAnmState(ANIME_STATE_NORMAL, 5u, 0u);
 		m_nAnmKeepTime = 0u;
 	}
-	if (!IsState(32u) || pHitObj(1) == nullptr)
+	if (!IsState(STATE_BRAKE) || pHitObj(1) == nullptr)
 	{
 		UpdateFrame();
 	}
@@ -1339,7 +1478,7 @@ void cTaskCharPacman::InitParam()
 void cTaskCharPacman::CollisionFoceMove()
 {
 	cTaskBgHit* cTaskBgHit2 = pHitObj(1);
-	if (cTaskBgHit2 == nullptr || (!cTaskBgHit2->IsMove() && !IsState(16u)) || IsState(3072u))
+	if (cTaskBgHit2 == nullptr || (!cTaskBgHit2->IsMove() && !IsState(STATE_HANG)) || IsState(STATE_WATER_UP | STATE_WATER_IN))
 	{
 		return;
 	}
@@ -1349,7 +1488,7 @@ void cTaskCharPacman::CollisionFoceMove()
 	::Constants::jetGeoVecSub(vForceMove(), v, vTrans());
 	::Constants::jetGeoVecCopy(m_vForceMoveStock, vForceMove());
 	::Constants::jetGeoVecCopy(vTransOld2(), v);
-	if (0.0f < cTaskBgHit2->fMoment() && !IsState(16u))
+	if (0.0f < cTaskBgHit2->fMoment() && !IsState(STATE_HANG))
 	{
 		::Constants::jetGeoVecSub(v, vTransOld2(), vTrans());
 		::Constants::jetGeoVecScale(v, v, cTaskBgHit2->fMoment());
@@ -1364,7 +1503,7 @@ void cTaskCharPacman::CollisionFoceMove()
 
 void cTaskCharPacman::PostCollisionWall()
 {
-	if (IsState(16u) || IsState(8192u))
+	if (IsState(STATE_HANG) || IsState(STATE_GEARS))
 	{
 		return;
 	}
@@ -1383,7 +1522,7 @@ void cTaskCharPacman::PostCollisionWall()
 	{
 		for (Constants::sHitParam* item : list)
 		{
-			if (nType() == 2 && IsState(1u) && item->pObj->IsState(1u))
+			if (nType() == TYPE_KNIGHT && IsState(STATE_DASH) && item->pObj->IsState(1u))
 			{
 				Vector4 v3;
 				::Constants::jetGeoVecTrans(v3, item->pObj->pMtx(), item->vPos);
@@ -1454,7 +1593,7 @@ void cTaskCharPacman::PostCollisionWall()
 	{
 		::Constants::jetGeoVecZero(vMove());
 		::Constants::jetGeoVecSet(m_vJumpVec, 0.0f, GetParam()->fSpeedMax, 0.0f, 1.0f);
-		OnState(8192u);
+		OnState(STATE_GEARS);
 	}
 	else if (hitParam != nullptr)
 	{
@@ -1502,9 +1641,9 @@ void cTaskCharPacman::PostCollisionWall()
 			vMove()[0] = 0.0f;
 			vMove()[2] = 0.0f;
 		}
-		else if ((pHitObj(0) == nullptr && 0.15f < Mathf::Abs(num)) || IsState(3u))
+		else if ((pHitObj(0) == nullptr && 0.15f < Mathf::Abs(num)) || IsState(STATE_DASH | STATE_DASH_FLOOR))
 		{
-			if (!IsState(2u))
+			if (!IsState(STATE_DASH_FLOOR))
 			{
 				::Constants::jetGeoVecScale(v10, v10, 0.6f);
 			}
@@ -1517,18 +1656,18 @@ void cTaskCharPacman::PostCollisionWall()
 			{
 				::Constants::jetGeoVecCopy(vMove(), v10);
 			}
-			if (IsState(1u) || IsOverSpeed(0.3f, Nullable<Vector4>(v9)))
+			if (IsState(STATE_DASH) || IsOverSpeed(0.3f, Nullable<Vector4>(v9)))
 			{
 				cAppG03PacnRollGame2->SetEffect(1u, v8, Vector4());
 				// WII (80169b..): SE089 plays when dashing into a wall unless it is already playing. The port
 				// tested `!= null` on a handle that is never set, so the sound never played.
-				if (IsState(1u) && nullptr == m_SndHndDash2)
+				if (IsState(STATE_DASH) && nullptr == m_SndHndDash2)
 				{
 					m_SndHndDash2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE089_PAC_DASH);
 				}
-				if (!IsState(1u))
+				if (!IsState(STATE_DASH))
 				{
-					SetAnmState(1u, 0u, 60u);
+					SetAnmState(ANIME_STATE_HIT_WALL, 0u, 60u);
 				}
 			}
 		}
@@ -1606,7 +1745,7 @@ void cTaskCharPacman::PostCollisionWall()
 
 void cTaskCharPacman::PostCollisionFloor()
 {
-	if (IsState(16u))
+	if (IsState(STATE_HANG))
 	{
 		return;
 	}
@@ -1697,11 +1836,11 @@ void cTaskCharPacman::PostCollisionFloor()
 			}
 			else if (flag && hitParam->pFace->nKind != Constants::eFACE_KIND::eFACE_KIND_POIS && IsHang(hitParam))
 			{
-				bool num = IsState(4u);
-				SetState(16u);
+				bool num = IsState(STATE_EAT_POWER_COOKIE);
+				SetState(STATE_HANG);
 				if (num)
 				{
-					OnState(4u);
+					OnState(STATE_EAT_POWER_COOKIE);
 				}
 				::Constants::jetGeoVecTrans(vTrans(), hitParam->pObj->pMtx(), hitParam->vEdgePos);
 				::Constants::jetGeoVecCopy(m_vHangPos, hitParam->vEdgePos);
@@ -1744,8 +1883,10 @@ void cTaskCharPacman::PostCollisionFloor()
 							}
 						}
 					}
-					OnState(2u);
-					if (nullptr == m_SndHndDash)
+					OnState(STATE_DASH_FLOOR);
+					// DOL 0x8016ab4c: "the dash handle has no sound" (0x80026424), not "the handle is null": a handle from an earlier dash stays set
+					// after its sound ends, which made the first dash pad of a stage silent (it then only played once m_nFloorDashCnt >= 3)
+					if (!SoundManager::get_SE()->IsPlaying(m_SndHndDash))
 					{
 						if (m_nHitKindFace == 5)
 						{
@@ -1766,11 +1907,11 @@ void cTaskCharPacman::PostCollisionFloor()
 					}
 					m_nFloorDashCnt = 0u;
 				}
-				if (hitParam->pFace->nKind == Constants::eFACE_KIND::eFACE_KIND_POIS && !IsState(8u))
+				if (hitParam->pFace->nKind == Constants::eFACE_KIND::eFACE_KIND_POIS && !IsState(STATE_DAMAGE))
 				{
 					DamageProcess(1u, {}, 0.0f);
 					cAppG03PacnRollGame2->SetEffect(10u, vTrans(), Vector4(), m_PtkHndPoson);
-					SetAnmState(4u, 5u, 40u);
+					SetAnmState(ANIME_STATE_DAMAGE, 5u, 40u);
 				}
 				::Constants::jetGeoVecSet(v, 0.0f, 1.0f, 0.0f, 1.0f);
 				float num2 = ::Constants::jetGeoVecInnerProduct(v3, v);
@@ -1779,7 +1920,7 @@ void cTaskCharPacman::PostCollisionFloor()
 					if (vMove()[1] > 0.25f && m_pHitObjFloorOld != nullptr)
 					{
 						vMove()[1] += ::Constants::jetGeoVecLength(vMove()) * 0.018f;
-						OnState(32768u);
+						OnState(STATE_CLIMB);
 					}
 					if (Constants::IsVecNormalize(vMove()))
 					{
@@ -1795,10 +1936,10 @@ void cTaskCharPacman::PostCollisionFloor()
 						vMove()[0] += v[0] * num3;
 						vMove()[2] += v[2] * num3;
 						float t;
-						if (IsState(32u))
+						if (IsState(STATE_BRAKE))
 						{
 							t = GetParam()->fFrictionBrake;
-							if (!IsStateOld(32u))
+							if (!IsStateOld(STATE_BRAKE))
 							{
 								cAppG03PacnRollGame2->SetEffect(2u, vTransOld(), Vector4(), m_PtkHndBrake);
 							}
@@ -1810,7 +1951,7 @@ void cTaskCharPacman::PostCollisionFloor()
 						::Constants::jetGeoVecScale(v, v9, t);
 						::Constants::jetGeoVecSub(vMove(), vMove(), v);
 					}
-					if (IsState(1u))
+					if (IsState(STATE_DASH))
 					{
 						if (vMove()[1] > 0.0f && vMove()[1] < 0.13f)
 						{
@@ -1823,7 +1964,7 @@ void cTaskCharPacman::PostCollisionFloor()
 						float value = (vMove()[2] = 0.0f);
 						reference[0] = value;
 					}
-					if (!IsStateOld(32768u))
+					if (!IsStateOld(STATE_CLIMB))
 					{
 						if (vMove()[1] > 0.3f)
 						{
@@ -1871,10 +2012,10 @@ void cTaskCharPacman::PostCollisionFloor()
 						v6[1] = 0.3f;
 					}
 					float sp = 0.0f;
-					if (IsState(32u))
+					if (IsState(STATE_BRAKE))
 					{
 						sp = GetParam()->fFrictionBrake;
-						if (!IsStateOld(32u))
+						if (!IsStateOld(STATE_BRAKE))
 						{
 							::Constants::jetGeoVecScale(v, v3, 0.1f);
 							::Constants::jetGeoVecAdd(v, v2, v);
@@ -1883,7 +2024,7 @@ void cTaskCharPacman::PostCollisionFloor()
 							v12[1] = 0.0f;
 							if (::Constants::jetGeoVecLength(v12) > 0.1f)
 							{
-								if (!IsState(2048u) && !IsState(1024u))
+								if (!IsState(STATE_WATER_IN) && !IsState(STATE_WATER_UP))
 								{
 									cAppG03PacnRollGame2->SetEffect(2u, v, Vector4(), m_PtkHndBrake);
 								}
@@ -1891,7 +2032,7 @@ void cTaskCharPacman::PostCollisionFloor()
 							}
 						}
 					}
-					else if (!IsState(2048u))
+					else if (!IsState(STATE_WATER_IN))
 					{
 						sp = GetParam()->fFriction;
 						if (hitParam->pFace->nKind == Constants::eFACE_KIND::eFACE_KIND_GRAS)
@@ -1951,7 +2092,7 @@ void cTaskCharPacman::PostCollisionFloor()
 
 void cTaskCharPacman::PostCollisionWallFinish()
 {
-	if (IsState(16u))
+	if (IsState(STATE_HANG))
 	{
 		return;
 	}
@@ -2025,7 +2166,7 @@ void cTaskCharPacman::PostCollisionWallFinish()
 
 void cTaskCharPacman::PostCollisionFloorFinish()
 {
-	if (IsState(16u))
+	if (IsState(STATE_HANG))
 	{
 		return;
 	}
@@ -2129,7 +2270,7 @@ void cTaskCharPacman::SetBoundWall(Constants::sHitParam* const& hitParam, const 
 		::Constants::jetGeoVecAdd(v, v, v2);
 	}
 	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE031_JUMP, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
-	SetAnmState(6u, 5u, 40u);
+	SetAnmState(ANIME_STATE_JUNP, 5u, 40u);
 	m_nNoBoundCnt = 6u;
 	::Constants::jetGeoVecSet(m_vJumpVec, v[0], v[1], v[2], 1.0f);
 }
@@ -2146,23 +2287,23 @@ void cTaskCharPacman::SetBoundFloor(Constants::sHitParam* const& hitParam, const
 	Vector4 v;
 	::Constants::jetGeoVecScale(v, vNorm, GetParam()->fBoundFloor);
 	::Constants::jetGeoVecAdd(m_vJumpVec, m_vJumpVec, vForceMove());
-	if (IsState(1u))
+	if (IsState(STATE_DASH))
 	{
 		v[1] *= GetParam()->fDashBound;
 	}
 	::Constants::jetGeoVecSet(m_vJumpVec, v[0], v[1], v[2], 1.0f);
-	if (!IsState(8u) && hitParam->pFace->nKind == Constants::eFACE_KIND::eFACE_KIND_MAGM)
+	if (!IsState(STATE_DAMAGE) && hitParam->pFace->nKind == Constants::eFACE_KIND::eFACE_KIND_MAGM)
 	{
 		cAppG03PacnRollGame2->SetEffect(14u, vTrans(), Vector4(), m_PtkHndFlame);
 		DamageProcess(1u, {}, 0.0f);
 		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
 		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE049_YOUGAN);
-		SetAnmState(4u, 5u, 40u);
+		SetAnmState(ANIME_STATE_DAMAGE, 5u, 40u);
 	}
 	else
 	{
-		SetAnmState(6u, 5u, 40u);
-		if (nType() == 1)
+		SetAnmState(ANIME_STATE_JUNP, 5u, 40u);
+		if (nType() == TYPE_WING)
 		{
 			cAppG03PacnRollGame2->SetEffect(7u, vTrans(), Vector4(), m_PtkHndWing);
 		}
@@ -2183,11 +2324,11 @@ void cTaskCharPacman::WaterForce()
 	v[2] = vMove()[2] * GetParam()->fWaterResistXZ;
 	v[3] = 1.0f;
 	::Constants::jetGeoVecSub(vMove(), vMove(), v);
-	if (nType() == 2)
+	if (nType() == TYPE_KNIGHT)
 	{
 		vMove()[1] = -0.06f;
 	}
-	else if (IsState(2048u))
+	else if (IsState(STATE_WATER_IN))
 	{
 		vMove()[1] += GetParam()->fWaterLift;
 	}
@@ -2210,7 +2351,7 @@ bool cTaskCharPacman::IsHang(Constants::sHitParam* hitParam)
 {
 	CustomKingdomUtil::Assert(hitParam != nullptr, "nullpo");
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
-	if (pHitObj(1) != nullptr && !IsState(12161u) && hitParam->nFlag == 2 && 0 <= hitParam->nEdgeVrtIdx && CustomKingdomUtil::IF((long)hitParam->pFace->nHangFlag & (long)(1 << hitParam->nEdgeVrtIdx)) && !IsOverSpeed(GetParam()->fHangSpeed, Nullable<Vector4>(vMove())) && !cAppG03PacnRollGame2->pTaskGoal()->IsGoal() && (pHitObj(0) == nullptr || !pHitObj(0)->IsState(64u)))
+	if (pHitObj(1) != nullptr && !IsState(STATE_DASH | STATE_HELL | STATE_MISS | STATE_MISS_FINISH | STATE_WATER_UP | STATE_WATER_IN | STATE_GEARS) && hitParam->nFlag == 2 && 0 <= hitParam->nEdgeVrtIdx && CustomKingdomUtil::IF((long)hitParam->pFace->nHangFlag & (long)(1 << hitParam->nEdgeVrtIdx)) && !IsOverSpeed(GetParam()->fHangSpeed, Nullable<Vector4>(vMove())) && !cAppG03PacnRollGame2->pTaskGoal()->IsGoal() && (pHitObj(0) == nullptr || !pHitObj(0)->IsState(64u)))
 	{
 		Constants::sFace* outFace = new Constants::sFace();
 		Vector4 v;
@@ -2293,7 +2434,7 @@ bool cTaskCharPacman::Hanging(bool flg, cTaskBgHit* hitObjFloor)
 			bool flag = true;
 			if (GamePad::Get(0).accSpeed <= m_ParamCommon->fPadSwingSpeedEscapeHang)
 			{
-				if (IsState(3104u))
+				if (IsState(STATE_BRAKE | STATE_WATER_UP | STATE_WATER_IN))
 				{
 					::Constants::jetGeoVecSet(m_vAfterMove, (0.0f - v2[0]) * 0.04f, 0.2f, (0.0f - v2[2]) * 0.04f, 1.0f);
 					flag = false;
@@ -2310,7 +2451,7 @@ bool cTaskCharPacman::Hanging(bool flg, cTaskBgHit* hitObjFloor)
 			{
 				vTrans()[1] += fRadius();
 				m_nNoDashCnt = 20u;
-				OffState(16u);
+				OffState(STATE_HANG);
 				return false;
 			}
 		}
@@ -2396,11 +2537,13 @@ void cTaskCharPacman::SetAnmState(const uint& state, const uint& time, const uin
 
 void cTaskCharPacman::SetAnm(string anime, const uint& idx)
 {
-	RtpaParam* rtpaParam = ResourceDatabase::Get<RtpaParam>(anime);
-	CustomKingdomUtil::Assert(nullptr != rtpaParam, "nullpo");
+	// native: the C#'s RtpaParam (Unity texture-pattern asset) has no native form (Get<RtpaParam> is always null, so no face pattern was ever bound);
+	// the BIN_PAC_FACE_*_TPA entries are PAT0 files and bind through the same archive handle as the CHR0 clips
+	Object* pat = ResourceDatabase::Get<Object>(anime);
+	CustomKingdomUtil::Assert(nullptr != pat, "nullpo");
 	for (uint num = 0u; num < 3; num++)
 	{
-		pModel(num)->RegistAnm(idx, rtpaParam);
+		pModel(num)->RegistAnm(idx, pat);
 	}
 }
 
@@ -2449,7 +2592,7 @@ bool cTaskCharPacman::Control()
 		{
 			SoundManager::get_SE()->Stop(m_SndHndMove, 0.3f);
 		}
-		OnState(32u);
+		OnState(STATE_BRAKE);
 	}
 	else
 	{
@@ -2489,17 +2632,17 @@ bool cTaskCharPacman::Control()
 					SoundManager::get_SE()->Stop(m_SndHndMove, 0.5f);
 				}
 			}
-			else if (nullptr == m_SndHndMove && !IsState(1024u) && !IsState(2048u))
+			else if (nullptr == m_SndHndMove && !IsState(STATE_WATER_UP) && !IsState(STATE_WATER_IN))
 			{
 				switch (nType())
 				{
-				case 0u:
+				case TYPE_NORMAL:
 					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE018_KOROGARI1, true);
 					break;
-				case 1u:
+				case TYPE_WING:
 					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE019_KOROGARI2, true);
 					break;
-				case 2u:
+				case TYPE_KNIGHT:
 					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE020_KOROGARI3, true);
 					break;
 				}
@@ -2515,16 +2658,16 @@ bool cTaskCharPacman::Control()
 
 void cTaskCharPacman::AdjustSpeed()
 {
-	float sp = (IsState(3u) ? ((!(GetParam()->fDashSpeedMax > GetParam()->fDashFloorSpeedMax)) ? GetParam()->fDashFloorSpeedMax : GetParam()->fDashSpeedMax) : (((pHitObj(1) != nullptr && !IsState(16384u)) || IsState(3072u)) ? GetParam()->fSpeedMax : GetParam()->fSpeedMaxAir));
+	float sp = (IsState(STATE_DASH | STATE_DASH_FLOOR) ? ((!(GetParam()->fDashSpeedMax > GetParam()->fDashFloorSpeedMax)) ? GetParam()->fDashFloorSpeedMax : GetParam()->fDashSpeedMax) : (((pHitObj(1) != nullptr && !IsState(STATE_JUMP)) || IsState(STATE_WATER_UP | STATE_WATER_IN)) ? GetParam()->fSpeedMax : GetParam()->fSpeedMaxAir));
 	Vector4 v;
-	if (pHitObj(1) == nullptr && !IsState(3072u))
+	if (pHitObj(1) == nullptr && !IsState(STATE_WATER_UP | STATE_WATER_IN))
 	{
 		::Constants::jetGeoVecCopy(v, vMove());
 		v[1] = 0.0f;
 		if (Constants::IsVecNormalize(v))
 		{
 			::Constants::jetGeoVecNormalize(v, v);
-			float t = ((!IsState(1u)) ? GetParam()->fAirResist : GetParam()->fAirResistDash);
+			float t = ((!IsState(STATE_DASH)) ? GetParam()->fAirResist : GetParam()->fAirResistDash);
 			::Constants::jetGeoVecScale(v, v, t);
 			::Constants::jetGeoVecSub(vMove(), vMove(), v);
 		}
@@ -2606,7 +2749,7 @@ void cTaskCharPacman::UpdateRollMatrix()
 	::Constants::jetGeoMtxIdentity(m);
 	::Constants::jetGeoVecUnit(v2);
 	::Constants::jetGeoVecSub(v2, vTrans(), vTransOld2());
-	if (pHitObj(1) == nullptr && !IsState(33792u) && !IsStateOld(32768u))
+	if (pHitObj(1) == nullptr && !IsState(STATE_WATER_UP | STATE_CLIMB) && !IsStateOld(STATE_CLIMB))
 	{
 		v2[1] = 0.0f;
 	}
@@ -2751,12 +2894,12 @@ void cTaskCharPacman::SetRetryData()
 
 bool cTaskCharPacman::IsMiss()
 {
-	return IsState(256u);
+	return IsState(STATE_MISS);
 }
 
 bool cTaskCharPacman::IsMissFinish()
 {
-	return IsState(512u);
+	return IsState(STATE_MISS_FINISH);
 }
 
 bool cTaskCharPacman::IsGameOver()
@@ -2785,7 +2928,7 @@ void cTaskCharPacman::Attacked(cHitChar* pRev, cHitChar* pAtk)
 		::Constants::jetGeoVecSub(v, pRev->vPos(), pAtk->vPos());
 	}
 	v[1] = 0.0f;
-	if (IsState(4u) && (pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_CAR || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_UFO || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_BOAT || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_PLANE || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_HOVER))
+	if (IsState(STATE_EAT_POWER_COOKIE) && (pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_CAR || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_UFO || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_BOAT || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_PLANE || pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_RIDE_HOVER))
 	{
 		float num = ::Constants::jetGeoVecLength(v);
 		if (CustomKingdomUtil::IF(num))
@@ -2812,7 +2955,7 @@ void cTaskCharPacman::Attacked(cHitChar* pRev, cHitChar* pAtk)
 		{
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST);
 		}
-		else if (nType() != 2)
+		else if (nType() != TYPE_KNIGHT)
 		{
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST);
 		}
@@ -2836,7 +2979,7 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 	}
 	if (nDamage != 0)
 	{
-		if (!CustomKingdomUtil::IF(nKnightDef) || nType() != 2)
+		if (!CustomKingdomUtil::IF(nKnightDef) || nType() != TYPE_KNIGHT)
 		{
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
 			if (Random::Range(0, 2) == 0)
@@ -2847,7 +2990,8 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 			{
 				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE097_DAMAGE2);
 			}
-			if (nHP() >= nDamage)
+			if (devtools::G03NoDamage()) {} // devtools: --g03-no-damage (not 1:1)
+			else if (nHP() >= nDamage)
 			{
 				nHP() -= nDamage;
 			}
@@ -2856,10 +3000,10 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 				nHP() = 0u;
 			}
 		}
-		if (nKnightDef < 2 || nType() != 2)
+		if (nKnightDef < 2 || nType() != TYPE_KNIGHT)
 		{
-			SetAnmState(4u, 5u, 40u);
-			OnState(8u);
+			SetAnmState(ANIME_STATE_DAMAGE, 5u, 40u);
+			OnState(STATE_DAMAGE);
 		}
 	}
 	return true;
@@ -2870,7 +3014,7 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 void cTaskCharPacman::BrakeAnime()
 {
 	bool flag = false;
-	if (!IsState(32u) && m_bBrakeAnmMax)
+	if (!IsState(STATE_BRAKE) && m_bBrakeAnmMax)
 	{
 		const std::shared_ptr<wii::ChrAnim> clip = cKingdomModelBase::ChrAnimOf(m_AnmChrBrakeOff[nType()]);
 		const float num = clip != nullptr ? (float)clip->numFrame : 0.0f;
@@ -2898,7 +3042,7 @@ void cTaskCharPacman::BrakeAnime()
 	else if (pHitObj(1) != nullptr)
 	{
 		const std::shared_ptr<wii::ChrAnim> clip = cKingdomModelBase::ChrAnimOf(m_AnmChrBrakeOn[nType()]);
-		if (IsState(32u) && !IsState(3072u))
+		if (IsState(STATE_BRAKE) && !IsState(STATE_WATER_UP | STATE_WATER_IN))
 		{
 			const float num2 = clip != nullptr ? (float)clip->numFrame : 0.0f;
 			m_fAnmCharBrakeOnFrame++;
@@ -2957,7 +3101,7 @@ void cTaskCharPacman::BrakeAnime()
 
 void cTaskCharPacman::RecoverHp(uint n)
 {
-	if (!IsState(256u))
+	if (!IsState(STATE_MISS))
 	{
 		if (n == 0)
 		{
@@ -2976,7 +3120,7 @@ void cTaskCharPacman::RecoverHp(uint n)
 
 void cTaskCharPacman::GainHpLimit(uint n)
 {
-	if (!IsState(256u))
+	if (!IsState(STATE_MISS))
 	{
 		m_nMaxHP += n;
 	}
@@ -2988,7 +3132,7 @@ void cTaskCharPacman::GainHpLimit(uint n)
 
 void cTaskCharPacman::GainLife(uint n)
 {
-	if (!IsState(256u))
+	if (!IsState(STATE_MISS))
 	{
 		m_nLife += n;
 	}
@@ -3026,7 +3170,7 @@ void cTaskCharPacman::SetMaterialAlpha(byte alpha)
 
 void cTaskCharPacman::IjikeStart()
 {
-	if (!IsState(4u))
+	if (!IsState(STATE_EAT_POWER_COOKIE))
 	{
 		m_nEatComboCnt = 0u;
 	}
@@ -3039,16 +3183,16 @@ void cTaskCharPacman::IjikeStart()
 		Constants::PACN_APP()->SetEffect(12u, vTrans(), Vector4(), m_PtkHndPowerCookie);
 	}
 	cTaskChar::IjikeStart();
-	OnState(4u);
-	SetAnmState(3u, 5u, 0u);
+	OnState(STATE_EAT_POWER_COOKIE);
+	SetAnmState(ANIME_STATE_EAT_POWER_COOKIE, 5u, 0u);
 }
 
 void cTaskCharPacman::IjikeEnd()
 {
 	m_PtkHndPowerCookie->Detach(true);
 	cTaskChar::IjikeEnd();
-	OffState(4u);
-	SetAnmState(0u, 5u, 0u);
+	OffState(STATE_EAT_POWER_COOKIE);
+	SetAnmState(ANIME_STATE_NORMAL, 5u, 0u);
 }
 
 void cTaskCharPacman::RotateYPacMan(float rot)

@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cAppG07MotosMultiMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 
 #include "kingdom/game/g07/cTaskConsMultiMenuMan.hpp"
@@ -138,7 +139,7 @@ void cAppG07MotosMultiMenu::MainExec()
 			if (pTaskConsMultiMenuMan()->IsStartDecide())
 			{
 				pTaskConsMultiMenuMan()->Upload();
-				nSetNextJob(0x11800000u); // DOL 0x801c5450: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
+				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c5450: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
 			}
 			if (pTaskConsMultiMenuMan()->IsSingleDecide())
 			{

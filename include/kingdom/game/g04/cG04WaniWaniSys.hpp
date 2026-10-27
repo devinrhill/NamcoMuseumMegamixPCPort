@@ -44,7 +44,7 @@ public:
 	int nWork(int player) const { return m_Matching.player[player].nWork; }
 	sWaniMatching* pMatchingData() { return &m_Matching; }
 	int nHighScore() const { return m_nHighScore; }
-	void SetHighScore(int n) { m_nHighScore = n; }   // JAISound::updateLifeTime-labelled setter in the app's Execute (+0x158)
+	void SetHighScore(int n) { if ((u32)m_nHighScore < (u32)n) m_nHighScore = n; }   // DOL 0x80199ed4 (+0x158 = max)
 	void SaveRecord();                 // DOL 0x80199db4 (game data block 3)
 	int& nWinMask() { return m_n160; }   // +0x160: the winners (bit per player) of the last multiplayer round
 	bool& bRetry() { return m_b164; }   // +0x164: "Play again? yes" (the game job starts at the READY, not the menu)

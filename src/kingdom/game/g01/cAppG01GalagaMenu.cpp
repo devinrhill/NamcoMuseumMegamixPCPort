@@ -1,4 +1,5 @@
 #include "kingdom/game/g01/cAppG01GalagaMenu.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include "KingdomGlobal.hpp"
 #include "WiiSnd.hpp"
@@ -32,7 +33,7 @@ cAppG01GalagaMenu::cAppG01GalagaMenu()
 	cG01GalagaSys* sys = KingdomGlobal::GalagaSys;
 	m_bMulti = sys->IsMulti();
 	// BGM m01bgm_Select unless coming back from the multiplayer menu (0x0b600000)
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 0x0b600000u)
+	if (KingdomGlobal::SysCore->GetLastJobNo() != job::GALAGA_MATCHING)
 	{
 		SoundManager::get_BGM()->Stop(0.0f);
 		SoundManager::get_BGM()->Play(EBGMKind::GALAGA_SND_BGM01_SELECT, 1.0f, true);
@@ -125,23 +126,23 @@ void cAppG01GalagaMenu::MainExec()
 			if (m_pConsMan->IsStageDecide())
 			{
 				KingdomGlobal::GalagaSys->nStage(3 * m_pConsMan->nWorldNo() + m_pConsMan->nStageNo() + 1);
-				nSetNextJob(0x0b800000u);
+				nSetNextJob(job::GALAGA_NUNCHUK);
 			}
 			if (m_pConsMan->IsRuleDecide()) bTutorial() = true;
 			if (m_pConsMan->IsMultiDecide())
 			{
 				if (!m_bMulti)
 				{
-					nSetNextJob(0x0b600000u);
+					nSetNextJob(job::GALAGA_MATCHING);
 					SetSndAllStop(false);
 				}
 				else
 				{
 					KingdomGlobal::GalagaSys->nPlayer(1);
-					nSetNextJob(0x0b200000u);
+					nSetNextJob(job::GALAGA_MENU);
 				}
 			}
-			if (m_pConsMan->IsBackDecide()) nSetNextJob(0x0bf00000u);
+			if (m_pConsMan->IsBackDecide()) nSetNextJob(job::GALAGA_TERM);
 			if (nOldState(n) == nModeState(n)) break;
 			nModeStep(n) = 2u;
 			[[fallthrough]];

@@ -13,6 +13,7 @@
 #include "ResMdl.hpp"
 #include "ResNode.hpp"
 #include <Constants.hpp>
+#include "platform/devtools.hpp"
 
 namespace kingdom::game::g03
 {
@@ -35,9 +36,14 @@ void cTaskBgGimmickPillar::Init()
 	IsDrawShadowDepth(true);
 	Constants::PACN_APP();
 	ResMdl* resMdl = pFaceList()->pResMdl();
-	for (uint num2 = 0u; (long)num2 < (long)resMdl->GetChildResNodeNumEntries(); num2++)
+	// DOL 0x801517dc: every node of the hit model by its index (nw4r ResMdl::GetResNode(i), i < GetResNodeNumEntries). The converted loop only
+	// looked at the children of the first child, missed effect1_1 / effect1_2 (x +-5 in m03o_42_wo02_h) and kept the default half width 2:
+	// the long w4s2 logs hurt only in their middle. (The port's ResMdl::GetResNode(int) counts root children, so the node table is read here.)
+	const int nodeNum = resMdl->Mdl != nullptr ? (int)resMdl->Mdl->nodes.size() : 0;
+	for (int num2 = 0; num2 < nodeNum; num2++)
 	{
-		ResNode* firstChildChildResNode = resMdl->GetFirstChildChildResNode((int)num2);
+		ResNode node(resMdl->Mdl, resMdl->Mdl->nodes[num2].id);
+		ResNode* firstChildChildResNode = &node;
 		if (firstChildChildResNode->IsValid() && CustomKingdomUtil::strstr(firstChildChildResNode->GetName(), "effect"))
 		{
 			Vector3 vector = firstChildChildResNode->GetTranslate();
@@ -59,6 +65,7 @@ void cTaskBgGimmickPillar::Term()
 	cTaskBgGimmick::Term();
 }
 
+// DOL 0x801519f0
 bool cTaskBgGimmickPillar::Execute(cJetTask* pParam)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -76,10 +83,11 @@ bool cTaskBgGimmickPillar::Execute(cJetTask* pParam)
 		{
 			IsCollision() = false;
 		}
-		float frameMaxAnmChr = this->Model->GetFrameMaxAnmChr(0u);
-		float num = std::fmod(this->Model->GetFrameAnmChr(0u), frameMaxAnmChr);
+		const uint slot = AnmRootSlot() >= 0 ? (uint)AnmRootSlot() : 0u;   // natively the clip may not sit in slot 0 (see AnmRootSlot)
+		float frameMaxAnmChr = this->Model->GetFrameMaxAnmChr(slot);
+		float num = std::fmod(this->Model->GetFrameAnmChr(slot), frameMaxAnmChr);
 		this->Model->UpdateFrame();
-		float num2 = std::fmod(this->Model->GetFrameAnmChr(0u), frameMaxAnmChr);
+		float num2 = std::fmod(this->Model->GetFrameAnmChr(slot), frameMaxAnmChr);
 		::Constants::jetGeoMtxCopy(pMtxOld(), pMtx());
 		::Constants::jetGeoMtxCopy(pMtxInvOld(), pMtxInv());
 		::Constants::jetGeoMtxCopy(pMtxRotateOld(), pMtxRotate());
@@ -90,23 +98,18 @@ bool cTaskBgGimmickPillar::Execute(cJetTask* pParam)
 		::Constants::jetGeoMtxTrans(pMtxRotTrans(), pMtxRotTrans(), this->Model->vTrans());
 		::Constants::jetGeoMtxMult(pMtxRotTrans(), pMtxRotTrans(), pMtxRotate());
 		::Constants::jetGeoMtxScale(pMtx(), pMtxRotTrans(), this->Model->vScale());
-		if (false /* TODO(unity): null != base.Model.pAnim().clip */)
-		{
-			ResNode* resNode = (new ResMdl(this->Model->pScnMdl()))->GetResNode("root");
-			if (resNode->IsValid())
-			{
-				::Constants::jetGeoMtxScale(pMtx(), pMtx(), resNode->GetScale());
-				Matrix4x4 m = resNode->GetTransRotMatrix();
-				::Constants::jetGeoMtxMult(pMtx(), pMtx(), m);
-			}
-		}
+		// DOL 0x801519f0: the "root" bone of the clip folds into the hit matrices as in cTaskBgHit::UpdateMatrix (0x80154e64); the converted code had it
+		// behind "false /* TODO(unity) */", so the rolling pillar's hit box never left its start (no damage, w4s2)
+		ApplyAnmRoot();
 		::Constants::jetGeoMtxInverse(pMtxRotateInv(), pMtxRotate());
 		::Constants::jetGeoMtxInverse(pMtxInv(), pMtx());
 		if (num > num2)
 		{
 			SetMaterialAlpha(std::numeric_limits<byte>::max());
 		}
-		if (num < num2 && num2 * 60.0f >= 60.0f && !m_playEffect)
+		// DOL 0x801519f0: the dust effect when the clip frame crosses 60 (old <= 60 <= new); the converted "num2 * 60 >= 60" was Unity seconds
+		// (natively it fired at frame 1)
+		if (num < num2 && num <= 60.0f && num2 >= 60.0f)
 		{
 			Vector4 v = Vector4::zero;
 			Vector4 v2 = Vector4::zero;
@@ -134,7 +137,7 @@ bool cTaskBgGimmickPillar::Execute(cJetTask* pParam)
 			}
 		}
 		cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
-		if (!cTaskCharPacman2->IsState(280u) && HitCheck())
+		if (!cTaskCharPacman2->IsState(cTaskCharPacman::STATE_DAMAGE | cTaskCharPacman::STATE_HANG | cTaskCharPacman::STATE_MISS) && HitCheck())
 		{
 			Vector4 v3;
 			::Constants::jetGeoVecTrans(v3, pMtxInv(), cTaskCharPacman2->vTransOld());
@@ -173,6 +176,7 @@ bool cTaskBgGimmickPillar::HitCheck()
 	::Constants::jetGeoMtx44to34(m, pMtx());
 	AABB target = AABB(min, max, false);
 	target.Set(target, m);
+	{ const Vector3 a = target.This.min(), b = target.This.max(); const float mn[3] = {a.x, a.y, a.z}, mx[3] = {b.x, b.y, b.z}; devtools::G03HitBox(mn, mx, 0xffffffffu); } // devtools: --g03-show-gimmick-hit (not 1:1)
 	Vector3 trans = Vector3();
 	trans.x = cTaskCharPacman2->vTrans()[0];
 	trans.y = cTaskCharPacman2->vTrans()[1];

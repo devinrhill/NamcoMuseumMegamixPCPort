@@ -17,7 +17,7 @@ cTaskTortoise::cTaskTortoise(const Vector4& pos)
 	nDrawPriority(0x10004u);
 	kingdom::cKingdomModel* m = pModel(0u);
 	m->vTrans() = pos;
-	m->vRotate() = Vector4(0.0f, 3.1415927f, 0.0f, 1.0f);   // -0x7094(r2) / -0x707c / -0x7080 (UNVERIFIED: the same values as 0x801b7810's)
+	m->vRotate() = Vector4(0.0f, 3.1415927f, 0.0f, 1.0f);   // -0x7094(r2) / -0x707c / -0x7094 / -0x7080 = 0, pi, 0, 1 (0x800933ac)
 }
 
 // DOL 0x801b7768
@@ -28,6 +28,7 @@ void cTaskTortoise::Init()
 	m_nOldState = 0;
 	SetState(0);
 	m->SetLightSetIdx(1);
+	m->IsDrawShadowDepth(true);   // model vtable +0x20 (0x80020298: +0x54 = 1): casts the depth shadow
 	m->SetFogIdx(1);
 	m_b2d0 = m_bTurned = m_bResultFx = m_b2d3 = false;
 }
@@ -39,7 +40,7 @@ void cTaskTortoise::Reset()
 	m_b2d0 = false;
 	m_bTurned = false;
 	pModel(0u)->vRotate() = Vector4(0.0f, 3.1415927f, 0.0f, 1.0f);   // FLOAT_8047cd88 / cd8c / cd90
-	// the result effect (+0x280) detached when it was on (0x8008a508-like): natively the handle just stays
+	if (m_bResultFx) m_ResultFx.Detach(true);   // 0x8008a508(+0x280, +0x2d2)
 	m_bResultFx = false;
 	m_b2d3 = false;
 }
@@ -72,8 +73,8 @@ void cTaskTortoise::SetState(int state)
 	case 4:
 		m->SetFrameAnmAll(0u, 0.0f);
 		clip("ANIME_KAME_A04");
-		m_Anime.Regist(m, "ANIME_KAME_A04_CLA", 0u);
-		m_HitFx.Generate(6u, true, true, true, 0.0f, m->vTrans());   // PTK_EFFECT07_HIT
+		m_Anime.Regist(m, "ANIME_KAME_A04_CLA", 0u);   // 0x8001a4d8 on the model (through cAnimeBase natively: its IsAttached map stands in for the DOL's model query 0x80090650)
+		m_HitFx.Generate(6u, true, true, true, 0.0f, m->vTrans());   // PTK_EFFECT07_HIT at the model (the DOL raises a copy by FLOAT_8047cdb4, unused)
 		break;
 	case 5:
 		clip("ANIME_KAME_A05");
@@ -109,11 +110,14 @@ void cTaskTortoise::SetState(int state)
 	}
 }
 
-// DOL 0x801b86b8: alone the rank 0..4 picks 5..9; in a match the winner gets 5, a tie 9
+// DOL 0x801b86b8: alone the rank 0..4 picks 5..9; in a match rank 4 (a tie) gets 9, anything else 5
 void cTaskTortoise::Result(int rank)
 {
 	m_bTurned = false;
-	if (KingdomGlobal::WaniWaniSys->nPlayers() == 1) SetState(rank >= 0 && rank <= 4 ? 5 + rank : 9);
+	if (KingdomGlobal::WaniWaniSys->nPlayers() == 1)
+	{
+		if (rank >= 0 && rank <= 4) SetState(5 + rank);   // any other rank: no change (DOL)
+	}
 	else SetState(rank == 4 ? 9 : 5);
 }
 
@@ -129,7 +133,8 @@ bool cTaskTortoise::Execute(cJetTask* pParam)
 		if (m_Anime.ChrEnd(m, 0u)) m->SetFrameAnmChr(0u, 0.0f);   // 0x8001b624: loop
 		break;
 	case 1:
-		// 20 frames before the clip's end the talk effect is detached (+0x230, 0x8008a508-like): natively it runs out
+		// 20 frames before the clip's end the (looping) talk effect is detached: 0x8001c630 max - 0x8001c2e0 frame < FLOAT_8047cd94
+		if (m->GetFrameMaxAnmChr(0u) - m->GetFrameAnmChr(0u) < 20.0f) m_TalkFx.Detach(true);   // 0x8008a508(+0x230, 1)
 		m_nTimer++;
 		break;
 	case 2:

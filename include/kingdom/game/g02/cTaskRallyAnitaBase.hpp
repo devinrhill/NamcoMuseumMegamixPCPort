@@ -13,8 +13,8 @@ namespace kingdom { class cKingdomAnita; }
 //   0x80122ff4 SetAnim(idx, anim): SetAnimNo(anim, reset = false)
 //   0x80123138 SetPosLayer(idx, pat, lay): vTrans.xy = the position of layer `lay` of pattern `pat` (0x80014408)
 //   0x801231e8 GetLayerPos(out, idx, pat, lay)
-// The DOL's secondary-vtable slots listed for this class by vtable_audit (0x80125c18 ..) belong to the next vtable (the app's) and are not
-// cTaskRallyAnitaBase methods.
+// The words vtable_audit lists as this class's secondary-vtable slots after the thunk are the case labels of the app Execute's jump table
+// (cited at cAppG02RallyXGame::Execute), not cTaskRallyAnitaBase methods.
 namespace kingdom::game::g02
 {
 class cTaskConsole;

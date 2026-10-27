@@ -48,6 +48,9 @@ public:
 
 private:
 	bool CheckBottom();
+
+protected:
+	void ReleaseTerm() override { cTaskBgGimmickSeesaw::Term(); cTaskPushBack::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -566,6 +566,29 @@ public:
 
 private:
 	Vector2 GetPadLStickOrKey(int padNum);
+	// Execute split by the port (one per EProc mode, NormalPlay = the play step of ePROC_NORMAL in blocks)
+	void ProcStartWait();
+	void ProcNormal();
+	void ProcHang();
+	void ProcGears();
+	void ProcMiss();
+	void ProcHell();
+	void ProcGoal();
+	void ProcJoy();
+	void ProcRetire();
+	void NormalPlay();
+	bool NormalImpulse();
+	void NormalCounters();
+	void NormalIdle();
+	void NormalWater();
+	void NormalAirSound();
+	void NormalDash(bool jumped);
+	void NormalDashAccel();
+	void NormalMoveEnd();
+
+
+protected:
+	void ReleaseTerm() override { cTaskCharPacman::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "WiiSnd.hpp"
+#include "kingdom/cKingdomModel.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
 #include "kingdom/game/g11/cTaskGrobdaEffect.hpp"
 #include "kingdom/game/g11/cTaskGrobdaCombo.hpp"
@@ -193,8 +194,25 @@ cTaskGrobdaShotGrenade::cTaskGrobdaShotGrenade(uint type)
 	SetType(type);
 	m_fRadius = 0.3f;   // UNVERIFIED: FLOAT_804772d8 (the sphere is never swept: no list)
 	GenerateHandle((uint)(cTaskGrobdaEffect::eGRENADE_LOCUS + (int)(type - 0x3000001u)));
+	// the shadow: FUN_80193e74 + RegistModel(BIN_MDL_GRENADE_SHADOW 0x14f86b46, 0x36f), vtable +0x20 (0x80194118) sets its +0x54 flag to 1.
+	// The model (m11e_18_gren_shad) is a plain opaque cylinder (no blend, z compare + update, raster colour): a depth-shadow caster, not
+	// a colour model. Its push-back slots are 0x80194120 (+0x4c / +0x58: the +0x54 flag = IsDrawShadowDepth) and 0x80194128 (+0x50 / +0x5c:
+	// the model while a state byte (app chain +0x1b8 / +0x1b4, +0xf4) is 4; UNVERIFIED meaning). Natively shadow-only (as cTaskModelEx's
+	// shadow models): the colour pass never draws it and the engine has no depth-shadow pass yet, so it shows nothing. Not ported: the
+	// draw step 0x8019406c (ScnObj options 2 / 3 / 4 cleared, world matrix re-set)
+	m_pShadow = new kingdom::cKingdomModel(string("BIN_MDL_GRENADE_SHADOW"), 0x36fu);
+	m_pShadow->SetShadowOnly(true);
+	m_pShadow->Invisible();
+	m_bFlight = false;
 	Stop();
 	m_nState = 0;
+}
+
+// DOL 0x800abbf0: the shadow model goes (vtable +0x10)
+cTaskGrobdaShotGrenade::~cTaskGrobdaShotGrenade()
+{
+	delete m_pShadow;
+	m_pShadow = nullptr;
 }
 
 // DOL 0x800ac050: sound, the shot's fire, then the velocity = (0, 0, 1) turned about X by rot[0] and about Y by rot[1], times the speed
@@ -253,7 +271,20 @@ bool cTaskGrobdaShotGrenade::Execute(cJetTask* pParam)
 			m_vRot[0] = std::atan2(-dy, std::fabs(dx) + std::fabs(dz));
 		}
 	}
-	return cTaskGrobdaShot::Execute(pParam);
+	const bool ret = cTaskGrobdaShot::Execute(pParam);
+	// the shadow follows the ball (all four words of the position, y included) while the game runs and the ball flies
+	if (cTaskGrobdaCollision::Running() && m_nState == 1 && m_bFlight && m_pShadow != nullptr)
+	{
+		Vector4& t = m_pShadow->vTrans();
+		t = Vector4(m_vPos[0], m_vPos[1], m_vPos[2], m_vPos[3]);
+	}
+	// DOL 0x800abfc8 (Draw): the shadow is drawn only while +0xb3c is set (natively its visibility, the scene draws registered models)
+	if (m_pShadow != nullptr)
+	{
+		if (m_bFlight) m_pShadow->Visible();
+		else m_pShadow->Invisible();
+	}
+	return ret;
 }
 
 }

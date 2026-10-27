@@ -15,7 +15,8 @@ class cTaskEnemyShadow : public kingdom::cTaskPBModel
 public:
 	cTaskEnemyShadow(cTaskEnemy* pOwner, uint nModel);   // DOL 0x8009a730 + 0x801b0100 (BIN_MODEL_WANI_SH, WANI_SH_CLA, CSV_LIGHT)
 	// ~cTaskEnemyShadow DOL 0x801b076c: calls vtable +0xc (an empty blr) and then ~cTaskPBModel; the implicit destructor is the same
-	bool Execute(cJetTask* pParam) override;             // DOL 0x801b0380
+	bool Execute(cJetTask* pParam) override;             // DOL 0x801b0380 (the model-interface slot +0x18, which the DOL calls from Draw)
+	void Draw(int nStatus, cJetTask* pParam) override;   // DOL 0x8009aad0 (cTaskPBModel::Draw via thunk 0x80088c10): visible -> pushed back
 	void ClipA();                                        // DOL 0x801b0348: WANI_SH_A_CLA in CLR slot 0 (the gator sinks back)
 	void ClipNormal();                                   // DOL 0x801b0360: WANI_SH_CLA
 	void SetClrRate(float rate);                         // DOL 0x801b0378: SetUpdateRateMatClr(0, rate)

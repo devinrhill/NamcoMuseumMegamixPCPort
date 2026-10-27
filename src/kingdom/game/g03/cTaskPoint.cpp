@@ -59,6 +59,7 @@ cTaskPoint::cTaskPoint()
 	Init();
 }
 
+// DOL 0x8018772c
 void cTaskPoint::Init()
 {
 	m_nRetryIdx = -1;
@@ -77,8 +78,13 @@ void cTaskPoint::Init()
 			CreateModel(num);
 			cTaskModel::cPBModel* cPBModel = pPBModel(num);
 			cPBModel->RegistModel("BIN_POINT_MDL");
+			// DOL 0x8018772c: two clips, slot 0 = BIN_POINT_1_CHA (0x64260380, the old medallion turning away, weight 1) and slot 1 = BIN_POINT_2_CHA
+			// (0x23867950, the pass animation of a later visit, weight 0); both stopped. The converted code only had slot 1 (first pass showed nothing)
+			cPBModel->RegistAnm(0u, "BIN_POINT_1_CHA");
 			cPBModel->RegistAnm(1u, "BIN_POINT_2_CHA");
+			cPBModel->SetWeightAnmChr(0u, 1.0f);
 			cPBModel->SetWeightAnmChr(1u, 0.0f);
+			cPBModel->SetUpdateRateAnmChr(0u, 0.0f);
 			cPBModel->SetUpdateRateAnmChr(1u, 0.0f);
 			cPBModel->IsDrawShadowDepth(true);
 			cPBModel->SetLightSetIdx(3);
@@ -127,8 +133,11 @@ void cTaskPoint::Init()
 	{
 		uint nPassIdx = item->nPassIdx;
 		cTaskModel::cPBModel* cPBModel2 = pPBModel(nPassIdx);
+		// DOL 0x8018772c (retry): both clips stopped at their last frame
+		cPBModel2->SetUpdateRateAnmChr(0u, 0.0f);
 		cPBModel2->SetUpdateRateAnmChr(1u, 0.0f);
 		cPBModel2->SetFrameAnmChr(1u, cPBModel2->GetFrameMaxAnmChr(1u));
+		cPBModel2->SetFrameAnmChr(0u, cPBModel2->GetFrameMaxAnmChr(0u));
 		m_pCheckPoint[nPassIdx]->isPass = true;
 		m_pCheckPoint[nPassIdx]->isHitOld = true;
 	}
@@ -139,6 +148,7 @@ void cTaskPoint::Term()
 	cTaskModel::Term();
 }
 
+// DOL 0x80187b70
 bool cTaskPoint::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -158,17 +168,23 @@ bool cTaskPoint::Execute(cJetTask* pParam)
 			{
 				m_pCheckPoint[num]->isPass = true;
 				m_nRetryIdx = (int)num;
-				cPBModel->SetUpdateRateAnmChr(1u, 1.0f);
+				// DOL 0x80187b70: the first pass plays slot 0 and parks slot 1 at its end (so a later visit can start it)
+				cPBModel->SetUpdateRateAnmChr(0u, 1.0f);
+				cPBModel->SetFrameAnmChr(1u, cPBModel->GetFrameMaxAnmChr(1u));
 				cAppG03PacnRollGame2->SetEffect(18u, cPBModel->vTrans(), Vector4());
 				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE028_POINT_TUUKA);
 				m_bFont = true;
 			}
-			else if (!isHitOld && cPBModel->GetFrameMaxAnmChr(1u) <= cPBModel->GetFrameAnmChr(1u))
+			else if (!isHitOld && cPBModel->GetFrameMaxAnmChr(0u) <= cPBModel->GetFrameAnmChr(0u) && cPBModel->GetFrameMaxAnmChr(1u) <= cPBModel->GetFrameAnmChr(1u))
 			{
+				// DOL 0x80187b70: a later visit once both clips are done: slot 1 takes over (weight 0 / 1), restarts; slot 0 stays at its end
 				m_nRetryIdx = (int)num;
+				cPBModel->SetWeightAnmChr(0u, 0.0f);
 				cPBModel->SetWeightAnmChr(1u, 1.0f);
+				cPBModel->SetUpdateRateAnmChr(0u, 0.0f);
 				cPBModel->SetUpdateRateAnmChr(1u, 1.0f);
 				cPBModel->SetFrameAnmChr(1u, 0.0f);
+				cPBModel->SetFrameAnmChr(0u, cPBModel->GetFrameMaxAnmChr(0u));
 				cAppG03PacnRollGame2->SetEffect(18u, cPBModel->vTrans(), Vector4());
 				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE028_POINT_TUUKA);
 				m_bFont = true;

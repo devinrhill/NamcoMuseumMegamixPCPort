@@ -137,6 +137,9 @@ public:
 	void HitUpdate();
 
 	void HitListup(std::vector<cHitChar*>& pVec, const int& nSide, const uint& nFlag);
+
+protected:
+	void ReleaseTerm() override { cTaskChar::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

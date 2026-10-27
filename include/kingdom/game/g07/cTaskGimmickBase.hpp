@@ -120,6 +120,9 @@ public:
 	virtual bool IsStepOnTrig(cTaskChar* pChar);
 
 	Vector4& vRotate();
+
+protected:
+	void ReleaseTerm() override { cTaskGimmickBase::Term(); cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -61,6 +61,9 @@ public:
 	bool Execute(cJetTask* pParam) override;
 
 	bool IsInvisible();
+
+protected:
+	void ReleaseTerm() override { cTaskConsCombo::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

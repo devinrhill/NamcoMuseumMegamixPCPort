@@ -27,6 +27,9 @@ public:
 	void Draw(int nStatus, cJetTask* pParam) override;
 
 	void SetRetryData();
+
+protected:
+	void ReleaseTerm() override { cTaskBox::Term(); cTaskKingdom::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

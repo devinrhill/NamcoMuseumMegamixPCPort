@@ -48,7 +48,7 @@ void cG04WaniWaniSys::JobInit()
 {
 	delete KingdomGlobal::WaniWaniSys;
 	KingdomGlobal::WaniWaniSys = new cG04WaniWaniSys();
-	Kingdom_SetJobNo(0x0e700000u, false, 0);
+	Kingdom_SetJobNo(job::WANIWANI_NUNCHUK, false, 0);
 }
 
 // DOL 0x8019a0e0: delete the sys, back to the hub
@@ -56,7 +56,7 @@ void cG04WaniWaniSys::JobEnd()
 {
 	delete KingdomGlobal::WaniWaniSys;
 	KingdomGlobal::WaniWaniSys = nullptr;
-	Kingdom_SetJobNo(0x08a00000u, false, 0);
+	Kingdom_SetJobNo(job::MENU, false, 0);
 }
 
 // DOL 0x80199dfc: game data block 3 = {flag, version, score}; an empty or old block starts at 0

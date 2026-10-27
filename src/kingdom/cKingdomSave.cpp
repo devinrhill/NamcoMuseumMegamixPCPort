@@ -2,7 +2,9 @@
 
 #include <cstring>
 
+#include "kingdom/MsgTable.hpp"
 #include "wii/Archive.hpp" // Crc32
+#include "wii/Brres.hpp"
 #include "wii/Nand.hpp"
 
 namespace kingdom
@@ -27,8 +29,75 @@ void WriteBE32(byte* p, uint v)
 }
 }
 
-cKingdomSave::cKingdomSave()
+// DOL 0x8000b490 (ctor: vtable, then 0x80022320). The checksum word starts as 0x20070813 (0x80022320); the banner is built by
+// InitBanner, which the port calls once the resident archive is attached (boot.cpp Job128_Init).
+cKingdomSave::cKingdomSave() : m_nChecksum(0x20070813)
 {
+}
+
+namespace
+{
+// DOL 0x80026a98 -> 0x80026b08: UTF-8 (1..3 byte sequences) to UTF-16, at most `max` - 1 characters + a terminator, written big endian
+// (the Wii's byte order; the DOL swaps only on a little-endian flag)
+void Utf8ToUtf16Be(byte* dst, uint max, const std::string& src)
+{
+	uint i = 0, n = 0;
+	while (i < src.size() && n + 1 < max)
+	{
+		const byte c = (byte)src[i];
+		uint w;
+		if ((c & 0x80) == 0) { w = c & 0x7f; i += 1; }
+		else if ((c & 0xe0) == 0xc0) { w = ((c & 0x1f) << 6) | ((byte)src[i + 1] & 0x3f); i += 2; }
+		else { w = ((c & 0xf) << 12) | (((byte)src[i + 1] & 0x3f) << 6) | ((byte)src[i + 2] & 0x3f); i += 3; }
+		dst[n * 2] = (byte)(w >> 8);
+		dst[n * 2 + 1] = (byte)w;
+		n++;
+	}
+	dst[n * 2] = dst[n * 2 + 1] = 0;
+}
+
+// ResFile::GetResTex(0) (0x802d3890) + the TEX0's data offset (+0x10): `size` bytes of the first texture of BRRES entry `crc`
+bool CopyTexture(std::uint32_t crc, byte* dst, uint size)
+{
+	std::size_t n = 0;
+	const std::uint8_t* d = wii::ArchiveStore::Find(crc, n);
+	wii::Brres brres;
+	if (d == nullptr || !brres.Load(d, n)) return false;
+	const auto* tex = brres.Folder("Textures(NW4R)");
+	if (tex == nullptr || tex->empty()) return false;
+	const std::vector<std::uint8_t>& f = brres.Data();
+	const std::uint32_t o = tex->front().second;
+	if (o + 0x14 > f.size()) return false;
+	const std::uint32_t data = o + (((uint)f[o + 0x10] << 24) | ((uint)f[o + 0x11] << 16) | ((uint)f[o + 0x12] << 8) | f[o + 0x13]);
+	if (data + size > f.size()) return false;
+	std::memcpy(dst, f.data() + data, size);
+	return true;
+}
+}
+
+// DOL 0x80022320 (banner part): NANDInitBanner(flag 0, "", ""), the title / comment from RESIDENT_US_SAVE_COMMENT (rows 0 / 1, column 1),
+// the 192x64 banner from RESIDENT_US_SAVE_BANNER, icons 1..8 from RESIDENT_US_SAVE_ICON_n (CRCs at 0x8038a9b8), every icon speed 1 (fast).
+void cKingdomSave::InitBanner()
+{
+	std::memset(m_Banner, 0, BANNER_SIZE);
+	WriteBE32(m_Banner + 0x00, 0x5749424e); // NAND_BANNER_SIGNATURE "WIBN"
+	WriteBE32(m_Banner + 0x04, 0);          // flag
+	MsgTable csv;
+	if (csv.Load("RESIDENT_US_SAVE_COMMENT"))
+	{
+		Utf8ToUtf16Be(m_Banner + 0x20, 0x40, csv.Cell(0, 1));
+		Utf8ToUtf16Be(m_Banner + 0x60, 0x40, csv.Cell(1, 1));
+	}
+	CopyTexture(0x6136bdc9, m_Banner + 0xa0, 0x6000); // RESIDENT_US_SAVE_BANNER
+	static const std::uint32_t ICONS[8] = {0xad1bb336, 0x3412e28c, 0x4315d21a, 0xdd7147b9, 0xaa76772f, 0x337f2695, 0x44781603, 0xd4c70b92};
+	uint speed = 0;
+	for (uint i = 0; i < 8; i++)
+	{
+		CopyTexture(ICONS[i], m_Banner + 0x60a0 + i * 0x1200, 0x1200);
+		speed = (speed & ~(3u << (i * 2))) | (1u << (i * 2));
+	}
+	m_Banner[0x08] = (byte)(speed >> 8);
+	m_Banner[0x09] = (byte)speed;
 }
 
 // The compare tree repeated at 0x80023b94 (and in every helper): NAND result -> status code

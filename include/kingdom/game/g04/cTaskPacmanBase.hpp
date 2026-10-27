@@ -16,7 +16,7 @@
 // lunge (COMBO_INPUT_RANGE), chains a combo jump (state 5) to it. A miss splashes into the water (m04se_11mizu).
 // States (+0x1f0, 0x801b4328): 0 hidden, 1 idle (no input), 2 input, 3 lunge, 4 back home (RETURN_TIME), 5 combo jump, 6 / 7 the result
 // (single), 8 bob, 9 / 10 the multiplayer result walk, 0xb back home after the result.
-// NOT PORTED: the multiplayer trail effects (+0x420..), the remote speaker sound (0x80025b6c), the Mii listener (+0x1e4, multiplayer only).
+// NOT PORTED: the Mii listener (+0x1e4, multiplayer only; Mii is out of scope). The 3D sound actor (+0x1dc) is placed every frame but no cue plays through it.
 namespace kingdom::game::g04
 {
 class cTaskBG;
@@ -80,6 +80,7 @@ private:
 	void ResetAcc(int pad);
 	bool HitTest(const float pac[4], kingdom::cKingdomModel* gator);   // DOL 0x801b5778 (+ 0x801b5644)
 	void LineFx();                                    // DOL 0x801b5cd8
+	void ClearTrail();                                // inlined in 0x801b2ee4 / 0x801b294c: multiplayer, detach every trail particle
 	static void Bezier(float t, float div, float height, float out[3], const float from[3], const float to[3]);   // DOL 0x801b5ed0
 	int Pad() const;
 	float Bob() const;
@@ -112,6 +113,10 @@ private:
 	int m_nAimGator{};                      // +0x2e8
 	kingdom::cKingdomPtkHnd m_MissFx;       // +0x2f0
 	kingdom::cKingdomPtkHnd m_LineFx;       // +0x340
+	Vector4 m_vTrail[8];                    // +0x3a0 multiplayer trail positions (newest first, shifted every frame)
+	kingdom::cKingdomPtkHnd m_TrailFx[8];   // +0x420 (0x50 each) the trail particles, slot player + 0x17 (PTK_EFFECT24..27_LIGHT01)
+	bool m_bTrail[8]{};                     // +0x6a0 trail handle in use
+	kingdom::cKingdomPtkHnd m_RingFx;       // +0x6b0 multiplayer light ring, slot player + 0x12 (PTK_EFFECT19..22_LIGHT01)
 	cTaskCursor* m_pCursor{};               // +0x700
 	float m_fSwingMax{1.0f};                // +0x704
 	int m_nCombo{};                         // +0x708

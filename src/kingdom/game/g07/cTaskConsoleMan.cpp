@@ -68,11 +68,11 @@ void cTaskConsoleMan::Term()
 			cTaskConsSingleSetup* cTaskConsSingleSetup2 = dynamic_cast<cTaskConsSingleSetup*>(cTaskAnita2);
 			if ((cTaskConsSingleSetup2 != nullptr))
 			{
-				cTaskConsSingleSetup2->Term();
+				cTaskConsSingleSetup2->TermOnce();
 			}
 			else if (cTaskConsMultiSetup* cTaskConsMultiSetup2 = dynamic_cast<cTaskConsMultiSetup*>(cTaskAnita2))
 			{
-				cTaskConsMultiSetup2->Term();
+				cTaskConsMultiSetup2->TermOnce();
 			}
 		}
 	}

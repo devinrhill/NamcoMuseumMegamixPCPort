@@ -1,4 +1,5 @@
 #include "kingdom/game/g04/cAppG04WaniWaniMatching.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 
 #include <cstring>
 
@@ -21,8 +22,8 @@ void cAppG04WaniWaniMatching::JobInit()
 cAppG04WaniWaniMatching::cAppG04WaniWaniMatching()
 {
 	RegistData("COMMON_ANITA_POINTER", "COMMON_ANITA_MATCHING", "COMMON_CAM_MATCHING_SCA", "COMMON_SET_MATCHING_MDL");
-	nMenuJob() = 0x0e700000u;    // +0x280
-	nMultiJob() = 0x0e700000u;   // +0x284
+	nMenuJob() = job::WANIWANI_NUNCHUK;    // +0x280
+	nMultiJob() = job::WANIWANI_NUNCHUK;   // +0x284
 }
 
 // DOL 0x8009509c: confirmed (+0x29a) -> sys +0x15c = the player count and the 0x154 byte matching data into sys +4; else sys +0x15c = 1.

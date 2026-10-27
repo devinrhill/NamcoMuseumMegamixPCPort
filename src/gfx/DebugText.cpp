@@ -30,16 +30,7 @@ bool EnsureFont()
 	wii::Brres b;
 	wii::Image img;
 	std::vector<std::uint8_t> file;
-	if (std::FILE* f = std::fopen("resources/debug_font.brres", "rb"))   // extracted from main.dol 0x80442bc0
-	{
-		std::fseek(f, 0, SEEK_END);
-		file.resize((std::size_t)std::ftell(f));
-		std::fseek(f, 0, SEEK_SET);
-		if (std::fread(file.data(), 1, file.size(), f) != file.size()) file.clear();
-		std::fclose(f);
-	}
-	if (file.empty())   // fallback: the executable
-	{
+	{   // the font BRRES inside the executable (DOL 0x80442bc0)
 		const wii::Dol* dol = wii::GameDol();
 		if (dol == nullptr) return false;
 		const std::uint8_t* p = dol->At(kFontBres, 0x10);

@@ -10,6 +10,7 @@
 #include "KingdomGlobal.hpp"
 #include <Constants.hpp>
 #include <ReadFileUtil.hpp>
+#include "platform/devtools.hpp"
 
 namespace kingdom::game::g03
 {
@@ -29,6 +30,7 @@ void cTaskGate::Init()
 {
 	m_pCurrentGate = nullptr;
 	m_vecGate.reserve(8);
+	if (devtools::G03NoGates()) { NextMode(0u, 0u); SearchCurrent(); return; } // devtools: --g03-no-gates (not 1:1)
 	if (!KingdomGlobal::PacnRollSys->IsRetry())
 	{
 		sKingdomData* sKingdomData2 = KingdomGlobal::KingSys->SearchDataEx("BIN_GATE_SET_DAT");
@@ -69,12 +71,12 @@ void cTaskGate::Term()
 	{
 		if (item != nullptr)
 		{
-			item->Term();
+			item->TermOnce();
 		}
 	}
 	if (m_pCurrentGate != nullptr)
 	{
-		m_pCurrentGate->Term();
+		m_pCurrentGate->TermOnce();
 	}
 }
 

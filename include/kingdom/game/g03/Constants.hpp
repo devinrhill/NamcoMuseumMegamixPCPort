@@ -612,7 +612,9 @@ public:
 
 private:
 	static void _StaticCtor();
-	static inline const bool _staticCtorDone = (_StaticCtor(), true);
+	// run once from Constants.cpp after its own definitions (an inline static here ran BEFORE them: AllStageArea's ctor then emptied the areas and
+	// CENTER_GEAR_POS{} zeroed the gear centre, so the area-AI Golvis indexed area -1 and crashed)
+	static const bool s_staticCtorDone;
 };
 
 }

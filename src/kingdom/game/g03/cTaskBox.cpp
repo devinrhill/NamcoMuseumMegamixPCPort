@@ -57,7 +57,7 @@ void cTaskBox::Term()
 	{
 		if (item != nullptr)
 		{
-			item->Term();
+			item->TermOnce();
 		}
 	}
 }

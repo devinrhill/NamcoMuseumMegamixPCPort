@@ -413,6 +413,9 @@ private:
 	void ModeDeath();
 
 	IEnumerator* WaitOneFramePlayBGM();
+
+protected:
+	void ReleaseTerm() override { cTaskBoss05::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

@@ -127,7 +127,10 @@ void cTaskPacmanBase::Init()
 	m_pCursor = new cTaskCursor(m_nPlayer);   // +0x700 (0x801a7dd8)
 	ConnectChild(m_pCursor);
 	if (IsSingle()) m_fBob = 0.0f;
-	// multiplayer: the player's light ring (+0x6b0, slot player + 0x12): NOT PORTED
+	const uint n = KingdomGlobal::WaniWaniSys->nPlayers();
+	if (n != 1 && m_nPlayer < n)   // 0x80021a9c: the light ring, looping, dependent, clipped, at Pac-Man
+		m_RingFx.Generate(m_nPlayer + 0x12u, false, true, true, 0.0f, pModel(0u)->vTrans());
+	for (bool& b : m_bTrail) b = false;   // +0x6a0..+0x6a7
 	SetState(1);
 }
 
@@ -247,7 +250,10 @@ void cTaskPacmanBase::SetState(int state)
 	case 3:
 	{
 		WiiSnd::Handle h;
-		WiiSnd::Play(h, "m04se_10tataki");   // DAT_8047ccf4 (+ the remote speaker 0x80025b6c: NOT PORTED)
+		WiiSnd::Play(h, "m04se_10tataki");   // DAT_8047ccf4 (0x80199ee8)
+		WiiSnd::Handle hr;                   // 0x801b44e8: FUN_80025b6c(handles, the player's pad (sys +0x54 + player * 0x54 + 0x50), cue, 200 ms fade-in; natively no fade-in)
+		WiiSnd::PlayRemote(hr, Pad(), "m04se_10tataki");
+		WiiSnd::Detach(hr);
 		m_Anime.Attach(m, "TEX_ANIME_PAC_02", 0u);
 		m_vFrom = m_vHome;
 		m_nAcc = 0;
@@ -303,6 +309,17 @@ void cTaskPacmanBase::LineFx()
 	m_LineFx.Generate(7u, true, true, true, 0.0f, pModel(0u)->vTrans(), Vector4(0.0f, 0.0f, a, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 }
 
+void cTaskPacmanBase::ClearTrail()
+{
+	if (KingdomGlobal::WaniWaniSys->nPlayers() == 1) return;
+	for (int i = 0; i < 8; i++)
+		if (m_bTrail[i])
+		{
+			m_bTrail[i] = false;
+			m_TrailFx[i].Detach(true);   // 0x8008a508(h, 1)
+		}
+}
+
 // DOL 0x801b5ed0: a quadratic bezier from `from` to `to` whose control point sits at `div` of the way, raised by `height` along
 // (d x up) x d (d = the normalised direction, up = (0, 1, 0))
 void cTaskPacmanBase::Bezier(float t, float div, float height, float out[3], const float from[3], const float to[3])
@@ -339,6 +356,7 @@ void cTaskPacmanBase::Input(cJetTask*)
 	if (m_nState != 1 && m_nState != 7)
 	{
 		if (m_pCursor != nullptr) m_pCursor->SetPlace(target);
+		ClearTrail();
 		if (swing)
 		{
 			m_fTimer = 0.0f;
@@ -368,7 +386,9 @@ void cTaskPacmanBase::Input(cJetTask*)
 			m_bMouth = true;
 			m_fTimer = 0.0f;
 		}
-		if (m_bMouth && m->GetFrameMaxAnmTexPat(0u) < m->GetFrameAnmTexPat(0u))   // 0x8001c8f4 / 0x8001c4d8
+		// fcmpo max, frame; ble skip: the DOL swaps PAC_01 back while frame < numFrame, i.e. in the same tick PAC_03 was attached
+		// (cAnimeBase attach 0x80090cf8 -> 0x8001a564 starts at frame 0). Kept 1:1; the on-screen result is UNVERIFIED (no Dolphin)
+		if (m_bMouth && m->GetFrameAnmTexPat(0u) < m->GetFrameMaxAnmTexPat(0u))   // 0x8001c8f4 (ResAnmTexPat numFrame) / 0x8001c4d8
 		{
 			m_bMouth = false;
 			m_Anime.Attach(m, "TEX_ANIME_PAC_01", 0u);
@@ -408,7 +428,8 @@ void cTaskPacmanBase::Lunge()
 	}
 	else
 	{
-		// the lunge homes in on the gator's mouth (0x801adcb0, turned by the gator's Y: UNVERIFIED angle of the 0x80298d00 'Y' rotation)
+		// the lunge homes in on the gator's mouth (0x801adcb0), turned by the gator's Y when it is not 0 (FUN_80298d00 = PSMTX44RotTrig 'Y',
+		// concatenated onto identity, then M * v: x' = c x + s z, z' = -s x + c z; checked in the disassembly)
 		cTaskEnemy* e = m_pEnemyMan->pEnemy((uint)m_nTarget & 3u);
 		kingdom::cKingdomModel* gm = e->pRedSelModel();
 		const Vector4 gp = gm->vTrans();
@@ -453,7 +474,16 @@ void cTaskPacmanBase::Lunge()
 		SetState(4);
 		// the Mii listener +0x24 (miss): multiplayer, NOT PORTED
 	}
-	// multiplayer: the trail particles (slot player + 0x17): NOT PORTED
+	// multiplayer: one trail particle per frame in the first free handle (one-time, dependent, clipped, slot player + 0x17)
+	if (KingdomGlobal::WaniWaniSys->nPlayers() == 1) return;
+	for (int i = 0; i < 8; i++)
+	{
+		if (m_bTrail[i]) continue;
+		m_vTrail[i] = pModel(0u)->vTrans();
+		m_TrailFx[i].Generate(m_nPlayer + 0x17u, true, true, true, 0.0f, m_vTrail[i]);   // 0x80021a9c
+		m_bTrail[i] = true;
+		break;
+	}
 }
 
 // DOL 0x801b3fc8 (state 4)
@@ -494,7 +524,11 @@ void cTaskPacmanBase::ComboJump()
 	const float from[3] = {m_vFrom[0], m_vFrom[1], m_vFrom[2]}, to[3] = {m_vDest[0], m_vDest[1], m_vDest[2]};
 	float out[3];
 	Bezier(t, m_Param.fBezierDiv, m_Param.fJumpHeight, out, from, to);
-	pModel(0u)->vTrans() = Vector4(out[0], out[1], out[2], 1.0f);
+	Vector4 p = pModel(0u)->vTrans();   // w kept, as in the DOL (the Bezier is inlined there: PSVEC sub / normalize / two crosses)
+	p[0] = out[0];
+	p[1] = out[1];
+	p[2] = out[2];
+	pModel(0u)->vTrans() = p;
 	if (m_fTimer < 2.0f + m_Param.fReturnTime) m_fTimer += 1.0f;   // FLOAT_8047cd38
 	else if (m_nComboReq == 1) SetState(5);
 	else
@@ -551,6 +585,7 @@ bool cTaskPacmanBase::Execute(cJetTask* pParam)
 		const Vector4 c = m->vTrans();
 		m->vTrans() = Vector4((1.0f - t) * c.x + t * m_vHome[0], (1.0f - t) * c.y + t * (Bob() + m_vHome[1]), (1.0f - t) * c.z + t * m_vHome[2], 1.0f);
 		if (6.0f <= m_fTimer) SetState(8);
+		ClearTrail();
 		break;
 	}
 	case 8:
@@ -587,7 +622,17 @@ bool cTaskPacmanBase::Execute(cJetTask* pParam)
 	}
 	default: break;
 	}
+	const uint n = KingdomGlobal::WaniWaniSys->nPlayers();
+	if (n != 1 && m_nPlayer < n)   // the ring follows Pac-Man; the trail positions shift one place, the newest = Pac-Man
+	{
+		m_RingFx.vSetTrans(m->vTrans());   // 0x8008a49c
+		for (int i = 7; i > 0; i--) m_vTrail[i] = m_vTrail[i - 1];
+		m_vTrail[0] = m->vTrans();
+		for (int i = 0; i < 8; i++)
+			if (m_bTrail[i]) m_TrailFx[i].vSetTrans(m_vTrail[i]);
+	}
 	if (360.0f <= m_fBob) m_fBob -= 360.0f;
+	// 0x80026620(+0x1dc, model): the 3D sound actor follows Pac-Man (natively no cue plays through it)
 	UpdateFrame();   // the app's ScnRoot::UpdateFrame
 	return true;
 }
@@ -680,6 +725,7 @@ bool cTaskPacmanBase::HitEnemy(cTaskEnemy* e)
 			if (!e->IsRed() || e->nRedHP() == 0) e->SetState(0xc);
 			else e->HitBlink(0x1e, m_nPlayer);
 		}
+		if (m_pScore != nullptr) m_pScore->SetBonus(this, m_nRedHits);   // listener +0x0c (0x801b5018): the red gator bonus (was missing)
 		if (m_pScore != nullptr) m_pScore->Combo(this, m_nCombo, (uint)m_nChain);
 	}
 	else
@@ -743,7 +789,7 @@ void cTaskPacmanBase::Damage()
 	if (m_pScore != nullptr && m_pScore->CanPay(this, m_nDamage + 1))
 	{
 		m_nDamage++;
-		m_pScore->SetDamage(this, m_nDamage);   // UNVERIFIED: the count passed in r5 (the decomp shows no argument)
+		m_pScore->SetDamage(this, m_nDamage);   // vtable +0x18, r5 = the new count (disassembly 0x801b5e90..)
 		m_nLastPlace = -1;
 	}
 }

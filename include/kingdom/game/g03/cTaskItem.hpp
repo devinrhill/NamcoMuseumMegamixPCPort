@@ -136,6 +136,9 @@ public:
 	void Invisible(cItem* item);
 
 	void Invisible(cTaskModelEx::cPBModel* model);
+
+protected:
+	void ReleaseTerm() override { cTaskItem::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

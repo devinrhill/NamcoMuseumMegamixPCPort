@@ -23,7 +23,7 @@
 //   0xd command list done   0xe SET_RAND: waits for the others of its group   0xf skipped (not enough time left)   0x10 result
 //   0x11 the angry event: comes out (0x801aac00)   0x12 angry, stays out   0x13 game over (place C shown at CSV_GAME's event position)
 //   0x17 the event ends: goes back (0x801ae380)
-// NOT PORTED: the multiplayer colour rules beyond the tables.
+// The multiplayer colour rules (clip tables, damage to the gator's colour, the result look) are ported (42nd-session line-by-line audit).
 namespace kingdom::game::g04
 {
 class cTaskEnemyManager;
@@ -52,7 +52,7 @@ public:
 	void Init();                                        // DOL 0x801a91e0
 	void Term() override;                               // DOL 0x801a9810
 	bool Execute(cJetTask* pParam) override;            // DOL 0x801a992c
-	void Draw(int nStatus, cJetTask* pParam) override;  // DOL 0x801a9d5c (empty: the scene root draws the models)
+	void Draw(int nStatus, cJetTask* pParam) override;  // DOL 0x801a9d5c (= cTaskModel::Draw: submits the models)
 
 	void SetState(int state);                           // DOL 0x801aafd4
 	void Reset();                                       // DOL 0x801a96fc
@@ -108,7 +108,7 @@ private:
 	void AngryOut();                    // DOL 0x801aac00 (state 0x11)
 	void EventBack();                   // DOL 0x801ae380 (state 0x17)
 	void FootFx(float t, const float pos[3]);   // DOL 0x801ae4a4
-	void FootFxAt(int k, const float pos[3], bool hip = false);
+	void FootFxAt(int k, const float pos[3], float upL, float upR, bool rightAtPos = false);
 	void ColorClip();                   // the colour clip of the look (single: 0x80449ffc by kind; red: ANIME_OA_R_A1_CLA)
 	void BodyClr(bool rate1);           // 0x8037cff8 [colour * 5 + kind] / red ANIME_OA_R_CLA in slots 0 and 1
 	void SwapChr(const char* next);     // slot 1's clip / rate / frame into slot 0, `next` into slot 1, weights 1 / 0
@@ -117,7 +117,7 @@ private:
 	cTaskEnemyManager* m_pMan{};        // +0x278
 	cAnimeBase m_Anime;                 // +0x1cc
 	sParamCommon m_Param;               // +0x24c
-	std::mt19937 m_Rand;                // +0x27c (cKingdomRand, seed 0x20061206; UNVERIFIED: std::mt19937 = the DOL's MT19937 genrand 0x8014146c)
+	std::mt19937 m_Rand;                // +0x27c (cKingdomRand, seed 0x20061206; = std::mt19937: seed 0x801412b4 / genrand 0x8014146c checked in the disassembly)
 	int m_nState{1};                    // +0x1d0
 	int m_nOldState{};                  // +0x1d4
 	int m_nRedHP{};                     // +0x1d8
@@ -155,5 +155,8 @@ private:
 	bool m_b620{};                      // +0x620
 	float m_f624{};                     // +0x624
 	friend class cTaskEnemyManager;
+
+protected:
+	void ReleaseTerm() override { cTaskEnemy::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 }

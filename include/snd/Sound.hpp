@@ -91,6 +91,10 @@ struct SoundDef
 	std::string extPath;             // streams: "stream/NAME.brstm" relative to the sound folder
 	std::uint32_t startPosition{};   // streams
 	int subNo{-1};                   // waves: index of the wave sound in its RWSD
+	// SoundCommonInfo param3dRef (nw4r SoundArchiveFile::Sound3DParam): FLAG_NOT_CTRL_VOLUME 1, FLAG_NOT_CTRL_PAN 2; decay curve 1 log, 2 linear
+	std::uint32_t flags3d{};
+	int decayCurve3d{1};
+	float decayRatio3d{0.5f};        // decayRatio / 256
 };
 
 class Archive

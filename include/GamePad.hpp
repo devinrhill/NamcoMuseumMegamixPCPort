@@ -15,7 +15,7 @@ struct State
 {
 	uint hold{};      // +0x0
 	uint trig{};      // +0x4
-	uint repeat{};    // +0x8  (auto-repeat bits: counted in 0x80021774)
+	uint repeat{};    // +0x8  (the dpad bits pressed this frame, then every 5 frames after 30 held: 0x80021720)
 	uint release{};   // +0xc  (held last frame and not now: 0x8002170c..0x8002171c)
 	// IR pointer (DOL: floats at pad+0x48 / +0x4c, int pointer count at +0xa8, read by kingdom::cTaskCursor::Execute 0x80095be4 and
 	// every IsDpdHit): x -1 (left) .. 1 (right), y -1 (TOP) .. 1 (bottom) over the 640 x 480 screen (cursor = x * 320, y * 240, then y negated for
@@ -49,6 +49,10 @@ void Update();             // call once per frame after WiiPad::Update()
 // remote has lain still for 600 frames (pad +0x1e0, counted by 0x80021514). Natively the motor is the channel's gamepad (platform::PadRumble).
 bool Rumble(int n, int nMSec);
 int IdleFrames(int n);     // pad +0x1e0
+// DOL 0x800219d4: the Nunchuk stick doubles as the dpad (DAT_8047f300; 0x80021514 turns a tilt past 0.5 into UP / DOWN / LEFT / RIGHT while no
+// dpad bit is down). The game menus turn it on while they run (cAppGameBaseMenu 0x801434f8 / 0x801436ec, the matching 0x801cf828 / 0x801d0864,
+// Gator Panic's menu mode).
+void SetStickDpad(bool on);
 int Count();               // number of pads (FUN_801411ec)
 const State& Get(int n);   // get_pad1(n)
 }

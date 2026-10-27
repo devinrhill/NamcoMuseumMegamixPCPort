@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+namespace devtools { struct ScnEditAccess; }   // the dev window's SCN0 tab (devtools_scnedit.cpp)
+
 // NW4R g3d animation resources read out of a BRRES (format notes: ~/Code/proj/unpac/revolution/brres/{chr0,srt0,pat0,scn0,anm}.py,
 // NintendoWare/Revolution g3d_resanm*.h). Every `Load` takes the first block of the matching folder of the BRRES; the game's animation
 // files (TITLE_PACMAN_01_CHA, TITLE_CLOUD_TSA, TITLE_CAMERA_GATE01_SCA, ...) hold exactly one.
@@ -148,6 +150,10 @@ struct CameraResult
 	float aimPos[3]{};      // aim cameras: look-at point; rotate cameras: Euler rotation in degrees (same slot)
 	float twist{};          // degrees
 	float fovy{45};         // perspective; orthographic: height
+
+	// the look-at point of either kind: aim cameras give aimPos; rotate cameras look down -back of nw4r g3d_camera.cpp
+	// (UpdateCameraMtx, rotation order z, x, y), so the point is pos - back. The z rotation (roll) is lost: NativeScene has no twist.
+	void LookAt(float target[3]) const;
 };
 
 struct LightResult
@@ -161,7 +167,9 @@ struct LightResult
 	int fogType{0};
 	float fogStart{}, fogEnd{}, fogColor[3]{};
 	// the whole light set (ScnAnim::SampleLightSet; numRig 0 = only the single light above): g3d LoadResMatChan / LightObj
-	struct RigLight { float dir[3]; float color[3]; float spec[3]; float shininess; bool hasSpec; };   // dir: surface -> light, world space
+	// dir: surface -> light, world space (the specular direction; the diffuse one of a point / spot light comes from pos)
+	// type: g3d LightAnmResult 0 point, 1 directional, 2 spot; attnA / attnK: GX cos / distance attenuation (GXInitLightSpot / GXInitLightDistAttn)
+	struct RigLight { float dir[3]; float color[3]; float spec[3]; float shininess; bool hasSpec; int type{1}; float pos[3]{}, spotDir[3]{}, attnA[3]{1, 0, 0}, attnK[3]{1, 0, 0}; };
 	int numRig{0};
 	RigLight rig[4]{};
 	float ambient[3]{1, 1, 1};   // the light set's ambient light (multiplies the materials' ambient colours)
@@ -181,8 +189,13 @@ public:
 	bool loops{};
 	// first camera when `name` is empty
 	bool SampleCamera(const std::string& name, float frame, CameraResult& out) const;
+	// "<entry name> [<crc of the SCN0 block>]" after a successful Load: the dev window's SCN0 tab keys its edits by it
+	const std::string& Key() const { return m_key; }
 
 private:
+	friend struct ::devtools::ScnEditAccess;
+	const ScnAnim* Edited() const;   // devtools: the SCN0 tab's edited copy of this resource (nullptr = none)
+	std::string m_key;
 	struct Slot { bool constant{true}; float value{}; std::vector<std::array<float, 3>> keys; float Eval(float f) const; };
 	struct Cam
 	{
@@ -194,7 +207,8 @@ private:
 	struct Light
 	{
 		std::string name;
-		std::uint32_t flags{}; Slot pos[3], aim[3], shininess; std::uint32_t color{}, specColor{};
+		std::uint32_t flags{}; Slot pos[3], aim[3], shininess, refDist, refBright, cutoff; std::uint32_t color{}, specColor{};
+		int distFunc{}, spotFunc{};
 		std::vector<std::uint32_t> colorFrames, specFrames;   // per-frame colours (empty = constant)
 	};
 	std::vector<Light> m_lights;

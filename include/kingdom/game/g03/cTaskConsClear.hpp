@@ -51,6 +51,9 @@ public:
 	bool IsPerfect();
 
 	bool IsPlayEnd();
+
+protected:
+	void ReleaseTerm() override { cTaskConsClear::Term(); cTaskConsoleBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }

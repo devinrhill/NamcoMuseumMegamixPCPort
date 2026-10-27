@@ -43,6 +43,8 @@ public:
 	AABB& CalcedAABB();
 
 	cFaceList(ResMdl* data);
+	// devtools: --g03-bg-collision (not 1:1): a list of faces built elsewhere (from a visual model); `data` = the hit model gimmicks read nodes from (may be nullptr)
+	cFaceList(ResMdl* data, const std::vector<Constants::sFace*> faces[4], const AABB& aabb);
 
 	virtual ~cFaceList();
 

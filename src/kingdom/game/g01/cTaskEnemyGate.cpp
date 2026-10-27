@@ -234,6 +234,7 @@ void cTaskEnemyGate::UpdateGateModel()
 		mdl->vRotate() = m_v30;
 		mdl->vScale() = m_v40;
 	}
+	m_SndActor.SetPosition(m_v20);   // 0x800e5758: the sound actor (+0x344) at +0x20
 	UpdateWorldAABB();
 }
 

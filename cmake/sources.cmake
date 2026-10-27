@@ -8,6 +8,21 @@ set(MEGAMIX_SOURCES
   src/TestTask2.cpp
   src/WiiPad.cpp
   src/WiiSystem.cpp
+  src/gotch/RsoModule.cpp
+  src/gotch/Z80.cpp
+  src/gotch/Machine.cpp
+  src/gotch/Draw.cpp
+  src/gotch/SWork.cpp
+  src/gotch/PacMan.cpp
+  src/gotch/RallyX.cpp
+  src/gotch/NewRallyX.cpp
+  src/gotch/Sound.cpp
+  src/gotch/Console.cpp
+  src/gotch/DataStorage.cpp
+  src/gotch/GameState.cpp
+  src/gotch/GameIO.cpp
+  src/gotch/Menu.cpp
+  src/kingdom/game/rso/cAppRSOOriginal.cpp
   src/wii/Archive.cpp
   src/gfx/TextureCache.cpp
   src/wii/Brres.cpp
@@ -37,6 +52,7 @@ set(MEGAMIX_SOURCES
   src/kingdom/boot/cAppBoot.cpp
   src/kingdom/menu/cAppTitle.cpp
   src/kingdom/menu/cAppAttract.cpp
+  src/kingdom/menu/cAppG10StaffRoll.cpp
   src/kingdom/cAppDebugMenu.cpp
   src/UnityUiStubs.cpp
   src/gfx/DebugText.cpp
@@ -99,6 +115,7 @@ set(MEGAMIX_SOURCES
   src/RMDLUserDataParam.cpp
   src/kingdom/cKingdomModelBase.cpp
   src/kingdom/cKingdomModel.cpp
+  src/kingdom/cKingdomSndActor.cpp
   src/kingdom/cTaskModelBase.cpp
   src/kingdom/cTaskModel.cpp
   src/kingdom/cTaskPushBack.cpp
@@ -107,6 +124,7 @@ set(MEGAMIX_SOURCES
   src/kingdom/cKingdomPtkMan.cpp
   src/kingdom/cKingdomPtkHnd.cpp
   src/kingdom/NativeScene.cpp
+  src/kingdom/cKingdomShadow.cpp
   src/PtkStubs.cpp
   src/kingdom/game/cTaskStaffRollAnita.cpp
   src/kingdom/game/cTaskStaffRollModel.cpp

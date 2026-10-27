@@ -3,18 +3,19 @@
 #include <vector>
 
 #include "common.hpp"
-#include "kingdom/cAppKingdom.hpp"
+#include "cJetTask.hpp"
 
 namespace kingdom
 {
 
 // DOL kingdom::cAppBaseDebugMenu (RTTI 0x80476818, vtable 0x804383d8; Execute 0x800c2414, Draw 0x800c24f8): a list of {label, job number}
-// entries drawn with the engine's debug text. Fields (offsets from this): +0x34 cursor, +0x38 job under the cursor, +0x3c chosen job
+// entries drawn with the engine's debug text. A plain cJetTask in the DOL (RTTI bases cJetNode / cJetTask), NOT a cAppKingdom: it needs no
+// cKingdomSys (job 0 runs it before job 128 creates one) and leaves cKingdomSys::pAppMain alone. Fields (offsets from this): +0x34 cursor, +0x38 job under the cursor, +0x3c chosen job
 // (-1 none), +0x40 title string, +0x44 entry table, +0x48 entry count.
 //   up/down: pad word 2 (auto-repeat bits) bit 0 / bit 1 = KPAD LEFT / RIGHT in the DOL (up / down). This port swaps them (see Execute) so the
 //   keyboard Up arrow moves the cursor up with the default Sideways orientation;
 //   decide: pad word 1 (trig) bit 0x20 on an entry whose job is not -1 -> Jbc_SetProcNo(job) on the next Execute.
-class cAppBaseDebugMenu : public cAppKingdom
+class cAppBaseDebugMenu : public cJetTask
 {
 public:
 	struct Entry
@@ -47,6 +48,14 @@ class cAppDebugTopMenu : public cAppBaseDebugMenu
 {
 public:
 	cAppDebugTopMenu();
+};
+
+// DOL job 0 (PRJ_JOBNO_DEBUGMENU, init 0x800c25c0, term 0x800c26bc = ReleaseMainTask): a plain cAppBaseDebugMenu (vtable 0x804383d8, task name
+// "cJetTask") listing KINGDOM (job 128) and the six developers' lab menus (jobs 16..96, not in the retail job table).
+class cAppRootDebugMenu : public cAppBaseDebugMenu
+{
+public:
+	cAppRootDebugMenu();
 };
 
 }

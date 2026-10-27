@@ -62,6 +62,9 @@ public:
 	bool IsStepOnCntW(Vector4 pWTrans) override;
 
 	bool IsFall(Vector4 pMTrans) override;
+
+protected:
+	void ReleaseTerm() override { cTaskGimmickHatch::Term(); cTaskModel::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };
 
 }
