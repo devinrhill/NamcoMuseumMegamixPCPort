@@ -26,6 +26,10 @@ typedef std::uint8_t byte;
 typedef std::int8_t sbyte;
 typedef std::uint32_t uint;
 typedef std::int32_t sint;
+#if !defined(__GLIBC__)   // glibc's <sys/types.h> defines these (the converted C# relies on it); MinGW does not
+typedef unsigned short ushort;
+typedef unsigned long long ulong;   // C#'s ulong is 64 bit (glibc's unsigned long is too on 64-bit Linux)
+#endif
 typedef std::string string;
 
 struct Vector4 {

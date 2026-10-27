@@ -64,16 +64,13 @@ stick = Nunchuk, R2 = swing).
 -------------
 Boot, save / load, title, the main menu hub and these games in single
 player: Pac-N-Roll Remix, Pac-Motos, Galaga Remix, Gator Panic Remix,
-Rally-X Remix, Grobda Remix. Multiplayer: Gator Panic; Galaga, Grobda
-and Pac-Motos partly; Rally-X not at all.
+Rally-X Remix, Grobda Remix. Multiplayer: Gator Panic, Galaga, Pac-Motos,
+Rally-X; Grobda partly. The classic arcade hall: PAC-MAN only (it is read
+from your disc's own module; the other cabinets return at once).
 
 Known problems:
-  - Galaga: the BACK button of the stage select leaves an empty screen
-    (restart the game).
-  - Rally-X: the stage select does not show its map or Pac-Man's car.
   - Pac-Motos: the board is see-through.
-  - Debug menu rows of screens that are not ported (e.g. the save data
-    tools) leave an empty screen too.
+  - The debug menu's RSO row leaves an empty screen (restart the game).
 Missing: Mii faces, the Home Button menu (HOME only freezes the game),
 widescreen, some shadows, 3D sound positioning.
 Details: docs/JOBS.md (every screen and its status) and docs/OPTIONS.md.

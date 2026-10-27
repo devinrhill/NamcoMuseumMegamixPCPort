@@ -21,10 +21,15 @@ if(MEGAMIX_PORTABLE)
   # libjpeg-turbo refuses add_subdirectory(): build it as an external project, no SIMD (no nasm on the build host)
   include(ExternalProject)
   set(JT_PREFIX ${CMAKE_BINARY_DIR}/jpegturbo)
+  set(JT_TOOLCHAIN "")
+  if(CMAKE_TOOLCHAIN_FILE)   # cross builds (cmake/mingw-w64.cmake): the external project needs the same compiler
+    get_filename_component(JT_TC ${CMAKE_TOOLCHAIN_FILE} ABSOLUTE BASE_DIR ${CMAKE_SOURCE_DIR})
+    set(JT_TOOLCHAIN -DCMAKE_TOOLCHAIN_FILE=${JT_TC})
+  endif()
   ExternalProject_Add(jpegturbo_ext
     URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.1.0.tar.gz
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${JT_PREFIX} -DCMAKE_INSTALL_LIBDIR=lib -DENABLE_SHARED=OFF -DENABLE_STATIC=ON
-               -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+               -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON ${JT_TOOLCHAIN}
     BUILD_BYPRODUCTS ${JT_PREFIX}/lib/libturbojpeg.a)
   file(MAKE_DIRECTORY ${JT_PREFIX}/include)
   add_library(turbojpeg_static STATIC IMPORTED)
@@ -56,3 +61,6 @@ else()
   target_include_directories(megamix PRIVATE ${NLOHMANN_JSON_INCLUDE})
 endif()
 target_link_libraries(megamix PRIVATE raylib ${TURBOJPEG} ${NLOHMANN_JSON})
+if(MINGW)   # Windows: no MinGW runtime DLLs next to megamix.exe
+  target_link_options(megamix PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
