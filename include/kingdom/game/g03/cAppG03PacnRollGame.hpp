@@ -152,8 +152,8 @@ public:
 
 	bool m_bInitCoPause{};
 
-private:
-	uint nRound();
+public:
+	uint nRound();   // public for the dev window (the round this stage was built from; the sys's copy changes later)
 
 public:
 	cAppG03PacnRollGame();

@@ -23,6 +23,7 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -221,6 +222,7 @@ struct File
 struct Data
 {
 	int round{-1};
+	bool dirty{false};
 	std::vector<File> files;
 };
 
@@ -301,6 +303,9 @@ std::vector<Data> g_undo, g_redo;
 std::vector<Ref> g_sel;
 std::map<std::string, Bytes> g_applied;   // the bytes SearchDataEx hands out for g_appliedRound
 int g_appliedRound = -1;
+int g_applyRound = -1;                    // the round Apply / Restart play (-1 = the data's own round)
+int g_pickRound = 0;                      // the data round chosen in the panel's box
+bool g_follow = true;                     // the editor loads the round the game is running whenever that changes
 bool g_dirty = false;
 std::string g_msg;
 int g_panelFrame = -100;
@@ -335,7 +340,11 @@ bool InStage()
 	return core != nullptr && core->GetJobNo() == kingdom::job::PACNROLL_GAME && KingdomGlobal::PacnRollSys != nullptr;
 }
 bool Active() { return InStage() && FrameNo() - g_panelFrame <= 2; }   // the Editor tab is drawn
-int CurrentRound() { return (int)KingdomGlobal::PacnRollSys->nRound(); }
+int CurrentRound()
+{
+	kingdom::game::g03::cAppG03PacnRollGame* app = kingdom::game::g03::Constants::PACN_APP();
+	return app != nullptr ? (int)app->nRound() : (int)KingdomGlobal::PacnRollSys->nRound();   // the stage was built from the app's copy (made at its Init)
+}
 
 std::string RoundName(int r)
 {
@@ -353,9 +362,44 @@ std::string CamKey(int r)
 	return "set" + std::to_string(sys->nWorld((unsigned)r) + 1) + std::to_string(sys->nStage((unsigned)r) + 1) + ".cam";
 }
 
-// the stage's own data from the attached archives (not the edited copy)
-void LoadStage(int round)
+// a round's own stage archive (what cAppG03PacnRollGame::StageArcPath names), read straight from the disc data so the data does not depend on which
+// archives happen to be attached: a stage entered through the debug menu may have left another round's archive in front
+std::shared_ptr<wii::Archive> RoundArchive(int round)
 {
+	static std::map<int, std::shared_ptr<wii::Archive>> cache;
+	auto it = cache.find(round);
+	if (it != cache.end()) return it->second;
+	cG03PacnRollSys* sys = KingdomGlobal::PacnRollSys;
+	char rel[64];
+	if (round >= 26) std::snprintf(rel, sizeof rel, "g03_pacnroll/g03wXXs%02d.lzs", round - 23);
+	else std::snprintf(rel, sizeof rel, "g03_pacnroll/g03w%02ds%02d.lzs", (int)sys->nWorld((unsigned)round) + 1, (int)sys->nStage((unsigned)round) + 1);
+	std::shared_ptr<wii::Archive> arc;
+	const std::string path = wii::ArchiveStore::ResolvePath(rel);
+	if (!path.empty())
+	{
+		arc = std::make_shared<wii::Archive>();
+		if (!arc->LoadFile(path)) arc.reset();
+	}
+	cache[round] = arc;
+	return arc;
+}
+
+// the stage's own data: the round's own archive, and for the round the game is running the attached archives after it (entries that live elsewhere)
+std::map<int, Data> g_stash;   // every round's data with its edits while another round is shown (coming back finds them again)
+
+void LoadStage(int round, bool fromDisc = false)
+{
+	if (g_data.round >= 0) { g_data.dirty = g_dirty; g_stash[g_data.round] = g_data; }
+	if (fromDisc) g_stash.erase(round);
+	if (auto st = g_stash.find(round); st != g_stash.end())
+	{
+		g_data = st->second;
+		g_dirty = g_data.dirty;
+		g_undo.clear();
+		g_redo.clear();
+		g_sel.clear();
+		return;
+	}
 	Data d;
 	d.round = round;
 	auto add = [&](const std::string& key, Layout lay, Kind flat) {
@@ -364,7 +408,10 @@ void LoadStage(int round)
 		f.layout = lay;
 		f.flat = flat;
 		std::size_t size = 0;
-		const std::uint8_t* p = wii::ArchiveStore::Find(key, size);
+		const std::uint8_t* p = nullptr;
+		if (std::shared_ptr<wii::Archive> arc = RoundArchive(round))
+			if (const wii::Archive::Entry* e = arc->Find(key)) { p = arc->Data(*e); size = e->size; }
+		if (p == nullptr && round == CurrentRound()) p = wii::ArchiveStore::Find(key, size);
 		f.exists = p != nullptr;
 		Parse(f, p != nullptr ? Bytes(p, p + size) : Bytes());
 		d.files.push_back(std::move(f));
@@ -508,24 +555,29 @@ void Duplicate()
 
 // ------------------------------------------------------------------------------------------------ apply / save / load
 
+int TargetRound() { return g_applyRound >= 0 ? g_applyRound : g_data.round; }
+
 void Apply()
 {
 	g_applied.clear();
+	const int target = TargetRound();
 	for (const File& f : g_data.files)
-		if (f.Used()) g_applied[f.key] = Serialize(f);
-	g_appliedRound = g_data.round;
+		if (f.Used()) g_applied[f.layout == L_FLAT && f.flat == K_CAM ? CamKey(target) : f.key] = Serialize(f);   // the camera areas file is named by the round it plays in
+	g_appliedRound = target;
 	g_dirty = false;
-	KingdomGlobal::PacnRollSys->nRound() = (unsigned)g_data.round;
+	KingdomGlobal::PacnRollSys->nRound() = (unsigned)target;
 	kingdom::Kingdom_SetJobNo(kingdom::job::PACNROLL_DEBUG_SELECT, false, false);   // the stage restarts and reads the edited data
 	g_msg = "applied: the stage restarts with the edits";
 }
 
 void Revert()
 {
-	const int r = g_data.round;
+	const int r = CurrentRound();
 	g_applied.clear();
 	g_appliedRound = -1;
-	LoadStage(r);
+	g_applyRound = -1;
+	g_follow = true;
+	LoadStage(r, true);   // the disc's data: the edits kept for this round go
 	KingdomGlobal::PacnRollSys->nRound() = (unsigned)r;
 	kingdom::Kingdom_SetJobNo(kingdom::job::PACNROLL_DEBUG_SELECT, false, false);
 	g_msg = "back to the disc's data";
@@ -533,7 +585,7 @@ void Revert()
 
 void Restart()
 {
-	KingdomGlobal::PacnRollSys->nRound() = (unsigned)g_data.round;
+	KingdomGlobal::PacnRollSys->nRound() = (unsigned)TargetRound();
 	kingdom::Kingdom_SetJobNo(kingdom::job::PACNROLL_DEBUG_SELECT, false, false);   // applied edits stay (they are keyed by the round)
 	g_msg = g_testOn ? "restarted at the test start" : "restarted";
 }
@@ -1284,15 +1336,24 @@ void EditorPanel(devui::UI& ui)
 	static bool once = false;
 	if (!once) { std::fill(g_show, g_show + K_COUNT, true); once = true; }
 	const int round = CurrentRound();
-	if (g_data.round < 0 || (g_data.round != round && !g_dirty)) LoadStage(round);
+	if (g_data.round < 0 || (g_follow && g_data.round != round)) { LoadStage(round); g_pickRound = round; }   // edits of the round left behind are kept (g_stash)
 	ui.Heading("Pac-N-Roll stage editor");
-	ui.Label(RoundName(g_data.round) + "  -  " + std::to_string(Things().size()) + " things" +
-	         (g_appliedRound == g_data.round ? (g_dirty ? "  -  edited since the last apply" : "  -  edits applied") : (g_dirty ? "  -  edited, not applied" : "")),
+	ui.Label("The game is running " + RoundName(round) + ". Editing the data of " + RoundName(g_data.round) + "  -  " + std::to_string(Things().size()) + " things" +
+	         (g_appliedRound == TargetRound() && !g_applied.empty() ? (g_dirty ? "  -  edited since the last apply" : "  -  edits applied") : (g_dirty ? "  -  edited, not applied" : "")),
 	         &devui::Color(g_dirty ? devui::WARN : devui::DIM));
-	if (g_data.round != round)
 	{
-		ui.Label("The game is on " + RoundName(round) + "; the edits are for another round.", &devui::Color(devui::WARN));
-		if (ui.Button(ui.Row(), "Drop the edits and edit this round")) LoadStage(round);
+		// which round's files the editor holds, and which round Apply plays them in (usually the same; different = copy one stage's layout into another)
+		std::vector<std::string> names;
+		for (int r = 0; r < 28; r++) names.push_back(RoundName(r));
+		g_pickRound = ui.Choice(ui.Row(), devui::MakeId("g03e.pick"), "data from", names, std::clamp(g_pickRound, 0, 27));
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1, 1});
+		if (ui.Button(c[0], "Load it", g_pickRound != g_data.round)) { g_follow = false; LoadStage(g_pickRound); }
+		if (ui.Button(c[1], "The game's round")) { g_follow = true; LoadStage(round); g_pickRound = round; g_applyRound = -1; }
+		const bool follow = ui.Checkbox(c[2], "Follow it", g_follow);
+		if (follow != g_follow) { g_follow = follow; if (follow && g_data.round != round) { LoadStage(round); g_pickRound = round; } }
+		int target = g_applyRound >= 0 ? g_applyRound : g_data.round;
+		const int picked = ui.Choice(ui.Row(), devui::MakeId("g03e.apply"), "Apply plays", names, std::clamp(target, 0, 27));
+		if (picked != target) g_applyRound = picked == g_data.round ? -1 : picked;
 	}
 	{
 		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1.4f, 1});
@@ -1353,7 +1414,7 @@ void EditorPanel(devui::UI& ui)
 
 void G03EditOverride(const std::string& key, const std::uint8_t*& data, std::size_t& size)
 {
-	if (g_appliedRound < 0 || !InStage() || CurrentRound() != g_appliedRound) return;
+	if (g_appliedRound < 0 || !InStage() || (int)KingdomGlobal::PacnRollSys->nRound() != g_appliedRound) return;   // the sys's round: what the restart set
 	auto it = g_applied.find(key);
 	if (it == g_applied.end()) return;
 	static const std::uint8_t empty = 0;
@@ -1388,7 +1449,7 @@ bool G03EditNoCull() { return g_noCull && Active(); }
 
 bool G03EditStart(float out[3])
 {
-	if (!g_testOn || !InStage() || CurrentRound() != g_data.round) return false;
+	if (!g_testOn || !InStage() || CurrentRound() != TargetRound()) return false;
 	std::copy(g_test, g_test + 3, out);
 	return true;
 }

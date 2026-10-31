@@ -108,7 +108,12 @@ bool InStage()
 	cSysCoreStructure* core = KingdomGlobal::SysCore;
 	return core != nullptr && core->GetJobNo() == kingdom::job::PACNROLL_GAME && KingdomGlobal::PacnRollSys != nullptr;
 }
-int Round() { return KingdomGlobal::PacnRollSys != nullptr ? (int)KingdomGlobal::PacnRollSys->nRound() : 0; }
+int Round()
+{
+	kingdom::game::g03::cAppG03PacnRollGame* app = GConstants::PACN_APP();
+	if (app != nullptr) return (int)app->nRound();   // the round the stage was built from
+	return KingdomGlobal::PacnRollSys != nullptr ? (int)KingdomGlobal::PacnRollSys->nRound() : 0;
+}
 
 void ReadFileOnce();
 Prims& Cur()

@@ -41,6 +41,27 @@ bool LoadScale()
 }
 bool g_scaleLoaded = LoadScale();
 
+// the panel's width in panel units (unpac's Motos editor: drag the panel's left edge), kept between runs next to the zoom
+constexpr int PANEL_W_DEFAULT = 300, PANEL_W_MIN = 240, PANEL_W_MAX = 900;
+constexpr float GRIP = 6.0f;                   // screen pixels either side of the panel's left edge that grab the resize
+int g_panelW = PANEL_W_DEFAULT;
+std::string PanelWFile() { return EnvOr("XDG_CACHE_HOME", Home() + "/.cache") + "/megamix/ui_panel_w"; }
+bool LoadPanelW()
+{
+	std::ifstream f(PanelWFile());
+	int v;
+	if (f >> v) g_panelW = std::min(std::max(v, PANEL_W_MIN), PANEL_W_MAX);
+	return true;
+}
+bool g_panelWLoaded = LoadPanelW();
+void SavePanelW()
+{
+	std::error_code ec;
+	std::filesystem::create_directories(std::filesystem::path(PanelWFile()).parent_path(), ec);
+	std::ofstream f(PanelWFile());
+	if (f) f << g_panelW;
+}
+
 // ---------------------------------------------------------------------------------------------------------------- theme
 // Every colour of the panels comes from a theme that a file can change (the first run writes the file with these defaults):
 // $MEGAMIX_UI_THEME, else ~/.config/megamix/ui_theme.json. A colour is "#rrggbb", "#rrggbbaa" (aa: 00 clear, ff solid) or [r, g, b, a].
@@ -899,9 +920,11 @@ UI g_ui;
 bool g_enabled = std::getenv("MEGAMIX_DEVUI") != nullptr && std::string(std::getenv("MEGAMIX_DEVUI")) != "0";
 bool g_wantsMouse = false;
 int g_reserved = 0;   // screen pixels the dev window takes from the right edge (ReservedWidth): the game area is the rest
-int g_winReserved = 0;   // of those, the pixels the real window was widened by (a fullscreen window cannot be, so it differs there)
+int g_winReserved = 0;
+int g_gameBaseW = 0;     // the window's width without the dev window's share (what it was while nothing was changing)
+bool g_resizing = false, g_gripCursor = false;
+float g_resizeRight = 0;   // the window's right edge on the screen when the drag began: it stays there while the panel grows   // of those, the pixels the real window was widened by (a fullscreen window cannot be, so it differs there)
 std::string g_tab;   // the active tab's title (the one the user picked; the first tab shows while it is hidden)
-constexpr int WINDOW_W = 300;                   // panel units
 
 // the dev window's own tab: theme / zoom, and every widget once (to try a theme)
 void UiPanel(UI& ui)
@@ -915,6 +938,14 @@ void UiPanel(UI& ui)
 		if (z != Scale()) SetScale(z);
 	}
 	if (ui.Button(ui.Row(), "Fullscreen on / off (F11, Alt+Enter)")) ToggleBorderlessWindowed();
+	{
+		std::vector<Rect> c = UI::Split(ui.Row(), {2, 1});
+		const double lo = PANEL_W_MIN;
+		const int w = (int)ui.Number(c[0], MakeId("devui.panelw"), "Panel width", (double)g_panelW, 10, "%.0f", true, &lo);
+		if (w != g_panelW && !g_resizing) { g_panelW = std::min(std::max(w, PANEL_W_MIN), PANEL_W_MAX); SavePanelW(); }
+		if (ui.Button(c[1], "Reset")) { g_panelW = PANEL_W_DEFAULT; SavePanelW(); }
+	}
+	ui.Label("Drag the panel's left edge (the grip) to change its width", &Color(DIM));
 	ui.Label("Ctrl + = / - / 0 zoom, F9 hides this window", &Color(DIM));
 	ui.Space();
 	ui.Heading("Widgets");
@@ -1007,17 +1038,55 @@ void Frame()
 {
 	if (!g_ui.Typing() && IsKeyPressed(KEY_F9)) g_enabled = !g_enabled;
 	SetExitKey(Typing() ? KEY_NULL : KEY_ESCAPE);   // Esc cancels a field instead of closing the window
-	// the window grows by the panel's width (F9, zoom) so the game keeps its own size beside it; takes effect next frame
-	const int want = g_enabled ? (int)std::ceil(WINDOW_W * Scale()) : 0;
+	// drag the panel's left edge to change its width (the cursor turns into the resize arrows over it)
+	{
+		const Vector2 m = GetMousePosition();
+		const int sw0 = GetScreenWidth(), sh0 = GetScreenHeight();
+		const float edge = (float)sw0 - (float)g_panelW * Scale();
+		const bool near = g_enabled && std::fabs(m.x - edge) <= GRIP && m.y >= 0 && m.y < (float)sh0;
+		const bool wantCursor = near || g_resizing;
+		if (wantCursor != g_gripCursor)   // raylib keeps the last cursor it was given: put the default back on leaving
+		{
+			SetMouseCursor(wantCursor ? MOUSE_CURSOR_RESIZE_EW : MOUSE_CURSOR_DEFAULT);
+			g_gripCursor = wantCursor;
+		}
+		if (near && !g_resizing && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !g_ui.Typing())
+		{
+			g_resizing = true;
+			g_resizeRight = GetWindowPosition().x + (float)sw0;
+		}
+		if (g_resizing)
+		{
+			if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && g_enabled)
+			{
+				const float mouseAbs = GetWindowPosition().x + m.x;
+				g_panelW = (int)std::min(std::max((g_resizeRight - mouseAbs) / Scale(), (float)PANEL_W_MIN), (float)PANEL_W_MAX);
+			}
+			else
+			{
+				g_resizing = false;
+				SavePanelW();
+			}
+		}
+	}
+	// the window grows by the panel's width (F9, zoom, resize) so the game keeps its own size beside it; takes effect next frame
+	const int want = g_enabled ? (int)std::ceil(g_panelW * Scale()) : 0;
 	const bool full = IsWindowFullscreen() || IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
 	if (!full && want != g_winReserved)
 	{
-		SetWindowSize(GetScreenWidth() - g_winReserved + want, GetScreenHeight());
+		if (g_gameBaseW <= 0) g_gameBaseW = GetScreenWidth() - g_winReserved;
+		const int newW = g_gameBaseW + want;
+		SetWindowSize(newW, GetScreenHeight());
+		if (g_resizing) SetWindowPosition((int)(g_resizeRight - (float)newW), (int)GetWindowPosition().y);   // the right edge stays: the left one follows the mouse
 		g_winReserved = want;
 		g_reserved = want;
 	}
 	else if (full) g_reserved = want;   // the panel takes its width out of the screen instead of widening the window
-	else g_reserved = g_winReserved;
+	else
+	{
+		g_reserved = g_winReserved;
+		if (!g_resizing) g_gameBaseW = GetScreenWidth() - g_winReserved;   // nothing is changing: this is the game's width
+	}
 	g_captureMouse = g_wantMouse;   // what the tools asked for last frame holds until they draw again
 	g_captureKeys = g_wantKeys;
 	g_wantMouse = g_wantKeys = false;
@@ -1039,13 +1108,23 @@ void Frame()
 	int tab = 0;
 	for (size_t i = 0; i < labels.size(); i++)
 		if (labels[i] == g_tab) tab = (int)i;
-	g_ui.Begin(sw - WINDOW_W, 0, WINDOW_W, sh);
+	g_ui.Begin(sw - g_panelW, 0, g_panelW, sh);
 	const int picked = g_ui.Tabs(labels, tab);
 	if (picked != tab) g_tab = labels[picked];
 	g_ui.Space(4);
 	if (picked < (int)shown.size()) shown[picked]->fn(g_ui);
 	else UiPanel(g_ui);
 	g_ui.End();
-	g_wantsMouse = GetMousePosition().x >= sw - WINDOW_W * Scale();
+	{
+		// the grip on the panel's left edge: a bar with dots, brighter while it can be grabbed (unpac's Motos editor)
+		const int gx = sw - (int)std::lround(g_panelW * Scale());
+		const bool hot = g_resizing || std::fabs(GetMousePosition().x - (float)gx) <= GRIP;
+		const ::Color bar = hot ? ::Color{170, 190, 255, 255} : ::Color{140, 148, 185, 255};
+		const int top = sh / 2 - 30;
+		DrawRectangle(gx - 4, top, 8, 60, hot ? ::Color{70, 76, 104, 255} : ::Color{52, 56, 78, 255});
+		DrawRectangleLines(gx - 4, top, 8, 60, bar);
+		for (int k = 0; k < 4; k++) DrawRectangle(gx - 1, top + 12 + k * 10, 2, 3, bar);
+	}
+	g_wantsMouse = GetMousePosition().x >= sw - g_panelW * Scale() - GRIP || g_resizing;
 }
 }

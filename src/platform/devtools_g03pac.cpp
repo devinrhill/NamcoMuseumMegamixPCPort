@@ -17,6 +17,8 @@
 #include "cSysCoreStructure.hpp"
 #include "gfx/Gfx3D.hpp"
 #include "kingdom/KingdomJob.hpp"
+#include "kingdom/Constants.hpp"
+#include "kingdom/game/g03/cSaveLoadMan.hpp"
 #include "kingdom/game/g03/Constants.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 #include "kingdom/game/g03/cG03PacnRollSys.hpp"
@@ -327,5 +329,88 @@ void G03PacDraw3D()
 	if (!lines.empty()) gfx::DrawLines3D(lines.data(), lines.size(), false);
 }
 
-void RegisterG03PacPanel() { devui::RegisterPanel("Pac-Man", PacPanel, [] { return InStage(); }); }
+
+// ------------------------------------------------------------------------------------------------ the Pac-N-Roll sys tab
+
+void SysPanel(devui::UI& ui)
+{
+	kingdom::game::g03::cG03PacnRollSys* sys = KingdomGlobal::PacnRollSys;
+	if (sys == nullptr) { ui.Label("no Pac-N-Roll system object", &devui::Color(devui::DIM)); return; }
+	kingdom::game::g03::cAppG03PacnRollGame* app = GConstants::PACN_APP();
+	ui.Heading("Pac-N-Roll sys");
+	ui.Label("The cG03PacnRollSys the game keeps between its menus and the stage. The stage reads the round when it starts: change it, then restart.",
+	         &devui::Color(devui::DIM));
+	if (app != nullptr && InStage())
+		ui.Label("the running stage was built from round " + std::to_string(app->nRound()) + " (the sys's round may have changed since)", &devui::Color(devui::HINT));
+	// the round: 0 .. 27 (26 / 27 = the extra stages g03wXXs03 / s04)
+	{
+		const double lo = 0.0;
+		unsigned round = sys->nRound();
+		const unsigned nr = (unsigned)std::clamp(ui.Number(ui.Row(), devui::MakeId("g03sys.round"), "round", (double)round, 1, "%.0f", true, &lo), 0.0, 27.0);
+		if (nr != round) sys->nRound() = nr;
+		const unsigned w = sys->nWorld(), st = sys->nStage();
+		ui.Label(std::string(kingdom::game::g03::cG03PacnRollSys::IsBossStage(sys->nRound()) ? "world " : "world ") + std::to_string(w + 1) + (sys->IsBossStage() ? " boss" : " stage " + std::to_string(st + 1)) +
+		         "  (of " + std::to_string(sys->nStageMax(w)) + " stages)", &devui::Color(devui::DIM));
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1});
+		unsigned w1 = w + 1, s1 = st + 1;
+		const unsigned nw = (unsigned)std::clamp(ui.Number(c[0], devui::MakeId("g03sys.world"), "world", (double)w1, 1, "%.0f", true, &lo), 1.0, 7.0);
+		const unsigned ns = (unsigned)std::clamp(ui.Number(c[1], devui::MakeId("g03sys.stage"), "stage", (double)s1, 1, "%.0f", true, &lo), 1.0, 8.0);
+		if (nw != w1 || ns != s1) sys->nSetRound(nw - 1, ns - 1);
+	}
+	{
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1, 1});
+		if (ui.Button(c[0], "Previous")) sys->nRound() = sys->nRound() == 0 ? 27 : sys->nRound() - 1;
+		if (ui.Button(c[1], "Next")) sys->nRound() = sys->nRound() < 27 ? sys->nRound() + 1 : 0;
+		if (ui.Button(c[2], "Restart stage")) kingdom::Kingdom_SetJobNo(kingdom::job::PACNROLL_DEBUG_SELECT, false, false);   // the stage job, on the sys's round
+	}
+	ui.Space();
+	ui.Heading("Flags");
+	{
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1});
+		sys->IsRetry() = ui.Checkbox(c[0], "retry (a retry start)", sys->IsRetry());
+		const bool clear = ui.Checkbox(c[1], "all clear", sys->IsAllClear());
+		if (clear != sys->IsAllClear()) sys->bAllClear(clear);
+	}
+	{
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1});
+		const bool open = ui.Checkbox(c[0], "stage newly opened", sys->IsOpenStage());
+		if (open != sys->IsOpenStage()) sys->bOpenStage(open);
+		sys->DebugStageAllUnlock = ui.Checkbox(c[1], "debug: all stages open", sys->DebugStageAllUnlock);
+	}
+	ui.Label(std::string("top menu mode: ") + (sys->IsTopMenuMode() ? "yes" : "no") + "   free stage: " + std::to_string(sys->nFreeStage()), &devui::Color(devui::DIM));
+	{
+		const double lo = 0.0;
+		sys->DeadEnemyCnt = (int)ui.Number(ui.Row(), devui::MakeId("g03sys.dead"), "enemies defeated", (double)sys->DeadEnemyCnt, 1, "%.0f", true, &lo);
+		sys->GetItemCnt = (int)ui.Number(ui.Row(), devui::MakeId("g03sys.items"), "items got", (double)sys->GetItemCnt, 1, "%.0f", true, &lo);
+	}
+	if (auto* save = sys->pSaveLoadMan())
+	{
+		ui.Space();
+		ui.Heading("Saved progress (cSaveLoadMan)");
+		Uint(ui, "lives", save->nLife(), 200, kingdom::game::g03::cTaskCharPacman::eLIFE_LIMIT);
+		Uint(ui, "max HP", save->nMaxHP(), 201, kingdom::game::g03::cTaskCharPacman::eHP_LIMIT);
+		ui.Label("(kept in memory; the stage writes them to the save at its end)", &devui::Color(devui::DIM));
+	}
+	if (auto* retry = sys->pRetryData())
+	{
+		ui.Space();
+		ui.Heading("Retry data (what a retry restores)");
+		Uint(ui, "lives", retry->nLife, 210, 99);
+		Uint(ui, "max HP", retry->nMaxHP, 211, 7);
+		Uint(ui, "game time (frames)", retry->nGameTimeCnt, 212, 4000000.0);
+		retry->nRetryPointIdx = (int)ui.Number(ui.Row(), devui::MakeId("g03sys.rp"), "checkpoint index", (double)retry->nRetryPointIdx, 1, "%.0f", true);
+		Uint(ui, "cookies eaten", retry->nAteCookie, 213, 99999);
+		Uint(ui, "cookies held", retry->nHaveCookie, 214, 99999);
+		ui.Label(std::to_string(retry->vecItem.size()) + " items, " + std::to_string(retry->vecPoint.size()) + " checkpoints, " + std::to_string(retry->vecGate.size()) + " gates, " +
+		         std::to_string(retry->vecBox.size()) + " boxes kept", &devui::Color(devui::DIM));
+	}
+	else
+		ui.Label("no retry data (made when Pac-Man misses and retries)", &devui::Color(devui::DIM));
+}
+
+void RegisterG03PacPanel()
+{
+	devui::RegisterPanel("Pac-Man", PacPanel, [] { return InStage(); });
+	devui::RegisterPanel("Pac-N-Roll", SysPanel, [] { return KingdomGlobal::PacnRollSys != nullptr; });
+}
 }
