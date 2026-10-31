@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/cTaskKingdom.hpp"
 #include "cJetTask.hpp"
 #include "kingdom/game/g03/cTaskBgGimmick.hpp"
@@ -23,7 +24,9 @@ private:
 
 	int m_nSyncSndNo{};
 
-	bool m_isFirstSnd{};
+	kingdom::cKingdomSndActor* m_pSndActor{};   // DOL +0x1c0
+
+	GameObject* m_SndHnd{};                     // DOL +0x1b4 (loop sound handle)
 
 public:
 	cTaskBgGimmickPistonMan();

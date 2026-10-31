@@ -33,6 +33,7 @@ cTaskCharGolvis05* cTaskCharGear2::pBoss()
 	return m_pBoss;
 }
 
+// DOL 0x8011e8bc [audited: per AUDIT_G03_G07 row] (info array = 0x1c-byte records at +0x1c4, +0x14 / +0x18 left unwritten by the DOL; boss at +0x1c0; speeds FLOAT_8047bf10 = 3 deg/1200 frames; search point DAT_80378600 = (0,0,10,1), start distance 10000)
 cTaskCharGear2::cTaskCharGear2(cTaskKingdom* pParent)
 {
 	pParent->ConnectChild(this);
@@ -71,15 +72,17 @@ cTaskCharGear2::cTaskCharGear2(cTaskKingdom* pParent)
 	m_pInfo[num]->m_nKind = 1u;
 }
 
+// DOL 0x8011eb2c [audited: class row done in the 43rd session; function not individually re-read]
 cTaskCharGear2::~cTaskCharGear2()
 {
 	m_pInfo.clear();
 }
 
+// DOL 0x8011ebc0 [audited: per AUDIT_G03_G07 row] (step 1 = height change: speed step 5E-05 FLOAT_8047bf18, height step 0.1 FLOAT_8047bf1c, heights DAT_8043fbb8 = s_fHeight; UpdateFrame = gimmick +0x50 vtable +0x14)
 bool cTaskCharGear2::Execute(cJetTask* pParam)
 {
 	bool flag = !Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss();
-	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE())
+	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE(this))
 	{
 		for (uint num = 0u; num < m_nGearNum; num++)
 		{
@@ -130,6 +133,7 @@ bool cTaskCharGear2::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8011ee6c [audited: per AUDIT_G03_G07 row] (the DOL inlines GetRotateGearNo + RiviseRotateVector; force-dir table DAT_803785f0, gear position table DAT_80378610)
 void cTaskCharGear2::RotateGear(uint nGear)
 {
 	cTaskCharGear2::GEARS_INFO* gEARS_INFO = m_pInfo[nGear];
@@ -270,10 +274,12 @@ void cTaskCharGear2::RiviseRotateVector(Vector4& v)
 	}
 }
 
+// DOL 0x8011f3a0 [audited: blr] (blr)
 void cTaskCharGear2::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// inlined in the DOL: 0x8011da4c cTaskCharGolvis05 gear patterns (mode = height > level, step 1, height = level)
 void cTaskCharGear2::ChangeHeight(int nIndex, int nLevel)
 {
 	if (m_pInfo[nIndex]->m_nHeight != nLevel)
@@ -289,14 +295,6 @@ void cTaskCharGear2::ChangeHeight(int nIndex, int nLevel)
 		m_pInfo[nIndex]->m_nStep = 1;
 		m_pInfo[nIndex]->m_nHeight = nLevel;
 	}
-}
-
-void cTaskCharGear2::Stop(bool flg)
-{
-}
-
-void cTaskCharGear2::Pause(bool flg)
-{
 }
 
 bool cTaskCharGear2::LimitLargeArea(Vector4& vOut, const Vector4& vPos, const Vector4& vVec)

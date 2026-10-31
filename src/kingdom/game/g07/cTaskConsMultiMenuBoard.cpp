@@ -16,6 +16,7 @@ cTaskConsMultiMenuBoard::~cTaskConsMultiMenuBoard()
 {
 }
 
+// DOL 0x801cb118 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuBoard::SetData()
 {
 	nDrawPriority(2147483650u);
@@ -24,6 +25,7 @@ void cTaskConsMultiMenuBoard::SetData()
 	pAnita(0u)->SetState(1u, false);
 }
 
+// DOL 0x801cb1f4 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuBoard::nGetBoardAnmNo(int nAnmState)
 {
 	int obj[2] = {77, 78};
@@ -31,6 +33,7 @@ int cTaskConsMultiMenuBoard::nGetBoardAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
+// DOL 0x801cb21c [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 bool cTaskConsMultiMenuBoard::AppearExec()
 {
 	if (nStep() == 0)
@@ -46,6 +49,7 @@ bool cTaskConsMultiMenuBoard::AppearExec()
 	return false;
 }
 
+// DOL 0x801cb2e0 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuBoard::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetBoardAnmNo(1), false);

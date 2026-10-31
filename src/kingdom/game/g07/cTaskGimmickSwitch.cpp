@@ -27,6 +27,7 @@ cTaskGimmickBase* cTaskGimmickSwitch::Construct()
 	return new cTaskGimmickSwitch();
 }
 
+// DOL 0x8012d06c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskGimmickSwitch::Init()
 {
 	for (int i = 0; i < (int)std::size(m_apPanels); i++)
@@ -41,6 +42,7 @@ void cTaskGimmickSwitch::Term()
 	cTaskGimmickBase::Term();
 }
 
+// DOL 0x8012d0b0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickSwitch::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -57,6 +59,7 @@ bool cTaskGimmickSwitch::Create(uint no)
 	return true;
 }
 
+// DOL 0x8012d16c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickSwitch::Execute(cJetTask* pParam)
 {
 	switch (m_nMode)
@@ -101,6 +104,7 @@ void cTaskGimmickSwitch::BootSwitch()
 	}
 }
 
+// DOL 0x8012d2d4 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskGimmickSwitch::PanelExplode()
 {
 	uint num = 0u;

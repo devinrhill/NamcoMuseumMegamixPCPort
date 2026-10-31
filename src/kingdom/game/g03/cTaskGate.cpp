@@ -20,12 +20,14 @@ cTaskBgGate* cTaskGate::pCurrentGate()
 	return m_pCurrentGate;
 }
 
+// DOL 0x8017a74c [audited: per AUDIT_G03_G07 row]
 cTaskGate::cTaskGate()
 {
 	SetName("cTaskGate");
 	Init();
 }
 
+// DOL 0x8017a93c [audited: per AUDIT_G03_G07 row] (reserve 8; BIN_GATE_SET_DAT 0x30-byte records or the retry gates; mode 0; current gate search inlined)
 void cTaskGate::Init()
 {
 	m_pCurrentGate = nullptr;
@@ -80,6 +82,7 @@ void cTaskGate::Term()
 	}
 }
 
+// DOL 0x8017b420 [audited: per AUDIT_G03_G07 row] (mode 0: no current gate -> mode 1; a current gate whose need count is 0 -> search again; mode 1 idle)
 bool cTaskGate::Execute(cJetTask* pParam)
 {
 	Constants::PACN_APP();
@@ -144,10 +147,12 @@ bool cTaskGate::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8017b5ac [audited: blr] (blr)
 void cTaskGate::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// inlined in Init / Execute: the not-yet-opened gate (need != 0) with the smallest priority becomes current and wakes
 void cTaskGate::SearchCurrent()
 {
 	uint num = 0u;
@@ -166,6 +171,7 @@ void cTaskGate::SearchCurrent()
 	}
 }
 
+// DOL 0x8017b5b0 [audited: per AUDIT_G03_G07 row]
 void cTaskGate::SetRetryData()
 {
 	for (cTaskBgGate* item : m_vecGate)

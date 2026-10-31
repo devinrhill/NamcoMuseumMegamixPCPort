@@ -83,16 +83,19 @@ bool cTaskConsoleBase::EndStep()
 	return m_bStepChange;
 }
 
+// DOL 0x800fd158 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsoleBase::IsStateChange()
 {
 	return m_nStateOld != m_nState;
 }
 
+// DOL 0x800fce3c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::SetAnm(uint set, int nAnmNo)
 {
 	pAnita(set)->SetAnimNo(nAnmNo);
 }
 
+// DOL 0x800fd0d8 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsoleBase::SetAnmDiffCurrent(uint set, int nAnmNo)
 {
 	if (!IsAnmNoSame(set, nAnmNo))
@@ -103,11 +106,13 @@ bool cTaskConsoleBase::SetAnmDiffCurrent(uint set, int nAnmNo)
 	return false;
 }
 
+// DOL 0x800fce7c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsoleBase::IsAnmEnd(uint set)
 {
 	return (pAnita(set)->GetState() & 0x10000) != 0;
 }
 
+// DOL 0x800fcfd8 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::AnimationLoopFromApear(uint set)
 {
 	if (IsAnmNoSame(set, nApearAnm()) && IsAnmEnd(set))
@@ -116,6 +121,7 @@ void cTaskConsoleBase::AnimationLoopFromApear(uint set)
 	}
 }
 
+// DOL 0x800fd064 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::AnimationLoopFromApear(uint set, int nLoopAnimation)
 {
 	if (IsAnmEnd(set))
@@ -138,29 +144,34 @@ void cTaskConsoleBase::Term()
 {
 }
 
+// DOL 0x801024a0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::Create()
 {
 	nDrawPriority(++KingdomGlobal::g_pMotosGame->pTaskConsoleMan()->nPriority());
 }
 
+// DOL 0x801024f4 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::Visible(uint set)
 {
 	CustomKingdomUtil::Assert(pAnita(set) != nullptr, "nullpo");
 	pAnita(set)->SetState(3u);
 }
 
+// DOL 0x80102524 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskConsoleBase::Invisible(uint set)
 {
 	CustomKingdomUtil::Assert(pAnita(set) != nullptr, "nullpo");
 	pAnita(set)->SetState(3u, false);
 }
 
+// DOL 0x80102554 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsoleBase::IsAnmNoSame(uint set, int nAnmNo)
 {
 	CustomKingdomUtil::Assert(pAnita(set) != nullptr, "nullpo");
 	return pAnita(set)->GetAnimNo() == nAnmNo;
 }
 
+// DOL 0x80102594 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsoleBase::Execute(cJetTask* pParam)
 {
 	m_nStateOld = m_nState;

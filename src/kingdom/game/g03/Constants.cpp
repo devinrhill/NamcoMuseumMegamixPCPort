@@ -213,14 +213,18 @@ void Constants::OFF_PAUSE()
 	KingdomGlobal::KingSys->pAppMain()->IsPause() = false;
 }
 
-bool Constants::IS_NAKAJIMA_PAUSE()
+// 43rd session: was a C# stub returning false (gimmicks, gears, land attack, camera never froze for the Golvis eat demo)
+bool Constants::IS_NAKAJIMA_PAUSE(kingdom::cTaskKingdom* pChar)
 {
-	return false;
+	cAppG03PacnRollGame* app = PACN_APP();
+	return app != nullptr && app->IsNakajimaPause(pChar);
 }
 
+// the DOL's inline "can normalise" test: FLOAT 0x01000000 (4.7e-38, e.g. cTaskItem::Execute 0x80182bac FLOAT_8047c800) <= squared length.
+// 43rd session: was ">= -infinity" (C# float.MinValue mistranslated), i.e. always true: zero vectors were "normalisable".
 bool Constants::IsVecNormalize(const Vector4& v)
 {
-	return v[0] * v[0] + v[1] * v[1] + v[2] * v[2] >= (-std::numeric_limits<float>::infinity());
+	return v[0] * v[0] + v[1] * v[1] + v[2] * v[2] >= 2.3509887e-38f /* 0x01000000, DOL 0x8047b0c0 [audited] */;
 }
 
 cAppG03PacnRollGame* Constants::PACN_APP()

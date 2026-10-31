@@ -22,10 +22,10 @@ namespace kingdom::game::g01
 
 namespace
 {
-const int PANEL_ANM[5] = {0x2e, 0x32, 0x36, 0x3a, 0x2a};             // DOL 0x80372018 (players 1..4, alone): wait; -1 appear, +1 shot, +2 out
-const int DIGIT_ANM[10] = {2, 5, 8, 0xb, 0xe, 0x11, 0x14, 0x17, 0x1a, 0x1d};   // DOL 0x80372030: digits 0..9
-const int DIGIT_LAYER[6] = {8, 7, 6, 5, 4, 3};                      // DOL 0x80371f88: anitas 1..6 = 10^0 .. 10^5
-const int PANEL_LAYER[5][4] = {{-1, -1, -1, -1}, {0, -1, -1, -1}, {0, 1, -1, -1}, {0, 1, 2, -1}, {0, 1, 2, 3}};   // DOL 0x80372004 -> 0x80371fb0..
+const int PANEL_ANM[5] = {0x2e, 0x32, 0x36, 0x3a, 0x2a};             // DOL 0x80372018 [audited] (players 1..4, alone): wait; -1 appear, +1 shot, +2 out
+const int DIGIT_ANM[10] = {2, 5, 8, 0xb, 0xe, 0x11, 0x14, 0x17, 0x1a, 0x1d};   // DOL 0x80372030 [audited]: digits 0..9
+const int DIGIT_LAYER[6] = {8, 7, 6, 5, 4, 3};                      // DOL 0x80371f88 [audited]: anitas 1..6 = 10^0 .. 10^5
+const int PANEL_LAYER[5][4] = {{-1, -1, -1, -1}, {0, -1, -1, -1}, {0, 1, -1, -1}, {0, 1, 2, -1}, {0, 1, 2, 3}};   // DOL 0x80372004 [audited] -> 0x80371fb0..
 // nw4r::math::IntersectionRay3AABB: slab test, t = distance along the (unit) direction to the entry point
 bool RayAABB(const float org[3], const float dir[3], const float mn[3], const float mx[3], float& t)
 {
@@ -50,7 +50,7 @@ bool RayAABB(const float org[3], const float dir[3], const float mn[3], const fl
 
 // ---- cTaskBeam -------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800c7ff8 (and the cObject part 0x800c7f5c-like init: kind 4 UNVERIFIED, not collidable)
+// DOL 0x800c7ff8 [audited] (and the cObject part 0x800c7f5c-like init: kind 4 UNVERIFIED, not collidable)
 cTaskBeam::cTaskBeam(int nPlayer)
 {
 	SetName("g01::cTaskBeam");
@@ -81,7 +81,7 @@ public:
 	}
 };
 
-// DOL 0x800c80a4
+// DOL 0x800c80a4 [audited: state and step are reset natively when the laser ends (the DOL leaves state 1)]
 bool cTaskBeam::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -105,7 +105,7 @@ bool cTaskBeam::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x800d665c (the panel anita, name text, life display ... are not ported). Kind 1 = a console player for the collision pass.
+// DOL 0x800d665c [audited: only the fields, anim tables, panel layers and LoadCarry call compared; the name text / Mii child and the aim cursor are not] (the panel anita, name text, life display ... are not ported). Kind 1 = a console player for the collision pass.
 cTaskConsolePlayer::cTaskConsolePlayer(int nPlayer, int nPad, int nPlayers)
 {
 	SetName("g01::cTaskConsolePlayer");
@@ -156,7 +156,7 @@ cTaskConsolePlayer::cTaskConsolePlayer(int nPlayer, int nPad, int nPlayers)
 	for (uint i = 0; i < 6; i++) place(i + 7, (uint)DIGIT_LAYER[i], DIGIT_ANM[0]);   // 0x800d6a1c: the same digits again (the pop's second layer)
 }
 
-// DOL 0x800d572c: 0 panel appear anim (wait - 1); 1 at its end the wait anim, digits appear (anim 0x40); 2 wait for the digits; 3 the
+// DOL 0x800d572c [audited]: 0 panel appear anim (wait - 1); 1 at its end the wait anim, digits appear (anim 0x40); 2 wait for the digits; 3 the
 // score's digits (restarted) and done (console state 2). Step 4 = console state 3 (0x800eb694, started for every console by the manager's
 // 0x800eb87c; UNVERIFIED: taken as right after the appear): the panel part of 0x800d60c4 every frame
 void cTaskConsolePlayer::PanelExec()
@@ -197,7 +197,7 @@ void cTaskConsolePlayer::PanelExec()
 		break;
 	}
 	default:
-		// DOL 0x800d60c4: the digits, then the panel: a hit this frame (+0x24d) plays the shot anim (wait + 1, not restarted); once it
+		// DOL 0x800d60c4 [audited: panel anim part ported as PanelExec; shot section compared in structure only]: the digits, then the panel: a hit this frame (+0x24d) plays the shot anim (wait + 1, not restarted); once it
 		// ends (or the panel is hidden) the wait anim again
 		DigitExec(1);
 		if (m_bShotHit)
@@ -209,7 +209,7 @@ void cTaskConsolePlayer::PanelExec()
 	}
 }
 
-// DOL 0x800d5aa0. Kind 1, when the score moved (+0x244 != +0x248): from the top digit down, a digit that changed (and every one below a
+// DOL 0x800d5aa0 [audited]. Kind 1, when the score moved (+0x244 != +0x248): from the top digit down, a digit that changed (and every one below a
 // changed one) pops: anita i + 1 plays the digit's in anim (anim - 1), anita i + 7 is shown with its out anim (anim + 1); the others go back
 // to the wait anim (anita i + 1) / are hidden (anita i + 7) once theirs ended. Kind 2: every digit's out anim on both.
 void cTaskConsolePlayer::DigitExec(int kind)
@@ -252,7 +252,7 @@ void cTaskConsolePlayer::DigitExec(int kind)
 	}
 }
 
-// DOL 0x800d6444: step 0 the panel's out anim (wait + 2) and the digits' (0x800d5aa0 kind 2); then done when anitas 0..12 are hidden or
+// DOL 0x800d6444 [audited: +0x26c object child +0x7c = 0 not ported]: step 0 the panel's out anim (wait + 2) and the digits' (0x800d5aa0 kind 2); then done when anitas 0..12 are hidden or
 // at their end. (+0x26c's object +0x1b4 child +0x7c = 0 first: not ported)
 bool cTaskConsolePlayer::ResultExec()
 {
@@ -321,9 +321,9 @@ void cTaskConsolePlayer::Fire()
 // DOL 0x800d60c4 (the shot part; the panel animations are not ported)
 bool cTaskConsolePlayer::Execute(cJetTask* pParam)
 {
-	m_pAim->SetEnable(m_bEnable);   // DOL 0x800d6080: the aim is shown exactly while the console is enabled (+0x24c; its "off while paused" store is overwritten)
+	m_pAim->SetEnable(m_bEnable);   // DOL 0x800d6080 [audited]: the aim is shown exactly while the console is enabled (+0x24c; its "off while paused" store is overwritten)
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: the console base Execute 0x800eb400 does nothing while paused
-	// DOL 0x800d6400: a swing (pad +0x84 > 0.5, FLOAT_8047b4ac) asks Pac-Man (vtable +0xf8) to jump. UNVERIFIED: the native pad's accSpeed
+	// DOL 0x800d6400 [audited: swing source (pad +0xa8/+0x84) is the native accSpeed, UNVERIFIED]: a swing (pad +0x84 > 0.5, FLOAT_8047b4ac) asks Pac-Man (vtable +0xf8) to jump. UNVERIFIED: the native pad's accSpeed
 	// stands for +0x84, and the test is made only while the console is enabled
 	if (m_bEnable && GamePad::Get(m_nPad).accSpeed > 0.5f)
 		if (cTaskPacman* pac = cTaskPacman::s_pInstance) pac->RequestJump();
@@ -363,7 +363,7 @@ bool cTaskConsolePlayer::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800d7198: the last boss (kind 0xd) via 0x800cf250 (its parts); kinds 8..0xb and 0xe..0xf: the shot's ray against the
+// DOL 0x800d7198 [audited: the ray / AABB test is the port's own slab test (nw4r IntersectionRay3AABB not compared)]: the last boss (kind 0xd) via 0x800cf250 (its parts); kinds 8..0xb and 0xe..0xf: the shot's ray against the
 // target's world AABB (+0x68)
 bool cTaskConsolePlayer::HitCheck(cObject* other)
 {
@@ -387,7 +387,7 @@ bool cTaskConsolePlayer::HitCheck(cObject* other)
 	return true;
 }
 
-// DOL 0x800d7344
+// DOL 0x800d7344 [audited]
 void cTaskConsolePlayer::HitCallback(cObject* other)
 {
 	const int kind = other->nKind();
@@ -405,7 +405,7 @@ void cTaskConsolePlayer::Draw(int nStatus, cJetTask* pParam)
 }
 
 
-// DOL 0x800d65cc: the boss stage continues from the run so far: alone, the stage work (cG01GalagaSys +0x1c, filled by stage 9's SaveRecord):
+// DOL 0x800d65cc [audited]: the boss stage continues from the run so far: alone, the stage work (cG01GalagaSys +0x1c, filled by stage 9's SaveRecord):
 // score +0x10 (-> shown and real score +0x244 / +0x248), hit rate +0x08 (-> +0x240, blended into the boss result), kills +0x00; with several
 // players the multi work (+0x20) by player: +0x28 / +0x18 / +0x08 + 4 * player
 void cTaskConsolePlayer::LoadCarry()

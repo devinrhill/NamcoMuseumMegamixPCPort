@@ -18,6 +18,7 @@ bool cTaskCharItem::Create(uint no)
 	return false;
 }
 
+// DOL 0x801f190c [audited: per AUDIT_G03_G07 row]
 void cTaskCharItem::Init()
 {
 	OffFlag(4u);
@@ -29,6 +30,7 @@ void cTaskCharItem::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x801f1924 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharItem::ActionBoth()
 {
 	if (IsFall())
@@ -38,6 +40,7 @@ bool cTaskCharItem::ActionBoth()
 	return true;
 }
 
+// DOL 0x801f1980 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharItem::ActionLocal()
 {
 	nInputDir() = (ushort)Input();
@@ -45,6 +48,7 @@ bool cTaskCharItem::ActionLocal()
 	return true;
 }
 
+// DOL 0x801f19d8 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharItem::ActionOther()
 {
 	Dir2Rotate(nModelDir());

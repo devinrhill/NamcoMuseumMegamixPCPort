@@ -56,7 +56,7 @@ bool ModelNode(cKingdomModel* m, const char* node, float out[3])
 }
 }
 
-// DOL 0x800efef4 ("Bullet_s%x.csv", rows by name, column 1)
+// DOL 0x800efef4 [audited] ("Bullet_s%x.csv", rows by name, column 1)
 void sBulletParam::Load(int nStage)
 {
 	char name[0x80];
@@ -117,7 +117,7 @@ cTaskBossMissile::cTaskBossMissile(bool bSp) : m_bSp(bSp)
 
 cTaskBossMissile::~cTaskBossMissile() = default;
 
-// DOL 0x800f0de4 / 0x800f2074 (after the cTaskBullet setup 0x800d2174 at the origin): bom slot, BOSS_MISSILE_HP, the boss, not collidable yet,
+// DOL 0x800f0de4 [audited] / 0x800f2074 (after the cTaskBullet setup 0x800d2174 at the origin): bom slot, BOSS_MISSILE_HP, the boss, not collidable yet,
 // turn 0.03, light set 1, active. SP: the speed saved (+0x418), BOSS_SP_MISSILE_DAMAGE, level 0, no stop.
 void cTaskBossMissile::Setup(float fSpeed, int nSlot, cTaskBoss* pBoss)
 {
@@ -152,7 +152,7 @@ void cTaskBossMissile::Setup(float fSpeed, int nSlot, cTaskBoss* pBoss)
 	UpdateModel();
 }
 
-// DOL 0x800f039c
+// DOL 0x800f039c [audited]
 void cTaskBossMissile::Die()
 {
 	m_nState = 2;
@@ -171,7 +171,7 @@ void cTaskBossMissile::Free()
 	if (m_pFxHip != nullptr) m_pFxHip->Stop();
 }
 
-// DOL 0x800f0edc
+// DOL 0x800f0edc [audited]
 bool cTaskBossMissile::IsOut() const
 {
 	float eye[3], aim[3], fovy;
@@ -182,7 +182,7 @@ bool cTaskBossMissile::IsOut() const
 	return m_pBoss != nullptr && m_pBoss->IsDead();                                                      // 0x800cfb40
 }
 
-// DOL 0x800f1490 (normal) / 0x800f224c (SP)
+// DOL 0x800f1490 [audited] (normal) / 0x800f224c (SP)
 void cTaskBossMissile::Fly()
 {
 	cTaskCamera* cam = KingdomGlobal::GalagaSys->pTaskCamera();
@@ -235,7 +235,7 @@ void cTaskBossMissile::Fly()
 	if (IsOut()) Die();
 }
 
-// DOL 0x800f10f8: turn toward Pac-Man (in the camera frame) by at most +0x388, move, face along the direction
+// DOL 0x800f10f8 [audited]: turn toward Pac-Man (in the camera frame) by at most +0x388, move, face along the direction
 void cTaskBossMissile::Home(float fStep)
 {
 	cTaskCamera* cam = KingdomGlobal::GalagaSys->pTaskCamera();
@@ -272,7 +272,7 @@ void cTaskBossMissile::Home(float fStep)
 	m_fTurn += TURN_ADD;
 }
 
-// DOL 0x800f2620 (SP state 4): straight at the boss's ef_body, speeding up to 2.5
+// DOL 0x800f2620 [audited] (SP state 4): straight at the boss's ef_body, speeding up to 2.5
 void cTaskBossMissile::SuckIn()
 {
 	if (m_pBoss == nullptr) return;
@@ -283,7 +283,7 @@ void cTaskBossMissile::SuckIn()
 	if (m_fSpeed < SUCK_MAX) m_fSpeed += SUCK_ADD;
 }
 
-// DOL 0x800f172c (normal: shot down -> CHA_02 / CLA_02 until the colour clip ends; the clip-end tests read "max <= frame": the native
+// DOL 0x800f172c [audited] (normal: shot down -> CHA_02 / CLA_02 until the colour clip ends; the clip-end tests read "max <= frame": the native
 // frame of a one-time clip stops at max, NW4R's keeps running) / 0x800f26fc (SP: the effects stop)
 void cTaskBossMissile::DieStep()
 {
@@ -318,7 +318,7 @@ void cTaskBossMissile::DieStep()
 	}
 }
 
-// DOL 0x800f1f20 / 0x800f25cc (+ the SP's spark follows it)
+// DOL 0x800f1f20 [audited] / 0x800f25cc (+ the SP's spark follows it)
 void cTaskBossMissile::UpdateModel()
 {
 	if (cKingdomModel* m = pModel(0))
@@ -330,7 +330,7 @@ void cTaskBossMissile::UpdateModel()
 	m_SndActor.SetPosition(m_v20);   // 0x800f1f40 / 0x800f25ec: the sound actor (+0x384) at +0x20
 }
 
-// DOL 0x800f1b84 (active, not paused, Pac-Man has not missed)
+// DOL 0x800f1b84 [audited] (active, not paused, Pac-Man has not missed)
 bool cTaskBossMissile::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -391,7 +391,7 @@ bool cTaskBossMissile::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800f1e40
+// DOL 0x800f1e40 [audited: the hanging missile's matrix push is natively the model's SetNativeMtx in Execute]
 void cTaskBossMissile::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08) return;
@@ -404,11 +404,10 @@ bool cTaskBossMissile::HitCheck(cObject* other)
 	if (other->nKind() != 3) return false;
 	const float* p = other->vPos();
 	const float d[3] = {p[0] - m_v20.x, p[1] - m_v20.y, p[2] - m_v20.z};
-	const float r = HIT_RADIUS + HIT_RADIUS;
-	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
+	return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) < HIT_RADIUS + HIT_RADIUS;   // 0x801c1aa4: distance < r1 + r2
 }
 
-// DOL 0x800f1820 (normal) / 0x800f2764 (SP). Sounds DAT_8047b630 m01se_04hit2, 634 m01se_05bak1, 638 m01se_07bak3, all on the missile's actor (+0x384).
+// DOL 0x800f1820 [audited] (normal) / 0x800f2764 (SP). Sounds DAT_8047b630 m01se_04hit2, 634 m01se_05bak1, 638 m01se_07bak3, all on the missile's actor (+0x384).
 void cTaskBossMissile::HitCallback(cObject* other)
 {
 	const Vector4 pos(m_v20.x, m_v20.y, m_v20.z, 1.0f);

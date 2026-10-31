@@ -15,8 +15,8 @@ namespace gfx
 class PtkSim
 {
 public:
-	// `seed` = srand() value; the title seeds libc with the low word of OSGetTime (DOL 0x80202f90), so it is not reproducible there.
-	explicit PtkSim(wii::PtkFile file, unsigned seed = 1);
+	// the random numbers come from the one global rand() (kingdom::MslRand, DOL 0x80211048), seeded by the title
+	explicit PtkSim(wii::PtkFile file);
 	// Starts an emitter at `matrix` (16 floats row-major, or nullptr = identity); `delay` frames before it runs.
 	// Returns the emitter's id (for Control / Alive).
 	unsigned Spawn(const float* matrix, bool oneTime = false, bool depend = true, float delay = 0);
@@ -68,7 +68,6 @@ private:
 	void PtcState(Ptc& p, float dt);
 
 	wii::PtkFile m_file;
-	std::uint32_t m_next;                   // libc rand() state (r13 - 0x5d80)
 	float m_life{};
 	std::vector<std::unique_ptr<Emitter>> m_emis;
 	unsigned m_nextId{1};

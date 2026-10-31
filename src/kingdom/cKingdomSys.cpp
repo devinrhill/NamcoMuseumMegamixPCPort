@@ -22,13 +22,13 @@ cAppKingdom*& cKingdomSys::pAppMain()
 	return m_pAppMain;
 }
 
-// DOL 0x8000d8cc
+// DOL 0x8000d8cc [audited]
 bool cKingdomSys::LoadGameData(uint block, void* dst, uint size)
 {
 	return m_pSave != nullptr && m_pSave->ReadBlock(block, dst, size);
 }
 
-// DOL 0x8000d8d4
+// DOL 0x8000d8d4 [audited]
 bool cKingdomSys::SaveGameData(uint block, const void* src, uint size)
 {
 	return m_pSave != nullptr && m_pSave->WriteBlock(block, src, size);
@@ -36,7 +36,7 @@ bool cKingdomSys::SaveGameData(uint block, const void* src, uint size)
 
 bool cKingdomSys::AttachArcData(const string& pArcName, bool visible)
 {
-	// DOL 0x8000cbb4. The game attaches "<dir>/<name>.lzs" archives from the disc; see wii/Archive.hpp.
+	// DOL 0x8000cbb4 [audited: disc archive attach is wii::ArchiveStore]. The game attaches "<dir>/<name>.lzs" archives from the disc; see wii/Archive.hpp.
 	return wii::ArchiveStore::Attach(pArcName);
 }
 

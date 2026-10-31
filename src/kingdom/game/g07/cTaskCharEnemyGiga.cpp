@@ -21,6 +21,7 @@ cTaskCharEnemy* cTaskCharEnemyGiga::Construct()
 	return new cTaskCharEnemyGiga();
 }
 
+// DOL 0x800552b4 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyGiga::Init()
 {
 	nChangeMoveFrame() = 12;
@@ -34,6 +35,7 @@ void cTaskCharEnemyGiga::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80055320 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyGiga::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -50,6 +52,7 @@ bool cTaskCharEnemyGiga::Create(uint no)
 	return true;
 }
 
+// DOL 0x80055404 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyGiga::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -118,6 +121,7 @@ uint cTaskCharEnemyGiga::Input()
 	return num2;
 }
 
+// DOL 0x80055778 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyGiga::ActionBoth()
 {
 	if (IsFall())
@@ -144,6 +148,7 @@ bool cTaskCharEnemyGiga::ActionBoth()
 	return true;
 }
 
+// DOL 0x80055964 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyGiga::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

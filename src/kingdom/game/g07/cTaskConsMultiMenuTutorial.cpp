@@ -19,6 +19,7 @@ cTaskConsMultiMenuTutorial::~cTaskConsMultiMenuTutorial()
 {
 }
 
+// DOL 0x801cf4cc [audited: described by the 43rd-session pass] (page table 0x8044caa0, data 0x8037fc50 compared)
 cTaskConsMultiMenuTutorial::cTaskConsMultiMenuTutorial()
 {
 	this->UnityUIImage = MotosFrontUIManager::Get<MotosUIRuleImage>(MotosFrontUIManager::EUIIndex::MotosMultiRuleImage);

@@ -18,13 +18,13 @@
 namespace kingdom::game::g02
 {
 
-// DOL 0x800c6640 (job 200, 0x0c800000)
+// DOL 0x800c6640 [audited] (job 200, 0x0c800000)
 void cAppG02RallyXMultiMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG02RallyXMultiMenu());
 }
 
-// DOL 0x80122254. The player count and pads come from the matching block (0x800c5e3c), or from the connected pads when entered from the
+// DOL 0x80122254 [audited]. The player count and pads come from the matching block (0x800c5e3c), or from the connected pads when entered from the
 // debug menu (0x0c100000; 0x800c5e90).
 cAppG02RallyXMultiMenu::cAppG02RallyXMultiMenu()
 {
@@ -83,19 +83,19 @@ void cAppG02RallyXMultiMenu::Free()
 	cAppGameBaseMenu::Free();
 }
 
-// DOL 0x801227c0: every console appears
+// DOL 0x801227c0 [audited]: every console appears
 void cAppG02RallyXMultiMenu::FadeInEndCallBack()
 {
 	m_pConsMan->AppearStart();
 }
 
-// DOL 0x801227c8
+// DOL 0x801227c8 [audited]
 void cAppG02RallyXMultiMenu::TutorialOutCallBack()
 {
 	m_pConsMan->Reset();
 }
 
-// DOL 0x8012295c: type 1 (remote only) -> the motion pages, 2 (Nunchuk) -> the control pages (into the base menu's tutorial +0x29c)
+// DOL 0x8012295c [audited]: type 1 (remote only) -> the motion pages, 2 (Nunchuk) -> the control pages (into the base menu's tutorial +0x29c)
 void cAppG02RallyXMultiMenu::SelectTutorial()
 {
 	const int type = m_pConsMan->nCtrlType();
@@ -105,13 +105,19 @@ void cAppG02RallyXMultiMenu::SelectTutorial()
 		pTaskTutorial() = m_pCtlTutorial;
 }
 
+// DOL 0x8005cfe8 (vtable +0x64) [audited]: m00se_02Kettei / 03Cancel / 08NG through 0x80025b6c (TV + the remote of player ctrl), any other cue 0x80025988
 void cAppG02RallyXMultiMenu::PlaySndSe(const string& pSndName, int ctrl)
 {
-	(void)ctrl;   // UNVERIFIED: the DOL routes the cue to the remote of player ctrl (as in cAppG02RallyXMenu)
+	if (pSndName == "m00se_02Kettei" || pSndName == "m00se_03Cancel" || pSndName == "m00se_08NG")
+	{
+		WiiSnd::Handle h;
+		WiiSnd::PlayRemote(h, ctrl, pSndName.c_str());
+		return;
+	}
 	snd::Play(pSndName.c_str());
 }
 
-// DOL 0x801227d0. Mode 0: wait until every console has appeared, then all wait; mode 1: the selection (Back -> the hub 0x0cf00000, START ->
+// DOL 0x801227d0 [audited]. Mode 0: wait until every console has appeared, then all wait; mode 1: the selection (Back -> the hub 0x0cf00000, START ->
 // the settings into the sys and the Nunchuk card 0x0c900000, Single -> the stage select 0x0c200000, Rule -> the HOW TO PLAY pages).
 void cAppG02RallyXMultiMenu::MainExec()
 {

@@ -5,6 +5,8 @@
 #include "kingdom/game/g07/cTaskConsMultiMenuMan.hpp"
 #include "kingdom/game/g07/cTaskConsMultiMenuTutorial.hpp"
 #include "KingdomGlobal.hpp"
+#include "GamePad.hpp"
+#include "kingdom/KingdomJob.hpp"
 #include <EBGMKind.hpp>
 #include <SoundManager.hpp>
 
@@ -30,10 +32,11 @@ cAppG07MotosMultiMenu::cAppG07MotosMultiMenu()
 
 void cAppG07MotosMultiMenu::Free()
 {
+	Term();   // DOL dtor 0x801c54bc: detach g07menu.lzs, then the base menu's Term
 	cAppGameBaseMenu::Free();
-	Term();
 }
 
+// DOL 0x801c4f1c [audited: per AUDIT_G03_G07 row] (ctor)
 void cAppG07MotosMultiMenu::Init()
 {
 	KingdomGlobal::MotosSys->AttachMenuData();
@@ -63,7 +66,7 @@ void cAppG07MotosMultiMenu::Init()
 	ConnectChild(pTaskTutorial() = new cTaskConsMultiMenuTutorial());
 	pTaskTutorial()->SetCursor(m_pCursor[0]);
 	pTaskTutorial()->nDrawPriority(2147483673u);
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 291504128)
+	if (KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_MATCHING)
 	{
 		SoundManager::get_BGM()->Stop(0.0f);
 		SoundManager::get_BGM()->Play(EBGMKind::MOTOS_SND_BGM01_SELECT);
@@ -75,19 +78,26 @@ void cAppG07MotosMultiMenu::Term()
 	KingdomGlobal::MotosSys->DetachMenuData();
 }
 
+// DOL 0x801c530c [audited: per AUDIT_G03_G07 row] (vtable +0x40): multi menu manager 0x801cd3c8 (all appear). FadeOutEnd = the base blr (C# Unity UI override removed)
 void cAppG07MotosMultiMenu::FadeInEndCallBack()
 {
 	pTaskConsMultiMenuMan()->AppearStart();
 }
 
+// DOL 0x801c5314 [audited: per AUDIT_G03_G07 row] (vtable +0x60): multi menu manager 0x801cc99c (= Reset)
 void cAppG07MotosMultiMenu::TutorialOutCallBack()
 {
 	pTaskConsMultiMenuMan()->Reset();
 }
 
+// DOL 0x801c531c [audited: per AUDIT_G03_G07 row] (vtable +0x50)
 void cAppG07MotosMultiMenu::MainExec()
 {
 	uint n = 0u;
+	if (GamePad::Get(0).hold == 0xffffffffu) // DOL 0x801c5334 [audited: described by the 43rd-session pass]: every bit held (disconnected pad word) -> job 273 (the C# dropped it)
+	{
+		kingdom::Kingdom_SetJobNo(job::MOTOS_DEBUG_MENU, false, false);
+	}
 	if (nModeState(n) == 0)
 	{
 		nOldState(n) = nModeState(n);
@@ -134,17 +144,16 @@ void cAppG07MotosMultiMenu::MainExec()
 			pTaskConsMultiMenuMan()->Select();
 			if (pTaskConsMultiMenuMan()->IsBackDecide())
 			{
-				nSetNextJob(300941312u);
+				nSetNextJob(kingdom::job::MOTOS_TERM);
 			}
 			if (pTaskConsMultiMenuMan()->IsStartDecide())
 			{
 				pTaskConsMultiMenuMan()->Upload();
-				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c5450: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
+				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c5450 [audited: described by the 43rd-session pass]: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
 			}
 			if (pTaskConsMultiMenuMan()->IsSingleDecide())
 			{
-				nSetNextJob(287309824u);
-				SetSndAllStop(false);
+				nSetNextJob(kingdom::job::MOTOS_MENU);   // DOL 0x801c5468 [audited: described by the 43rd-session pass]: no SetSndAllStop here (the C# kept the BGM)
 			}
 			if (pTaskConsMultiMenuMan()->IsRuleDecide())
 			{
@@ -164,9 +173,5 @@ void cAppG07MotosMultiMenu::MainExec()
 	}
 }
 
-void cAppG07MotosMultiMenu::FadeOutEndCallBack()
-{
-	if (pTaskConsMultiMenuMan()->UnityUI != nullptr) pTaskConsMultiMenuMan()->UnityUI->SetEnable(false);
-}
 
 }

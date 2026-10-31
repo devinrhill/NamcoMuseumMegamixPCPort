@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskBgGimmickAddinSnd.hpp"
 
 #include "AABB.hpp"
@@ -13,6 +14,7 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x8014dfbc [audited: per AUDIT_G03_G07 row] (sound kind +0x534; 0x8014e078 is the dtor)
 cTaskBgGimmickAddinSnd::cTaskBgGimmickAddinSnd(ResNode* const& node0, ResNode* const& node1, const ESEKind& sndName)
 	: cTaskBgGimmick(node0, node1)
 {
@@ -21,53 +23,42 @@ cTaskBgGimmickAddinSnd::cTaskBgGimmickAddinSnd(ResNode* const& node0, ResNode* c
 	Init();
 }
 
+// DOL 0x8014e128 [audited: per AUDIT_G03_G07 row] (+0x530 = half diagonal of the scene model's bounding volume)
 void cTaskBgGimmickAddinSnd::Init()
 {
-	Vector4 v = Vector4();
-	AABB& reference = pFaceList()->ReadOnlyAABB();
-	v[0] = (reference.This.max().x - reference.This.min().x) * 0.5f;
-	v[1] = (reference.This.max().y - reference.This.min().y) * 0.5f;
-	v[2] = (reference.This.max().z - reference.This.min().z) * 0.5f;
-	v[3] = 1.0f;
-	m_fLength = ::Constants::jetGeoVecLength(v);
-	// WII (8014e128): m_fLength is always the half diagonal of the model's bounding volume; the port
-	// forced 5.0 for the pendulum. Only the port's sound-position object is kept here.
-	if (m_pSndName == ESEKind::PACN_ROLL_SND_SE114_PENDULUM)
-	{
-		// TODO(unity): m_pendulumSEPosObj = new GameObject();
-		// TODO(unity): m_pendulumSEPosObj.name = "PendulumSEPosObj";
-	}
+	m_pSndActor = new kingdom::cKingdomSndActor();   // +0x520 (0x800ba17c)
+	m_fLength = ModelHalfDiagonal();   // the scene model's bounding volume, not the hit model's (ScnObj::GetBoundingVolume)
 }
 
+// DOL 0x8014e1d8 [audited: per AUDIT_G03_G07 row] (called from the dtor 0x8014e078): deletes the actor
 void cTaskBgGimmickAddinSnd::Term()
 {
-	if (nullptr != m_pendulumSEPosObj)
+	if (m_pSndActor != nullptr)
 	{
-		ReleaseObjectManager::Regist(m_pendulumSEPosObj);
+		delete m_pSndActor;
+		m_pSndActor = nullptr;
 	}
 	cTaskBgGimmick::Term();
 }
 
+// DOL 0x8014e230 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGimmickAddinSnd::Execute(cJetTask* pParam)
 {
-	// WII (8014e230): the gimmick's looping SE plays while pac-man is within m_fLength of it and fades
-	// out over 500 frames when he leaves; the 3D sound source follows the gimmick. The port dropped all
-	// of this (m_SndHnd was declared but never used).
+	// the gimmick's looping SE plays while Pac-Man is within m_fLength of it and fades out when he leaves; the 3D actor follows the gimmick
 	Vector4 vPos;
 	::Constants::jetGeoVecCopy(vPos, this->Model->vTrans());
 	if (::Constants::jetGeoVecDistance(Constants::PACN_APP()->pTaskCharPacman()->vTrans(), vPos) < m_fLength)
 	{
-		if (nullptr == m_SndHnd)
+		if (!SoundManager::get_SE()->IsPlaying(m_SndHnd))   // DOL: SoundSeBank::IsPlaying (0x80026424), so the cue restarts when it has ended
 		{
-			m_SndHnd = SoundManager::get_SE()->PlaySE(m_pSndName);
+			if (cPacnRollLoopSndMan::CanPlay()) m_SndHnd = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlayActor(m_pSndName, m_pSndActor, Vector3(vPos.x, vPos.y, vPos.z)));
 		}
 	}
-	else if (nullptr != m_SndHnd)
+	else if (SoundManager::get_SE()->IsPlaying(m_SndHnd))
 	{
-		SoundManager::get_SE()->Stop(m_SndHnd, 500.0f / 60.0f);
-		m_SndHnd = nullptr;
+		SoundManager::get_SE()->Stop(m_SndHnd, 0.5f);   // the DOL passes 500 (ms): the port had 500 / 60 s
 	}
-	// TODO(wii): move the 3D sound actor (created in Init, +0x520) to vPos every frame (80026620).
+	m_pSndActor->SetPosition(vPos);   // DOL 0x80026620
 	return cTaskBgGimmick::Execute(pParam);
 }
 

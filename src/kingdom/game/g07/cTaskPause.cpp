@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cTaskPause.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 
@@ -24,6 +25,7 @@ void cTaskPause::Free()
 	cTaskGameBasePause::Free();
 }
 
+// DOL 0x80202e2c [audited: RegistData names, matching data only in multiplayer, menu job vs decomp] (ctor 0x800a59cc)
 void cTaskPause::Init()
 {
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())
@@ -36,11 +38,11 @@ void cTaskPause::Init()
 	}
 	if (KingdomGlobal::g_pMotosGame->bMultiPlay())
 	{
-		nMenuJob() = 292552704u;
+		nMenuJob() = kingdom::job::MOTOS_MULTI_MENU;
 	}
 	else
 	{
-		nMenuJob() = 287309824u;
+		nMenuJob() = kingdom::job::MOTOS_MENU;
 	}
 }
 

@@ -2,6 +2,10 @@
 #include "kingdom/cKingdomPtkHnd.hpp"
 
 #include "kingdom/cKingdomPtkMan.hpp"
+#include "kingdom/cKingdomSys.hpp"
+#include "kingdom/cAppKingdom.hpp"
+#include "KingdomGlobal.hpp"
+#include "GamePad.hpp"
 
 namespace kingdom::game::g11
 {
@@ -20,7 +24,7 @@ const char* const cTaskGrobdaEffect::SLOT_NAME[eSLOT_MAX] = {
 	"m11e_28_p4p01.pto",
 };
 
-// DOL 0x80035b0c
+// DOL 0x80035b0c [audited]
 cTaskGrobdaEffect::cTaskGrobdaEffect()
 {
 	SetName("cTaskGrobdaEffect");
@@ -28,13 +32,23 @@ cTaskGrobdaEffect::cTaskGrobdaEffect()
 	for (unsigned i = 0; i < eSLOT_MAX; i++) get_KingdomPtkMan()->RegistData(i, SLOT_NAME[i]);
 }
 
+// DOL 0x80035e4c [audited]: the particles step (0x8008ad34, rate 1.0) unless the app is paused (+0x1b4) or pad 0 holds HOME (game bit 0x400)
+bool cTaskGrobdaEffect::Execute(cJetTask* pParam)
+{
+	if (KingdomGlobal::KingSys->pAppMain()->IsPause()) return true;
+	if ((GamePad::Get(0).hold & GamePad::PAD_HOME) != 0) return true;
+	return cTaskPBPtkMan::Execute(pParam);
+}
+// DOL 0x80035ec0 [audited] (slot switch, table 0x8038bd08: FUN_80021a9c(handle, slot, onetime, depend 1, clip 0, pos, rot, 0, delay 0, light 0, fog -1); onetime = 1 only for
+// HIT 0x17, BOMB 0x18, BOMB_GRENADE 0x19, FRAGMENT 0x1f)
 void cTaskGrobdaEffect::Spawn(uint slot, const float pos[3], const float rot[3])
 {
 	static kingdom::cKingdomPtkHnd* ring[64] = {};
 	static int n = 0;
 	kingdom::cKingdomPtkHnd*& h = ring[n++ & 63];
 	if (h == nullptr) h = new kingdom::cKingdomPtkHnd();
-	h->Generate(slot, true, true, true, 0.0f, Vector4(pos[0], pos[1], pos[2], 1.0f),
+	const bool onetime = slot == eHIT || slot == eBOMB || slot == eBOMB_GRENADE || slot == eFRAGMENT;
+	h->Generate(slot, onetime, true, false, 0.0f, Vector4(pos[0], pos[1], pos[2], 1.0f),
 	            rot != nullptr ? Nullable<Vector4>(Vector4(rot[0], rot[1], rot[2], 1.0f)) : Nullable<Vector4>(nullptr));
 }
 

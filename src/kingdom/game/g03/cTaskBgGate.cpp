@@ -64,6 +64,7 @@ cTaskBgGate::cTaskBgGate()
 	Init();
 }
 
+// DOL 0x8017bbb8 [audited: per AUDIT_G03_G07 row]
 void cTaskBgGate::Init()
 {
 	m_bWake = false;
@@ -92,6 +93,7 @@ void cTaskBgGate::Init()
 	}
 }
 
+// DOL 0x8017bd08 [audited: per AUDIT_G03_G07 row]
 void cTaskBgGate::Term()
 {
 	m_pBreakModel->TermOnce();
@@ -219,7 +221,7 @@ bool cTaskBgGate::Execute(cJetTask* pParam)
 		case 1u:
 		_switch3_1u:
 			m_nCnt++;
-			m_nDrawFlag = 1u;
+			m_nDrawFlag = (m_nCnt & 1u) == 0u ? 0u : 1u;   // DOL 0x8017bd60 [audited: per AUDIT_G03_G07 row]: the break blink alternates the intact gate (0) and the break model (1) every frame
 			if (m_nCnt >= 60)
 			{
 				NextMode(n, 3u);
@@ -263,11 +265,12 @@ bool cTaskBgGate::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8017c260 [audited: per AUDIT_G03_G07 row]: flag 0 = the gate's own push-back, 1 = the break model's push-back, else nothing is submitted. (The Visible / Invisible
+// toggles stand in for the DOL's per-frame submit.)
 void cTaskBgGate::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_nDrawFlag == 0)
 	{
-		PushBack();
 		if (!this->Model->IsVisible())
 		{
 			this->Model->Visible();
@@ -276,25 +279,19 @@ void cTaskBgGate::Draw(int nStatus, cJetTask* pParam)
 		{
 			m_pBreakModel->Model->Invisible();
 		}
+		PushBack();
 	}
 	else if (m_nDrawFlag == 1)
 	{
-		m_pBreakModel->PushBack();
 		if (this->Model->IsVisible())
 		{
 			this->Model->Invisible();
 		}
-		if (m_nCnt % 2 == 0)
+		if (!m_pBreakModel->Model->IsVisible())
 		{
-			if (!m_pBreakModel->Model->IsVisible())
-			{
-				m_pBreakModel->Model->Visible();
-			}
+			m_pBreakModel->Model->Visible();
 		}
-		else if (m_pBreakModel->Model->IsVisible())
-		{
-			m_pBreakModel->Model->Invisible();
-		}
+		m_pBreakModel->PushBack();
 	}
 	else
 	{
@@ -309,6 +306,7 @@ void cTaskBgGate::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x8017c2a4 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGate::RegistData(const uint& kind, const uint& cookieNum, const uint& pri, const Vector4& trans, const Vector4& rotate)
 {
 	Constants::PACN_APP();
@@ -382,6 +380,7 @@ bool cTaskBgGate::RegistData(sSaveDataGate& gate)
 	return RegistData(gate.kind, gate.cookie, gate.no, gate.trans, v);
 }
 
+// DOL 0x8017c7d8 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGate::AreaCheck()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();

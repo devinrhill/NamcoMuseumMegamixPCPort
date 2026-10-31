@@ -34,8 +34,7 @@ public:
 	virtual void SelectTutorial();         // DOL 0x80121f8c: the HOW TO PLAY pages of the chosen control type
 	void FadeOutStartCallBack() override { bTutorial() = true; }   // DOL 0x800af4e8
 	void FadeOutEndCallBack() override { bTutorial() = false; }    // DOL 0x800af4dc
-	// DOL 0x8005cfe8 (vtable +0x64): plays the cue by name. UNVERIFIED simplification (as cAppG01GalagaMenu): the DOL routes a few cues
-	// through cKingdomSndHnd to the remotes; here every cue goes to the mixer.
+	// DOL 0x8005cfe8 (vtable +0x64): plays the cue by name; decide / cancel / NG also go to the remote of player ctrl
 	void PlaySndSe(const string& pSndName, int ctrl = 0) override;
 
 private:

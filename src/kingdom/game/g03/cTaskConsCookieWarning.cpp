@@ -2,7 +2,6 @@
 
 #include "cJetTask.hpp"
 #include "kingdom/game/g03/Constants.hpp"
-#include "MotosUIRollCaution.hpp"
 #include <ESEKind.hpp>
 #include <SoundManager.hpp>
 
@@ -24,10 +23,6 @@ void cTaskConsCookieWarning::Init()
 
 void cTaskConsCookieWarning::Term()
 {
-	if (UnityUI != nullptr)
-	{
-		UnityUI->SetEnable(false);
-	}
 }
 
 void cTaskConsCookieWarning::Start()
@@ -43,22 +38,7 @@ void cTaskConsCookieWarning::StartWarning()
 		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE029_ESA_TARINAI);
 		SetState(1u);
 		SetAnim(0u, 69);
-		if (nullptr == UnityUI)
-		{
-			Visible(0u);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->Init(MotosUIRollCaution::EType::CookieCaution);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->SetEnable(true);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->PlayBaseAnim(MotosUIRollCaution::EBaseAnim::In);
-		}
+		Visible(0u);
 	}
 }
 
@@ -69,22 +49,7 @@ void cTaskConsCookieWarning::StartGate()
 	{
 		SetState(4u);
 		SetAnim(0u, 66);
-		if (nullptr == UnityUI)
-		{
-			Visible(0u);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->Init(MotosUIRollCaution::EType::Gate);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->SetEnable(true);
-		}
-		if (UnityUI != nullptr)
-		{
-			UnityUI->PlayBaseAnim(MotosUIRollCaution::EBaseAnim::In);
-		}
+		Visible(0u);
 	}
 }
 
@@ -107,20 +72,12 @@ void cTaskConsCookieWarning::EndWarning()
 {
 	SetAnim(0u, 71);
 	SetState(3u);
-	if (UnityUI != nullptr)
-	{
-		UnityUI->PlayBaseAnim(MotosUIRollCaution::EBaseAnim::Out);
-	}
 }
 
 void cTaskConsCookieWarning::EndGate()
 {
 	SetAnim(0u, 68);
 	SetState(6u);
-	if (UnityUI != nullptr)
-	{
-		UnityUI->PlayBaseAnim(MotosUIRollCaution::EBaseAnim::Out);
-	}
 }
 
 bool cTaskConsCookieWarning::Execute(cJetTask* pParam)
@@ -132,7 +89,7 @@ bool cTaskConsCookieWarning::Execute(cJetTask* pParam)
 	switch (nGetState())
 	{
 	case 1u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()))
+		if (IsAnimEnd(0u))
 		{
 			SetAnim(0u, 70);
 			SetState(2u);
@@ -146,18 +103,14 @@ bool cTaskConsCookieWarning::Execute(cJetTask* pParam)
 		}
 		break;
 	case 3u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()))
+		if (IsAnimEnd(0u))
 		{
 			Invisible(0u);
 			SetState(0u);
-			if (UnityUI != nullptr)
-			{
-				UnityUI->SetEnable(false);
-			}
 		}
 		break;
 	case 4u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()))
+		if (IsAnimEnd(0u))
 		{
 			SetAnim(0u, 67);
 			SetState(5u);
@@ -171,14 +124,10 @@ bool cTaskConsCookieWarning::Execute(cJetTask* pParam)
 		}
 		break;
 	case 6u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()))
+		if (IsAnimEnd(0u))
 		{
 			Invisible(0u);
 			SetState(0u);
-			if (UnityUI != nullptr)
-			{
-				UnityUI->SetEnable(false);
-			}
 		}
 		break;
 	}

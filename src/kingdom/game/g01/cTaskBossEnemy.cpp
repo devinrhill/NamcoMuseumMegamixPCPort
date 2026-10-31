@@ -4,7 +4,11 @@
 #include "KingdomGlobal.hpp"
 #include <cmath>
 
+#include "kingdom/game/g01/cTaskBomb.hpp"
 #include "kingdom/game/g01/cTaskBoss.hpp"
+#include "kingdom/game/g01/cTaskCamera.hpp"
+#include "kingdom/game/g01/cTaskConsolePlayer.hpp"
+#include "snd/Mixer.hpp"
 #include "kingdom/game/g01/cTaskScene.hpp"
 
 namespace kingdom::game::g01
@@ -17,13 +21,13 @@ constexpr float SPEED_MAX = 2.5f;     // FLOAT_8047b528
 constexpr float SPEED_ADD = 0.1f;     // FLOAT_8047b52c
 }
 
-// DOL 0x800e2e0c: +0x360 = (0, 0, 0, 1), speed 0
+// DOL 0x800e2e0c [audited]: +0x360 = (0, 0, 0, 1), speed 0
 cTaskBossEnemy::cTaskBossEnemy()
 {
 	SetName("g01::cTaskBossEnemy");
 }
 
-// DOL 0x800e2e2c: the enemy's SetupOrbit (0x800e1f88) with the camera-local spawn point as the record's parent translation, the boss, speed 1.
+// DOL 0x800e2e2c [audited: the boss pointer is also the formation group in the DOL, natively group 0]: the enemy's SetupOrbit (0x800e1f88) with the camera-local spawn point as the record's parent translation, the boss, speed 1.
 // The DOL passes the boss pointer as the formation group too (r7); natively group 0 (already "cleared" in every scene, so Leave changes
 // nothing) - UNVERIFIED what the DOL's ClearGroup makes of the pointer.
 void cTaskBossEnemy::Setup(const float vLocal[3], int nType, int nOrbit, cTaskBoss* pBoss)
@@ -36,7 +40,7 @@ void cTaskBossEnemy::Setup(const float vLocal[3], int nType, int nOrbit, cTaskBo
 	for (int i = 0; i < 3; i++) m_vPrev[i] = m_vWorldPos[i];
 }
 
-// DOL 0x800e3264: toward the boss's ef_body (+0x3f0) by the speed, which grows by 0.1 per frame up to 2.5
+// DOL 0x800e3264 [audited]: toward the boss's ef_body (+0x3f0) by the speed, which grows by 0.1 per frame up to 2.5
 void cTaskBossEnemy::SuckStep()
 {
 	if (m_pBoss == nullptr) return;
@@ -48,7 +52,7 @@ void cTaskBossEnemy::SuckStep()
 	if (m_fSpeed < SPEED_MAX) m_fSpeed += SPEED_ADD;
 }
 
-// DOL 0x800e4704 (active, not paused) -> 0x800e3060: +0x360 = the position; state 1 orbit (end -> +0xc4), fire, the boss inhales -> state 3;
+// DOL 0x800e4704 [audited] (active, not paused) -> 0x800e3060: +0x360 = the position; state 1 orbit (end -> +0xc4), fire, the boss inhales -> state 3;
 // state 2 = +0x84 (0x800e271c: a killed enemy's death path 0x800e20f0, then gone); state 3 sucked in; the boss dead (+0xcc) -> +0xc4. The
 // hit flash (+0x88 = 0x800e46b0, fog 1) is not drawn natively (as for the stage enemies).
 bool cTaskBossEnemy::Execute(cJetTask* pParam)
@@ -81,16 +85,42 @@ bool cTaskBossEnemy::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800e2e7c: as the stage enemy's (0x800e27b4) for the players' shots; caught by the boss (kind 0xd) -> +0xc4 (gone, no score)
+// DOL 0x800e2e7c [audited]: the stage enemy's HitCallback (0x800e27b4) with three differences: no type 9 exception (the life always drops), no kill count
+// for the shooter, and the enemy stops being collidable (+0x14) when it is shot down; caught by the boss (kind 0xd) -> +0xc4 (gone, no score)
 void cTaskBossEnemy::HitCallback(cObject* other)
 {
 	if (!m_b14) return;
-	if (other->nKind() == 0xd)
+	if (other->nKind() == 1 || other->nKind() == 0xc)
 	{
-		Dead();
-		return;
+		cTaskConsolePlayer* player = other->nKind() == 0xc ? static_cast<cTaskBomb*>(other)->pOwner() : dynamic_cast<cTaskConsolePlayer*>(other);
+		if (player == nullptr) return;
+		m_nHitPlayer = player->nPlayer();   // +0x288 (the player's +0x228)
+		HitSpark();                         // +0x70
+		if (cKingdomModel* m = pModel(0)) m->SetFogIdx(1);
+		m_fFlash = 15.0f;                   // FLOAT_8047b524
+		m_nLife--;
+		if (m_nLife < 1)
+		{
+			m_bKilled = true;
+			player->AddScore(m_nScore);   // 0x800d73cc
+			if (m_nType == 8 || m_nType == 5)
+				if (cTaskBomb* bomb = cTaskEnemyMan::s_pInstance != nullptr ? cTaskEnemyMan::s_pInstance->GetBomb() : nullptr)
+				{
+					const cTaskCamera* cam = KingdomGlobal::GalagaSys->pTaskCamera();
+					float off[3] = {m_v20.x, m_v20.y, m_v20.z};
+					if (cam != nullptr) for (int i = 0; i < 3; i++) off[i] -= cam->vAim()[i];
+					bomb->Start(player, off);   // 0x800c9a78
+				}
+			m_b14 = false;
+			Dead();   // +0xc4
+		}
+		else
+		{
+			snd::Play("m01se_04hit2");   // +0x78
+		}
 	}
-	cTaskEnemy::HitCallback(other);
+	else if (other->nKind() == 0xd)
+		Dead();
 }
 
 }

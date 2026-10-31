@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskPanel.hpp"
 #include "DummyNW4R.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -77,6 +78,7 @@ Constants::PANEL_INFO*& cTaskPanel::pPanelInfo()
 	return m_Panel;
 }
 
+// DOL 0x801fd774 [audited: per AUDIT_G03_G07 row] (max frame <= frame)
 bool cTaskPanel::AnimateModel(uint model)
 {
 	if (pModel(model)->GetFrameAnmChr(0u) >= pModel(model)->GetFrameMaxAnmChr(0u))
@@ -86,6 +88,7 @@ bool cTaskPanel::AnimateModel(uint model)
 	return false;
 }
 
+// DOL 0x801fc858 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskPanel::Init()
 {
 	m_nID = 0u;
@@ -95,7 +98,7 @@ void cTaskPanel::Init()
 	m_nModel = cTaskPanel::eMODEL::eMODEL_UNION;
 	m_fAnimFrame = 0.0f;
 	m_nCurModelIdx = 0u;
-	m_crackType = Random::Range(0, 3);
+	m_crackType = 0;   // chosen per crack step (DOL 0x801fd8f4 [audited: described by the 43rd-session pass]), not at construction
 	for (int i = 0; i < (int)std::size(m_nMapPos); i++)
 	{
 		m_nMapPos[i] = 0;
@@ -152,31 +155,13 @@ bool cTaskPanel::CreatePanelN(Constants::ePANEL type)
 	m_animMgr->SetChildAnim(true);
 	CustomKingdomUtil::Assert(num < 3, "error");
 	string array2[3][3] = {{"MDL_PANEL_A_CRACK_1", "MDL_PANEL_A_CRACK_2", "MDL_PANEL_A_CRACK_3"}, {"MDL_PANEL_B_CRACK_1", "MDL_PANEL_B_CRACK_2", "MDL_PANEL_B_CRACK_3"}, {"MDL_PANEL_C_CRACK_1", "MDL_PANEL_C_CRACK_2", "MDL_PANEL_C_CRACK_3"}};
-	if (m_crackType == 0)
+	// DOL 0x801fc970 [audited: described by the 43rd-session pass]: all three crack models (slots 1..3) are created up front; the crack step picks one with rand() % 3 + 1 (0x801fd8f4). The C# created only a
+	// random one at construction
+	for (uint k = 0u; k < 3u; k++)
 	{
-		data = ResourceDatabase::Get<Object>(array2[num][0], ResourceCache::EType::Temporary);
-		CHECK_PANEL_ASSERT(array2[num][0]);
-		cKingdomModel2 = CreateModel(1u);
-		cKingdomModel2->RegistModel(data);
-		cKingdomModel2->AttachShadow();
-		cKingdomModel2->SetLightSetIdx(1);
-		cKingdomModel2->SetFogIdx(1);
-	}
-	else if (m_crackType == 1)
-	{
-		data = ResourceDatabase::Get<Object>(array2[num][1], ResourceCache::EType::Temporary);
-		CHECK_PANEL_ASSERT(array2[num][1]);
-		cKingdomModel2 = CreateModel(2u);
-		cKingdomModel2->RegistModel(data);
-		cKingdomModel2->AttachShadow();
-		cKingdomModel2->SetLightSetIdx(1);
-		cKingdomModel2->SetFogIdx(1);
-	}
-	else if (m_crackType == 2)
-	{
-		data = ResourceDatabase::Get<Object>(array2[num][2], ResourceCache::EType::Temporary);
-		CHECK_PANEL_ASSERT(array2[num][2]);
-		cKingdomModel2 = CreateModel(3u);
+		data = ResourceDatabase::Get<Object>(array2[num][k], ResourceCache::EType::Temporary);
+		CHECK_PANEL_ASSERT(array2[num][k]);
+		cKingdomModel2 = CreateModel(1u + k);
 		cKingdomModel2->RegistModel(data);
 		cKingdomModel2->AttachShadow();
 		cKingdomModel2->SetLightSetIdx(1);
@@ -315,6 +300,7 @@ uint cTaskPanel::StrikePanel()
 	return result;
 }
 
+// DOL 0x801fd304 [audited: described by the 43rd-session pass] (audited 44th: matches; both rotation tables are 0 / 90 / 180 / 270, picked with rand() & 3)
 void cTaskPanel::StepChange(Constants::ePANEL_STEP step)
 {
 	switch (step)
@@ -336,7 +322,7 @@ void cTaskPanel::StepChange(Constants::ePANEL_STEP step)
 			m_nFlag &= 4294967231u;
 			m_nFlag &= 4294967283u;
 			m_nFlag |= 4u;
-			int num3 = rot[Random::Range(0, ::Constants::ARRAY_SIZE(rot))];
+			int num3 = rot[kingdom::MslRandRange(0, ::Constants::ARRAY_SIZE(rot))];
 			vRotate(1) = ::Constants::JET_DEG2RAD(num3);
 			break;
 		}
@@ -349,7 +335,7 @@ void cTaskPanel::StepChange(Constants::ePANEL_STEP step)
 			{
 				pModel(4u)->SetFrameAnmAll(0u, 0.0f);
 			}
-			int num = rot[Random::Range(0, ::Constants::ARRAY_SIZE(rot))];
+			int num = rot[kingdom::MslRandRange(0, ::Constants::ARRAY_SIZE(rot))];
 			vRotate(1) = ::Constants::JET_DEG2RAD(num);
 			break;
 		}
@@ -375,6 +361,7 @@ void cTaskPanel::StepChange(Constants::ePANEL_STEP step)
 	}
 }
 
+// DOL 0x801fd564 [audited: described by the 43rd-session pass] (audited 44th: steps 2..5 equal; kind 4 keeps its break model)
 void cTaskPanel::ExecPanel()
 {
 	Constants::PANEL_INFO* panel = m_Panel;
@@ -400,10 +387,7 @@ void cTaskPanel::ExecPanel()
 				panel->m_nTimer = (int)Constants::get_GAME_COUNTER();
 			}
 		}
-		else
-		{
-			pModel(4u)->Invisible();
-		}
+		// DOL 0x801fd564: nothing for kind 4 (the C# hid the break model here)
 		break;
 	case 3:
 		if (++panel->m_nTimer >= 30)
@@ -462,9 +446,10 @@ void cTaskPanel::BigExplodePanel()
 	}
 }
 
+// DOL 0x801fd8f4 (audited 44th: type N crack step = rand() % 3 + 1, the other tables equal)
 cTaskPanel::eMODEL cTaskPanel::StepModelIdx(Constants::ePANEL type, Constants::ePANEL_STEP step)
 {
-	return (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 4096u) ? ((step == Constants::ePANEL_STEP::ePANEL_STEP_NORMAL) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_CRACK) ? (cTaskPanel::eMODEL)(1 + m_crackType) : ((step == Constants::ePANEL_STEP::ePANEL_STEP_FALLING) ? cTaskPanel::eMODEL::eMODEL_BREAK : ((step == Constants::ePANEL_STEP::ePANEL_STEP_HIDE) ? cTaskPanel::eMODEL::eMODEL_BREAK : ((step == Constants::ePANEL_STEP::ePANEL_STEP_REBIRTH) ? cTaskPanel::eMODEL::eMODEL_UNION : (cTaskPanel::eMODEL::eMODEL_UNION)))))) : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 8192u) ? cTaskPanel::eMODEL::eMODEL_UNION : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 16384u) ? ((step == Constants::ePANEL_STEP::ePANEL_STEP_NORMAL) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_CRACK) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_FALLING) ? cTaskPanel::eMODEL::eMODEL_BREAK : (cTaskPanel::eMODEL::eMODEL_UNION)))) : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 32768u) ? cTaskPanel::eMODEL::eMODEL_UNION : (cTaskPanel::eMODEL::eMODEL_UNION)))));
+	return (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 4096u) ? ((step == Constants::ePANEL_STEP::ePANEL_STEP_NORMAL) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_CRACK) ? (cTaskPanel::eMODEL)(1 + (m_crackType = kingdom::MslRand() % 3)) : ((step == Constants::ePANEL_STEP::ePANEL_STEP_FALLING) ? cTaskPanel::eMODEL::eMODEL_BREAK : ((step == Constants::ePANEL_STEP::ePANEL_STEP_HIDE) ? cTaskPanel::eMODEL::eMODEL_BREAK : ((step == Constants::ePANEL_STEP::ePANEL_STEP_REBIRTH) ? cTaskPanel::eMODEL::eMODEL_UNION : (cTaskPanel::eMODEL::eMODEL_UNION)))))) : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 8192u) ? cTaskPanel::eMODEL::eMODEL_UNION : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 16384u) ? ((step == Constants::ePANEL_STEP::ePANEL_STEP_NORMAL) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_CRACK) ? cTaskPanel::eMODEL::eMODEL_UNION : ((step == Constants::ePANEL_STEP::ePANEL_STEP_FALLING) ? cTaskPanel::eMODEL::eMODEL_BREAK : (cTaskPanel::eMODEL::eMODEL_UNION)))) : (((uint)((Constants::ePANEL)((int)type & (int)Constants::ePANEL::ePANEL_TYPE_MASK)) == 32768u) ? cTaskPanel::eMODEL::eMODEL_UNION : (cTaskPanel::eMODEL::eMODEL_UNION)))));
 }
 
 bool cTaskPanel::ModelChange(cTaskPanel::eMODEL idx)
@@ -501,7 +486,7 @@ bool cTaskPanel::Execute(cJetTask* pParam)
 	{
 		ExecPanel();
 	}
-	// DOL 0x801fda08: then cTaskModel::UpdateFrame (0x8009a478) = every model of the panel advances its animations (crack / break / fall); the
+	// DOL 0x801fda08 [audited: described by the 43rd-session pass]: then cTaskModel::UpdateFrame (0x8009a478) = every model of the panel advances its animations (crack / break / fall); the
 	// C# gated it on a Unity clip of the current model, replaced by `false` in the conversion, so breaking panels never animated
 	cTaskModel::UpdateFrame();
 	return true;
@@ -521,7 +506,7 @@ void cTaskPanel::Draw(int nStatus, cJetTask* pParam)
 		if (cPBModel != nullptr) DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 		m_bUpdateMtx = false;
 	}
-	// DOL 0x801fdbdc: the current model's push-back (+0xd8) goes into this frame's scene list (0x8009c3f4). (The DOL rebuilds the matrix
+	// DOL 0x801fdbdc [audited: described by the 43rd-session pass]: the current model's push-back (+0xd8) goes into this frame's scene list (0x8009c3f4). (The DOL rebuilds the matrix
 	// every frame; the C# only when it changed, which gives the same matrix.)
 	if (cTaskModel::cPBModel* cur = pPBModel(m_nCurModelIdx)) cur->UpdateMatrix();
 }

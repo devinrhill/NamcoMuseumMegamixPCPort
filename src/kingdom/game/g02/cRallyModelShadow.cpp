@@ -50,7 +50,7 @@ const char* ShadowClip()
 }
 }
 
-// DOL 0x8008120c (the shadow part): new 0x2b0 (cTaskPBModel ctor 0x8009a730), CAR_PAC_SH for colours 1..6 (0x8001f72c), the world's colour
+// DOL 0x8008120c [audited] (the shadow part): new 0x2b0 (cTaskPBModel ctor 0x8009a730), CAR_PAC_SH for colours 1..6 (0x8001f72c), the world's colour
 // clip in slot 0 (0x8001a4d8(m, 0, crc, 0, 1)), cParamShadow, light = param +0x20..+0x2c; the car connects it as its child
 cRallyModelShadow::cRallyModelShadow(cTaskUnit* pOwner) : m_pOwner(pOwner)
 {
@@ -62,7 +62,7 @@ cRallyModelShadow::cRallyModelShadow(cTaskUnit* pOwner) : m_pOwner(pOwner)
 	for (int i = 0; i < 4; i++) m_vLight[i] = m_Param.vLight[i];   // memcpy(+0x2a0, param +0x20, 0x10)
 }
 
-// DOL 0x80088718, mode 0 (the only one used): d = N.L, f = -1 / d (FLOAT_8047aa8c); row r = f * (N_c L_r - d [r == c]), column 3 = -f L_r,
+// DOL 0x80088718 [audited], mode 0 (the only one used): d = N.L, f = -1 / d (FLOAT_8047aa8c); row r = f * (N_c L_r - d [r == c]), column 3 = -f L_r,
 // row 3 = (0, 0, 0, -f d)
 void cRallyModelShadow::ShadowMatrix(float m[4][4], const float light[3], const float normal[3])
 {
@@ -80,7 +80,7 @@ void cRallyModelShadow::ShadowMatrix(float m[4][4], const float light[3], const 
 	m[3][3] = f * -d;
 }
 
-// DOL 0x8007c838
+// DOL 0x8007c838 [audited]
 bool cRallyModelShadow::Execute(cJetTask* pParam)
 {
 	(void)pParam;

@@ -625,6 +625,7 @@ bool cTaskChar::AnimateModel(uint model)
 	return false;
 }
 
+// DOL 0x801e2a6c [audited: default param struct is s_DefParam->Clone()]
 void cTaskChar::Init()
 {
 	m_nGrobalID = 0u;
@@ -697,6 +698,7 @@ void cTaskChar::Term()
 	cTaskModel::Term();
 }
 
+// DOL 0x801e2d9c [audited: audited 44th] (audited 44th: matches)
 bool cTaskChar::Execute(cJetTask* pParam)
 {
 	if (bForceDeath())
@@ -761,7 +763,8 @@ bool cTaskChar::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801e3048
+// DOL 0x801e3048 [audited]
+// DOL 0x801e3048 (audited 44th: matches)
 void cTaskChar::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -789,7 +792,7 @@ void cTaskChar::Draw(int nStatus, cJetTask* pParam)
 		}
 		DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 		DummyNW4R::SetScale(cPBModel->pScnMdl(), cPBModel->vScale()[0], cPBModel->vScale()[1], cPBModel->vScale()[2]);
-		cPBModel->UpdateMatrix();   // DOL 0x801e3204: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
+		cPBModel->UpdateMatrix();   // DOL 0x801e3204 [audited]: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 		num++;
 	}
 }
@@ -900,6 +903,7 @@ void cTaskChar::SetDrawRollMatrix(Matrix4x4& roll, int model)
 {
 }
 
+// DOL 0x801e3718 [audited]
 bool cTaskChar::Move()
 {
 	if ((m_nCharFlag & 0x40) == 0)
@@ -916,6 +920,7 @@ bool cTaskChar::Move()
 	return true;
 }
 
+// DOL 0x801e378c [audited: audited 44th] (audited 44th: matches)
 bool cTaskChar::Status()
 {
 	UpdateUGPanel(vMTrans());
@@ -1031,6 +1036,7 @@ bool cTaskChar::ActionOther()
 	return true;
 }
 
+// DOL 0x801e3bd0 [audited: per AUDIT_G03_G07 row] (audited 44th: matches)
 void cTaskChar::NormalMove()
 {
 	Vector4 v = Vector4::zero;
@@ -1119,6 +1125,7 @@ void cTaskChar::NormalMove()
 	DecelSpeed(nInputDir());
 }
 
+// DOL 0x801e4180 [audited]
 bool cTaskChar::FallMove()
 {
 	::Constants::jetGeoVecCopy(vMTransOLD(), vMTrans());
@@ -1172,6 +1179,7 @@ bool cTaskChar::FallMove()
 	return false;
 }
 
+// DOL 0x801e43ec [audited]
 void cTaskChar::ChangeFallMove()
 {
 	if (bTestFlag(64u))
@@ -1208,14 +1216,12 @@ void cTaskChar::ChangeFallMove()
 	nLastRefID() = -1;
 }
 
+// DOL 0x801e4650 [audited: audited 44th] (audited 44th: matches)
 void cTaskChar::ChangeTaiki()
 {
 	if (!bTestFlag(16384u))
 	{
-		if (bTestFlag(4u) && bTestFlag(64u) && !m_bForceDeath)
-		{
-			KingdomGlobal::pMotosGameSys->AddDeadEnemyCnt();
-		}
+		// DOL 0x801e4650: no kill count here (the C#'s AddDeadEnemyCnt was a Steam statistic)
 		OnFlag(16384u);
 		OffFlag(19005888u);
 		nPiyoTimer() = 0;
@@ -1229,6 +1235,7 @@ void cTaskChar::ChangeTaiki()
 	}
 }
 
+// DOL 0x801e46dc [audited: audited 44th] (audited 44th: matches)
 void cTaskChar::ExecGivePoints(int id, int add_point, int sub_point)
 {
 	if (id == -1 || (id & 0x80) != 0 || !Constants::IS_MYCHAR(this))
@@ -1252,9 +1259,10 @@ void cTaskChar::ExecGivePoints(int id, int add_point, int sub_point)
 	}
 }
 
+// DOL 0x801e47a8 [audited: per AUDIT_G03_G07 row] (pOutSpeed is only written when something was hit: the C# `out` parameter zeroed it first, which made the second step of
+// NormalMove's multi-step loop normalise a zero vector when the first step hit nothing)
 bool cTaskChar::MapMove(Vector4& pOutTrans, Vector4& pOutVec, Vector4& pOutSpeed, Vector4 pVec)
 {
-	pOutSpeed = Vector4();
 	MAP_HIT_RESULT* mAP_HIT_RESULT = nullptr;
 	Vector4 v;
 	::Constants::jetGeoVecCopy(v, pVec);
@@ -1479,6 +1487,7 @@ void cTaskChar::PresetEnv()
 {
 }
 
+// DOL 0x801e5144 [audited]
 void cTaskChar::InitParam(MO_CHAR_PARAMS* pParam)
 {
 	m_Param = pParam->Clone();
@@ -1504,6 +1513,7 @@ bool cTaskChar::IsFall(Nullable<Vector4> pVec)
 	return bTestFlag(131072u);
 }
 
+// DOL 0x801e521c [audited: per AUDIT_G03_G07 row]
 bool cTaskChar::CheckFall(Vector4 pVec)
 {
 	bool result = false;
@@ -1570,6 +1580,7 @@ bool cTaskChar::CheckFall(Vector4 pVec)
 	return result;
 }
 
+// DOL 0x801e5484 [audited: per AUDIT_G03_G07 row]
 void cTaskChar::AdjustMaxSpeed(Vector4& pVec)
 {
 	float num = Constants::tspVector3Length(pVec);
@@ -1586,6 +1597,7 @@ void cTaskChar::AdjustMaxSpeed()
 	AdjustMaxSpeed(vSpeed());
 }
 
+// DOL 0x801e5524 [audited: per AUDIT_G03_G07 row]
 void cTaskChar::DecelSpeed(int input_dir)
 {
 	if ((input_dir & 0xC) == 0)
@@ -1598,6 +1610,7 @@ void cTaskChar::DecelSpeed(int input_dir)
 	}
 }
 
+// DOL 0x801e5558 [audited: record field order +2 id,+4 otherID,+8 flag,+0xc count assumed from MO_CHAR_REFLECT layout]
 void cTaskChar::RegistRefHistory(int id, int count, uint flag, int otherID, float pow, float charge)
 {
 	Constants::MO_CHAR_REFLECT* mO_CHAR_REFLECT = m_RefHistory[m_nRefHistIndex];
@@ -1641,6 +1654,7 @@ void cTaskChar::UpdateRefHistory()
 	}
 }
 
+// DOL 0x801e5600 [audited]
 Constants::MO_CHAR_REFLECT* cTaskChar::RefHistoryOffset(int n)
 {
 	for (n = m_nRefHistIndex - n; n < 0; n += 60)
@@ -1653,6 +1667,7 @@ Constants::MO_CHAR_REFLECT* cTaskChar::RefHistoryOffset(int n)
 	return m_RefHistory[n];
 }
 
+// DOL 0x801e5730 [audited: audited 44th] (audited 44th: matches)
 void cTaskChar::ExecReflect(NET_RF_PACKET* pPacket)
 {
 	if (SearchRefHistory(pPacket->m_nRefID) != nullptr)
@@ -1776,6 +1791,7 @@ void cTaskChar::ExecReflect(NET_RF_PACKET* pPacket)
 	RegistRefHistory(pPacket->m_nRefID, (int)Constants::GAME_COUNTER_FROMBYTE(pPacket->m_nCounter), flag, num5, pow, charge);
 }
 
+// DOL 0x801e5db8 [audited: per AUDIT_G03_G07 row]
 void cTaskChar::ExecReflectSub(Vector4 pVec, float hit_pow, float charge_pow)
 {
 	Vector4 _out;
@@ -1799,6 +1815,7 @@ int cTaskChar::SendMessage(int nMes, cJetTask* pListC, cJetTask* pScene)
 	return 1;
 }
 
+// DOL 0x801e5ec0 [audited]
 int cTaskChar::ExecModeFunc(cJetTask* pListC, cJetTask* pScene)
 {
 	if (m_nMode != m_nNextMode)
@@ -1817,6 +1834,7 @@ int cTaskChar::ExecModeFunc(cJetTask* pListC, cJetTask* pScene)
 	return SendMessage(1, pListC, pScene);
 }
 
+// DOL 0x801e5f8c [audited]
 bool cTaskChar::AdjustSpeedByHitAll(Vector4& pOutSpeed, Vector4 pTrans, Vector4 pSpeed)
 {
 	::Constants::jetGeoVecCopy(pOutSpeed, pSpeed);
@@ -1944,6 +1962,7 @@ bool cTaskChar::AdjustSpeedByHit(cTaskChar* pChar)
 	return result;
 }
 
+// DOL 0x801e6700 [audited: audited 44th] (audited 44th: matches; 1 = 180, 2 = 0, 4 = 270, 8 = 90, 5 = 225, 6 = 315, 9 = 135, 10 = 45 degrees)
 void cTaskChar::Dir2Rotate(int dir)
 {
 	switch (dir)
@@ -2011,6 +2030,7 @@ void cTaskChar::Rotate2Dir(float rot)
 	nModelDir() = (ushort)num;
 }
 
+// DOL 0x801e6868 [audited: per AUDIT_G03_G07 row]
 bool cTaskChar::ExHitCrossPoint(Vector4& pOut, Vector4 pPos, Vector4 pSpeed, float HitSize)
 {
 	pOut = Vector4();
@@ -2097,6 +2117,7 @@ void cTaskChar::ExHitAlloc(int num)
 	}
 }
 
+// DOL 0x801e6cd4 [audited: audited 44th] (audited 44th: matches; the C#'s AddGetItemCnt Steam statistic removed)
 void cTaskChar::GetItem(int nGrobalID)
 {
 	if (!Constants::IS_MYCHAR(this))
@@ -2112,7 +2133,6 @@ void cTaskChar::GetItem(int nGrobalID)
 		}
 		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE012_ITEM_GET);
 		KingdomGlobal::MotosSys->bMotosCharDead((uint)nGrobalID) = true;
-		KingdomGlobal::pMotosGameSys->AddGetItemCnt();
 	}
 }
 

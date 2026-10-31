@@ -21,6 +21,8 @@ void cParamStage::Term()
 {
 }
 
+// DOL: inlined in the cTaskPanelMan ctor (see cTaskPanelMan::Init) (stage row + 1: meteor columns 1..3, slope pattern ids columns 4..8 looked up in
+// CSV_SLOPE_PATERN rows 1.., the last matching row wins; rot = col 1 * 2pi / 360)
 void cParamStage::LoadValue()
 {
 	CustomKingdomUtil::Assert(50 <= nRow(), "csv error");
@@ -39,7 +41,6 @@ void cParamStage::LoadValue()
 		{
 			if (num == cParamSlope2->GetValueS32(j, 0))
 			{
-				m_SlopeInfo->m_Pat[i] = new MO_SLOPE_PAT();
 				m_SlopeInfo->m_Pat[i]->m_nPatNo = num;
 				m_SlopeInfo->m_Pat[i]->m_fRot = Constants::TSP_DEG2RAD(cParamSlope2->GetValueF32(j, 1));
 				m_SlopeInfo->m_Pat[i]->m_nTime = cParamSlope2->GetValueS32(j, 2);

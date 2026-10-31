@@ -12,6 +12,7 @@ void cHitChar::SetOfsPos(Vector4 vPos)
 	::Constants::jetGeoVecCopy(m_vOfsPos, vPos);
 }
 
+// DOL 0x8014ae4c [audited: per AUDIT_G03_G07 row] (+0x10 = x y z 1.0)
 void cHitChar::SetOfsPos(float x, float y, float z)
 {
 	::Constants::jetGeoVecSet(m_vOfsPos, x, y, z, 1.0f);
@@ -22,6 +23,7 @@ void cHitChar::SetBoundCenter(Vector4 vPos)
 	::Constants::jetGeoVecCopy(m_vBoundCenter, vPos);
 }
 
+// DOL 0x8014ae34 [audited: per AUDIT_G03_G07 row] (+0x30 = x y z 1.0)
 void cHitChar::SetBoundCenter(float x, float y, float z)
 {
 	::Constants::jetGeoVecSet(m_vBoundCenter, x, y, z, 1.0f);
@@ -108,10 +110,12 @@ cHitChar::cHitChar(cTaskChar* pParent, int nSide, int nFlag)
 	m_fRange = 0.1444f;
 }
 
+// DOL 0x8014acf0 [audited: per AUDIT_G03_G07 row]
 cHitChar::~cHitChar()
 {
 }
 
+// DOL 0x8014ad30 [audited: per AUDIT_G03_G07 row] (pos = 4x4 matrix * offset position incl. w, range^2 = offsetRange^2)
 void cHitChar::UpdateMatrix(const Matrix4x4& m44)
 {
 	::Constants::jetGeoVecTrans(m_vPos, m44, m_vOfsPos);

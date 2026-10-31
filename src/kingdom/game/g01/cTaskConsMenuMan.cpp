@@ -28,9 +28,9 @@ namespace
 {
 using GamePad::PAD_UP, GamePad::PAD_DOWN, GamePad::PAD_LEFT, GamePad::PAD_RIGHT, GamePad::PAD_2;
 
-// DOL 0x803701a0 (copied to the stack by KeySelect 0x800bdac8): {focus, UP target, DOWN target}, terminated by focus -1
+// DOL 0x803701a0 [audited] (copied to the stack by KeySelect 0x800bdac8): {focus, UP target, DOWN target}, terminated by focus -1
 const int s_KeyTbl[10][3] = {{0, -1, -1}, {1, 4, 10}, {2, 1, 3}, {3, 10, 5}, {4, 5, 1}, {5, 3, 4}, {6, 3, 4}, {7, 3, 4}, {10, 1, 3}, {-1, -1, -1}};
-// DOL 0x80370218 (copied by DecideCheck 0x800be028): {focus, state}, terminated by focus -1
+// DOL 0x80370218 [audited] (copied by DecideCheck 0x800be028): {focus, state}, terminated by focus -1
 const int s_DecideTbl[11][2] = {{0, -1}, {1, 4}, {2, 2}, {3, 5}, {4, 6}, {5, 3}, {6, 3}, {7, 3}, {8, 8}, {9, 7}, {-1, -1}};
 }
 
@@ -38,7 +38,7 @@ const int s_DecideTbl[11][2] = {{0, -1}, {1, 4}, {2, 2}, {3, 5}, {4, 6}, {5, 3},
 // can set stage 3, which in the DOL reads the next member (Back, +0x238). UNVERIFIED whether that is reachable; clamped here to stay in the array.
 static inline int StageSlot(int n) { return n < 0 ? 0 : (n > 2 ? 2 : n); }
 
-// DOL 0x800bc114
+// DOL 0x800bc114 [audited]
 cTaskConsMenuMan::cTaskConsMenuMan(kingdom::game::cAppGameBaseMenu* pApp, bool bMulti)
 	: cTaskConsMenuManBase(pApp)
 {
@@ -107,13 +107,13 @@ cTaskConsMenuMan::cTaskConsMenuMan(kingdom::game::cAppGameBaseMenu* pApp, bool b
 	AddHitArray();
 }
 
-// DOL 0x800bc774
+// DOL 0x800bc774 [audited]
 cTaskConsMenuMan::~cTaskConsMenuMan()
 {
 	if (KingdomGlobal::GalagaSys != nullptr) KingdomGlobal::GalagaSys->bNewStageApear(false);
 }
 
-// DOL 0x800bc838
+// DOL 0x800bc838 [audited]
 void cTaskConsMenuMan::InitStageNo()
 {
 	cG01GalagaSys* sys = KingdomGlobal::GalagaSys;
@@ -148,7 +148,7 @@ void cTaskConsMenuMan::InitStageNo()
 	}
 }
 
-// DOL 0x800bc988. The Bar / player panels get IsAppearEndState (vtable +0x74), not WaitState, in the DOL: kept (it has no side effect).
+// DOL 0x800bc988 [audited]. The Bar / player panels get IsAppearEndState (vtable +0x74), not WaitState, in the DOL: kept (it has no side effect).
 void cTaskConsMenuMan::AllWaitState()
 {
 	m_pMulti->WaitState();
@@ -235,7 +235,7 @@ void cTaskConsMenuMan::ChangeWorld(int step)
 	}
 }
 
-// DOL 0x800bcad4 (through the task thunk 0x800be38c). Nothing while the main app is paused (KingSys app +0x1b4).
+// DOL 0x800bcad4 [audited: the DOL indexes Stage[+0x210] unbounded, clamped to 2 natively, stage 3 unverified] (through the task thunk 0x800be38c). Nothing while the main app is paused (KingSys app +0x1b4).
 bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -383,7 +383,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800bd984
+// DOL 0x800bd984 [audited]
 void cTaskConsMenuMan::Reset()
 {
 	AllWaitState();
@@ -391,7 +391,7 @@ void cTaskConsMenuMan::Reset()
 	m_nStep = 0;
 }
 
-// DOL 0x800bd9bc
+// DOL 0x800bd9bc [audited]
 void cTaskConsMenuMan::AddHitArray()
 {
 	m_pHitArray[0] = nullptr;
@@ -407,7 +407,7 @@ void cTaskConsMenuMan::AddHitArray()
 	m_pHitArray[9] = m_pArrow[1];
 }
 
-// DOL 0x800bda14: a stage button focused -> it becomes the current stage (Map and Bar / panels follow)
+// DOL 0x800bda14 [audited]: a stage button focused -> it becomes the current stage (Map and Bar / panels follow)
 void cTaskConsMenuMan::FreeStageCheck()
 {
 	const uint n = (uint)(m_nSelectNow - 5);
@@ -432,7 +432,7 @@ bool cTaskConsMenuMan::IsSelectable(int focus) const
 	return true;
 }
 
-// DOL 0x800bdac8
+// DOL 0x800bdac8 [audited]
 void cTaskConsMenuMan::KeySelect(uint trig)
 {
 	if ((uint)(m_nSelectNow - 8) < 2) m_nSelectNow = 10;
@@ -475,7 +475,7 @@ void cTaskConsMenuMan::KeySelect(uint trig)
 	}
 }
 
-// DOL 0x800bde70
+// DOL 0x800bde70 [audited]
 void cTaskConsMenuMan::PointUpdate(uint trig)
 {
 	if (trig & PAD_2) m_nSelectNow = 1;
@@ -516,7 +516,7 @@ void cTaskConsMenuMan::PointUpdate(uint trig)
 	}
 }
 
-// DOL 0x800be028
+// DOL 0x800be028 [audited]
 void cTaskConsMenuMan::DecideCheck(uint trig)
 {
 	if (m_nSelectNow == 0) return;
@@ -539,7 +539,7 @@ void cTaskConsMenuMan::DecideCheck(uint trig)
 	}
 }
 
-// DOL 0x800be0fc: only while choosing (state 0). The pad 0 pointer over a console focuses it (the last hit wins), otherwise the keys move.
+// DOL 0x800be0fc [audited]: only while choosing (state 0). The pad 0 pointer over a console focuses it (the last hit wins), otherwise the keys move.
 void cTaskConsMenuMan::Select()
 {
 	if (m_nState != 0) return;
@@ -561,7 +561,7 @@ void cTaskConsMenuMan::Select()
 	m_nSelectOld = m_nSelectNow;
 }
 
-// DOL 0x800be1d4
+// DOL 0x800be1d4 [audited]
 void cTaskConsMenuMan::AppearStart()
 {
 	m_nState = 1;
@@ -578,12 +578,12 @@ void cTaskConsMenuMan::AppearStart()
 	m_pMap->AppearState();
 }
 
-bool cTaskConsMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }                         // DOL 0x800be328
-bool cTaskConsMenuMan::IsStageDecide() { return m_pStage[StageSlot(m_nStageNo)]->IsDecideEndState(); } // DOL 0x800be33c
-bool cTaskConsMenuMan::IsMultiDecide() { return m_pMulti->IsDecideEndState(); }                       // DOL 0x800be35c
-bool cTaskConsMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }                         // DOL 0x800be370
+bool cTaskConsMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }                         // DOL 0x800be328 [audited]
+bool cTaskConsMenuMan::IsStageDecide() { return m_pStage[StageSlot(m_nStageNo)]->IsDecideEndState(); } // DOL 0x800be33c [audited]
+bool cTaskConsMenuMan::IsMultiDecide() { return m_pMulti->IsDecideEndState(); }                       // DOL 0x800be35c [audited]
+bool cTaskConsMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }                         // DOL 0x800be370 [audited]
 
-// DOL 0x800be384 (vtable slot 18)
+// DOL 0x800be384 [audited] (vtable slot 18)
 void cTaskConsMenuMan::SaveStageRecord()
 {
 	if (m_pBar != nullptr) m_pBar->SetCurrentStageRecord();

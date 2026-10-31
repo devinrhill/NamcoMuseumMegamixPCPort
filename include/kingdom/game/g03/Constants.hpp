@@ -8,6 +8,7 @@
 #include "kingdom/game/g03/cAppG03PacnRollStaffRoll.hpp"
 #include "kingdom/game/g03/cG03PacnRollSys.hpp"
 
+namespace kingdom { class cTaskKingdom; }
 namespace kingdom::game::g03
 {
 class cTaskCharPacman;
@@ -145,7 +146,6 @@ public:
 
 		AABB aabb{};
 
-		AABB calcedAABB{};
 
 		sFace();
 	};
@@ -586,7 +586,8 @@ public:
 
 	static void OFF_PAUSE();
 
-	static bool IS_NAKAJIMA_PAUSE();
+	// DOL 0x800b805c (app, task): a Nakajima pause is on and the task is not the one that started it
+	static bool IS_NAKAJIMA_PAUSE(kingdom::cTaskKingdom* pChar);
 
 	static bool IsVecNormalize(const Vector4& v);
 

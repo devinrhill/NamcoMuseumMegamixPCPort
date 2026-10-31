@@ -84,7 +84,7 @@ int cTaskConsMenuStage::nGetStageAnm(uint nState)
 
 bool cTaskConsMenuStage::IsDpdHit(float x, float y)
 {
-	// DOL 0x8005e8d0: valid (+0x1d8) and active (+0x1d9), pattern nHitPat (+0x1e4) of anita 0
+	// DOL 0x8005e8d0 [audited: described by the 43rd-session pass]: valid (+0x1d8) and active (+0x1d9), pattern nHitPat (+0x1e4) of anita 0
 	return IsValid() && IsActive() && DpdHitPat(x, y, nHitPat());
 }
 

@@ -12,7 +12,7 @@
 namespace kingdom::game::g03
 {
 
-// DOL 0x8012b008: FUN_800c2404(menu, "Pacn Roll", 8, table 0x804414e8)
+// DOL 0x8012b008 [audited: per AUDIT_G03_G07 row]: FUN_800c2404(menu, "Pacn Roll", 8, table 0x804414e8)
 cAppPacnRollDebugMenu::cAppPacnRollDebugMenu()
 {
 	SetName("Pacn Roll Debug Menu");
@@ -31,6 +31,7 @@ cAppPacnRollDebugMenu::cAppPacnRollDebugMenu()
 		if (m_entries[i].job == job::PACNROLL_DEBUG_SELECT) { m_stageRow = (int)i; break; }
 }
 
+// DOL 0x8012bb78 [audited: per AUDIT_G03_G07 row] (rounds wrap 0..0x1b with the pad's repeat bits 8 / 4 while the cursor is on STAGE / EDIT / EDIT2 / EDIT_ENEMY)
 bool cAppPacnRollDebugMenu::Execute(cJetTask* pParam)
 {
 	auto* sys = KingdomGlobal::PacnRollSys;
@@ -45,6 +46,8 @@ bool cAppPacnRollDebugMenu::Execute(cJetTask* pParam)
 	return kingdom::cAppBaseDebugMenu::Execute(pParam);
 }
 
+// DOL 0x8012bad0 [audited: per AUDIT_G03_G07 row] ("w%02ds%02d" at x = 0x20 + strlen(label of the +0x4c row) * 0x14, y = 0x30 + row * 0x14, then cAppBaseDebugMenu::Draw 0x800c24f8)
+// vtable slot 13 (0x8012bc54) = cSaveLoadMan::ForceAllClear + return 1: nothing in the base Execute calls it; the dev window's Menu tab exposes it
 void cAppPacnRollDebugMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	if (auto* sys = KingdomGlobal::PacnRollSys; sys && m_stageRow < (int)m_entries.size())

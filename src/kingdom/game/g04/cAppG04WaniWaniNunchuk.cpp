@@ -9,13 +9,13 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x8019a5ac
+// DOL 0x8019a5ac [audited]
 void cAppG04WaniWaniNunchuk::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG04WaniWaniNunchuk());
 }
 
-// DOL 0x80132d8c (the layout through vtable +0x4c = RegistLayout)
+// DOL 0x80132d8c [audited] (the layout through vtable +0x4c = RegistLayout)
 cAppG04WaniWaniNunchuk::cAppG04WaniWaniNunchuk()
 {
 	RegistLayout("COMMON_ANITA_NUNCHUK");   // 0xf44c4825
@@ -23,7 +23,7 @@ cAppG04WaniWaniNunchuk::cAppG04WaniWaniNunchuk()
 	SetName("cAppG04WaniWaniNunchuk");
 }
 
-// DOL 0x80132dd4
+// DOL 0x80132dd4 [audited]
 bool cAppG04WaniWaniNunchuk::IsSkip()
 {
 	cG04WaniWaniSys* sys = KingdomGlobal::WaniWaniSys;

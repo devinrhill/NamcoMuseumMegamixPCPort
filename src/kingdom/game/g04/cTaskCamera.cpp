@@ -12,7 +12,7 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x8019d314
+// DOL 0x8019d314 [audited]
 cTaskCamera::cTaskCamera()
 {
 	SetName("g04::cTaskCamera");
@@ -34,7 +34,7 @@ cTaskCamera::cTaskCamera()
 	SetMode(0);
 }
 
-// DOL 0x80094ba8: camera 0 of the SCN0 at frame 0: its eye / aim, the projection the caller set (0x80095030)
+// DOL 0x80094ba8 [audited: camera applied through NativeScene::SetCamera]: camera 0 of the SCN0 at frame 0: its eye / aim, the projection the caller set (0x80095030)
 bool cTaskCamera::TakeSceneCamera(const char* sca, float fovy, float nearZ, float farZ)
 {
 	std::size_t size = 0;
@@ -56,7 +56,7 @@ bool cTaskCamera::TakeSceneCamera(const char* sca, float fovy, float nearZ, floa
 	return true;
 }
 
-// DOL 0x8019d724
+// DOL 0x8019d724 [audited]
 void cTaskCamera::SetMode(int mode)
 {
 	if (mode == 0) TakeSceneCamera("BG_SCA", m_fGame[3], m_fGame[0], m_fGame[1]);   // 0x3e9a6c40
@@ -72,7 +72,7 @@ void cTaskCamera::SetMode(int mode)
 		TakeSceneCamera("BG_ZOOM_SCA", m_fZoom[3], m_fZoom[0], m_fZoom[1]);   // 0x3bfdafbe
 }
 
-// DOL 0x80094e2c
+// DOL 0x80094e2c [audited: shake math compared (sin of 0.01745*t, row/col decay)]
 void cTaskCamera::Apply()
 {
 	if (m_nCamMode == 1)
@@ -92,7 +92,7 @@ void cTaskCamera::Apply()
 	}
 }
 
-// DOL 0x8019d630
+// DOL 0x8019d630 [audited]
 bool cTaskCamera::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();

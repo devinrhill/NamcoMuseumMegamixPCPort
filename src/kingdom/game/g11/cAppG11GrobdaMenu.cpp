@@ -20,13 +20,13 @@ namespace
 WiiSnd::Handle s_Bgm;
 }
 
-// DOL 0x8000f164 (job 338)
+// DOL 0x8000f164 [audited] (job 338)
 void cAppG11GrobdaMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG11GrobdaMenu());
 }
 
-// DOL 0x8014a518
+// DOL 0x8014a518 [audited]
 cAppG11GrobdaMenu::cAppG11GrobdaMenu()
 {
 	SetName("cAppG11GrobdaMenu");
@@ -47,6 +47,8 @@ cAppG11GrobdaMenu::cAppG11GrobdaMenu()
 		m_pCursor[i]->AddButton(0x860u, 2 * i + 1);
 		ConnectChild(m_pCursor[i]);
 		m_pCursor[i]->nDrawPriority(0x80000008u);
+		m_pCursor[i]->SetPadNo(sys->nPad(i));   // vtable +0x58: the matching block's player +0x4c
+		m_pCursor[i]->SetEnable(true);          // +0x1e1
 	}
 	// +0x29c the HOW TO PLAY pages (priority 0x80000007) on pad 0's cursor
 	pTaskTutorial() = new cTaskConsMenuTutorial(m_pCursor[0]);
@@ -57,26 +59,24 @@ cAppG11GrobdaMenu::cAppG11GrobdaMenu()
 	WiiSnd::Play(s_Bgm, "m11bgm_select");
 }
 
-// DOL 0x8014abc0
+// DOL 0x8014abc0 [audited]
 void cAppG11GrobdaMenu::Free()
 {
-	if (IsSndAllStop())
-	{
-		WiiSnd::FadeOut(s_Bgm, 500);
-		WiiSnd::Detach(s_Bgm);
-	}
+	// FUN_80025560(KingSys +0xa54, 500): every sound fades out, also on the way to the matching (not gated by IsSndAllStop)
+	WiiSnd::FadeOut(s_Bgm, 500);
+	WiiSnd::Detach(s_Bgm);
 	KingdomGlobal::KingSys->DetachArcData("g11_grobda/g11menu.lzs");
 	kingdom::NativeScene::Reset();
 	cAppGameBaseMenu::Free();
 }
 
-// DOL 0x8014a9c4: every console appears
+// DOL 0x8014a9c4 [audited]: every console appears
 void cAppG11GrobdaMenu::FadeInEndCallBack()
 {
 	m_pConsMan->AppearStart();
 }
 
-// DOL 0x8014a9cc: back from the HOW TO PLAY pages: every console waits, the focused one points
+// DOL 0x8014a9cc [audited]: back from the HOW TO PLAY pages: every console waits, the focused one points
 void cAppG11GrobdaMenu::TutorialOutCallBack()
 {
 	m_pConsMan->Reset();
@@ -89,7 +89,7 @@ void cAppG11GrobdaMenu::PlaySndSe(const string& pSndName, int ctrl)
 	snd::Play(pSndName.c_str());
 }
 
-// DOL 0x8014aa04. Mode 0: wait until the man chooses (every console has appeared); mode 1: the man's selection decides the next job.
+// DOL 0x8014aa04 [audited]. Mode 0: wait until the man chooses (every console has appeared); mode 1: the man's selection decides the next job.
 void cAppG11GrobdaMenu::MainExec()
 {
 	const uint n = 0u;
@@ -133,6 +133,7 @@ void cAppG11GrobdaMenu::MainExec()
 				}
 				else
 				{
+					cG11GrobdaSys::Instance()->nPlayer(1);  // FUN_8000ee50(sys, 1): leaving multiplayer
 					cG11GrobdaSys::Instance()->nStage(0);   // sys +0x20 = 0
 					nSetNextJob(job::GROBDA_MENU);               // back to this menu
 				}

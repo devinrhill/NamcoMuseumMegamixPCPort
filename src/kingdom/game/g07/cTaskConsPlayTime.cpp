@@ -66,6 +66,7 @@ void cTaskConsPlayTime::Term()
 {
 }
 
+// DOL 0x8010360c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsPlayTime::Execute(cJetTask* pParam)
 {
 	m_nTimer++;

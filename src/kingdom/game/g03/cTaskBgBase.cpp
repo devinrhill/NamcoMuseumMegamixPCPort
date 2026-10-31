@@ -34,6 +34,7 @@ void cTaskBgBase::Term()
 	cTaskPBModel::Term();
 }
 
+// DOL 0x8014bf20 [audited: per AUDIT_G03_G07 row] (<node0 name>.brres model; translate / rotate (degrees -> radians) / scale copied from node1 as they are - ResNode here returns the Unity-mirrored values and this undoes them; light set 0, fog 0; user data of node0, then node1 when different)
 void cTaskBgBase::Regist(ResNode* const& node0, ResNode* const& node1)
 {
 	CustomKingdomUtil::Assert(node0 != nullptr, "nullpo");
@@ -64,6 +65,7 @@ IEnumerator* cTaskBgBase::coRegist(ResNode* node0, ResNode* node1)
 	return nullptr;
 }
 
+// DOL 0x8014c174 [audited: per AUDIT_G03_G07 row] (first float user data containing "frame" / "Frame" and no _rcha.. suffix = start frame (the DOL requires the item to be a float; the port takes the first match); every <anim>_rcha / _rvia / _rcla / _rtpa / _rtsa item registers <anim>_cha.. .brres with the item value as its update rate and the start frame)
 void cTaskBgBase::SetUserDataAnm(cKingdomModel* model, ResNode* const& node)
 {
 	CustomKingdomUtil::Assert(model != nullptr, "nullpo");

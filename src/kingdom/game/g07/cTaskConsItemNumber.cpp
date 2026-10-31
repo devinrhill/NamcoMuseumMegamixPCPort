@@ -96,6 +96,7 @@ void cTaskConsItemNumber::Term()
 {
 }
 
+// DOL 0x800ff220 [audited: per AUDIT_G03_G07 row] (digit tables 0x803762f0 = AnmList_d, 0x80376318 = AnmList_t)
 bool cTaskConsItemNumber::Execute(cJetTask* pParam)
 {
 	CustomKingdomUtil::Assert(m_pExecNumber != nullptr, "nullpo");
@@ -181,6 +182,7 @@ bool cTaskConsItemNumber::Execute(cJetTask* pParam)
 						float frame = pAnita(num7)->GetFrame();
 						SetAnm(num7, AnmList_t[num9]);
 						pAnita(num7)->SetFrame(frame);
+						pAnita(num7)->AnimUpdate(0.0f);   // DOL 0x80141c44(0)
 					}
 				}
 				else if (IsAnmEnd(num7) && pAnita(num7)->GetAnimNo() == AnmList_d[num9])
@@ -193,6 +195,7 @@ bool cTaskConsItemNumber::Execute(cJetTask* pParam)
 					float frame2 = pAnita(num7)->GetFrame();
 					SetAnm(num7, AnmList_t[num9]);
 					pAnita(num7)->SetFrame(frame2);
+					pAnita(num7)->AnimUpdate(0.0f);   // DOL 0x80141c44(0)
 				}
 				else if (pAnita(num7)->GetAnimNo() != AnmList_t[num9] && pAnita(num7)->GetAnimNo() != AnmList_d[num9])
 				{

@@ -57,6 +57,7 @@ uint& cTaskConsPacIconSingleSetting::nPlayerID()
 	return m_nPlayerID;
 }
 
+// DOL 0x80102b4c [audited: per AUDIT_G03_G07 row]
 void cTaskConsPacIconSingleSetting::Init()
 {
 	for (uint num = 0u; num < 15; num++)
@@ -76,6 +77,7 @@ void cTaskConsPacIconSingleSetting::Term()
 {
 }
 
+// DOL 0x80102c3c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsPacIconSingleSetting::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) == 1)

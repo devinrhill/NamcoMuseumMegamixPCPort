@@ -6,7 +6,7 @@ namespace kingdom::game::g01
 {
 cObjectBase::~cObjectBase() {}
 
-// DOL 0x801c1714: +0x10 / +0x14 / +0x18 = 0, +0x20 = (0, 0, 0, 1), +0x30 and +0x40 = 0 (member initialisers)
+// DOL 0x801c1714 [audited]: +0x10 / +0x14 / +0x18 = 0, +0x20 = (0, 0, 0, 1), +0x30 = 0, +0x40 = ONE (member initialisers)
 cObject::cObject() {}
 
 cObject::~cObject() {}
@@ -28,7 +28,7 @@ void cObjectAABB::SetLocalAABB(const float mn[3], const float mx[3])
 	m_bAABB = true;   // +0x80
 }
 
-// DOL 0x801c1950: the 8 corners of the local box through M = T * Rz * Ry * Rx * S; the world box encloses them (nw4r::math::AABB::Set)
+// DOL 0x801c1950 [audited]: the 8 corners of the local box through M = T * Rz * Ry * Rx * S; the world box encloses them (nw4r::math::AABB::Set)
 void cObjectAABB::UpdateWorldAABB()
 {
 	const float rx = m_v30.x, ry = m_v30.y, rz = m_v30.z;

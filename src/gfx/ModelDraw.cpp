@@ -514,12 +514,14 @@ void ModelDraw::Draw(const float world[16])
 		static const char* onlyMat = std::getenv("MEGAMIX_ONLY_MAT"); // debug: draw only the material of this name
 		if (onlyMat && mat->name != onlyMat) continue;
 		if (mat->cullMode == 3) continue;   // GX_CULL_ALL: the shape draws nothing (Galaga enemies' hit box "Material" on node hit_model)
-		if (m_vis != nullptr && d->node >= 0 && d->node < (int)m_mdl.nodes.size())   // VIS0: the node the draw is bound to may be hidden
+		if (d->node >= 0 && d->node < (int)m_mdl.nodes.size())
 		{
-			bool visible = true;
-			if (m_vis->Sample(m_mdl.nodes[d->node].name, m_visFrame, visible) && !visible) continue;
+			// nw4r DrawResMdl (g3d_draw.cpp): the node's visibility; without a VIS0 for it that is ResNode::IsVisible (ResNodeData::FLAG_VISIBILITY), a flag in the model
+			const wii::Mdl0Node& visNode = m_mdl.nodes[d->node];
+			bool visible = (visNode.flags & 0x100u) != 0;
+			if (m_vis != nullptr) m_vis->Sample(visNode.name, m_visFrame, visible);   // leaves `visible` alone when the clip does not list the node
+			if (!visible) continue;
 		}
-
 		MatCache& mc = m_matCache[mat - m_mdl.materials.data()];
 		if (!mc.built)
 		{

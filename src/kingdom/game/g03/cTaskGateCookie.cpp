@@ -11,6 +11,7 @@ void cTaskGateCookie::SetCnt(uint n)
 	m_nCnt = n;
 }
 
+// DOL 0x8017c99c [audited: per AUDIT_G03_G07 row] (two digit models BIN_GATE_NUM_1 / 2_MDL + BIN_GATE_NUM_TPA, no shadow depth, light 3, fog 0, at the gate position + 4.5 up)
 cTaskGateCookie::cTaskGateCookie(const Vector4& trans)
 {
 	Init();
@@ -31,6 +32,7 @@ cTaskGateCookie::cTaskGateCookie(const Vector4& trans)
 	}
 }
 
+// DOL 0x8017cb58 [audited: per AUDIT_G03_G07 row] (+0x1cc = 0, +0x1d0 = 0)
 void cTaskGateCookie::Init()
 {
 	m_nCnt = 0u;
@@ -42,12 +44,13 @@ void cTaskGateCookie::Term()
 	cTaskModel::Term();
 }
 
+// DOL 0x8017cb6c [audited: per AUDIT_G03_G07 row] (return 1); dtor 0x8017cae4
 bool cTaskGateCookie::Execute(cJetTask* pParam)
 {
 	return true;
 }
 
-// DOL 0x8017cb74: unless broken (+0x1d0), each digit sets its pattern frame and its push-back draws itself (vtable +0x54 = 0x8009abe0)
+// DOL 0x8017cb74 [audited: per AUDIT_G03_G07 row]: unless broken (+0x1d0), each digit sets its pattern frame and its push-back draws itself (vtable +0x54 = 0x8009abe0)
 void cTaskGateCookie::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_bBreak)

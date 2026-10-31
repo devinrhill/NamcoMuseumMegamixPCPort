@@ -7,7 +7,7 @@
 namespace kingdom::game::g11
 {
 
-// DOL 0x8000e944 -> 0x8000e9e0. Not ported yet: the SE group "GROUP_grobda_SE", cG11SaveLoadManager (+0x24), the 0x154-byte matching block
+// DOL 0x8000e944 [audited: SE group native, cG11SaveLoadManager is LoadRecord / SaveRecord here, test names not ported] -> 0x8000e9e0. Not ported yet: the SE group "GROUP_grobda_SE", cG11SaveLoadManager (+0x24), the 0x154-byte matching block
 // (+0x04, test names "test_%02d"), the per-player blocks.
 cG11GrobdaSys::cG11GrobdaSys()
 {
@@ -15,7 +15,7 @@ cG11GrobdaSys::cG11GrobdaSys()
 	LoadRecord();
 }
 
-// DOL 0x8000eee4: block 5, 8 bytes {flag, best}; any other flag value resets the record
+// DOL 0x8000eee4 [audited]: block 5, 8 bytes {flag, best}; any other flag value resets the record
 void cG11GrobdaSys::LoadRecord()
 {
 	u8 b[8] = {};
@@ -25,7 +25,7 @@ void cG11GrobdaSys::LoadRecord()
 	m_nBest = flag == 1u ? (int)best : 0;
 }
 
-// DOL 0x8000eea0
+// DOL 0x8000eea0 [audited]
 void cG11GrobdaSys::SaveRecord()
 {
 	const u32 best = (u32)m_nBest;
@@ -33,22 +33,23 @@ void cG11GrobdaSys::SaveRecord()
 	KingdomGlobal::KingSys->SaveGameData(5, b, 8);
 }
 
-// DOL 0x8000ee28
+// DOL 0x8000ee28 [audited]
 void cG11GrobdaSys::ResetScores()
 {
 	for (int& n : m_nScore) n = 0;
 }
 
-// DOL 0x8000edbc
+// DOL 0x8000edbc [audited]
 void cG11GrobdaSys::RecordSingle(int score)
 {
 	if (m_nBest < score) m_nBest = score;
 	SaveRecord();
 }
 
+// DOL 0x8000e980 [audited] -> 0x8000ec28: delete the save manager, unload the SE group (FUN_801376d8), the blocks, detach the archive
 cG11GrobdaSys::~cG11GrobdaSys()
 {
-	KingdomGlobal::KingSys->DetachArcData("g11_grobda/g11resident.lzs");   // UNVERIFIED: the dtor body was not read
+	KingdomGlobal::KingSys->DetachArcData("g11_grobda/g11resident.lzs");
 }
 
 cG11GrobdaSys* cG11GrobdaSys::Instance()
@@ -56,7 +57,7 @@ cG11GrobdaSys* cG11GrobdaSys::Instance()
 	return KingdomGlobal::GrobdaSys;
 }
 
-// DOL 0x8000f0c8
+// DOL 0x8000f0c8 [audited]
 void cG11GrobdaSys::JobInit()
 {
 	delete KingdomGlobal::GrobdaSys;
@@ -64,7 +65,7 @@ void cG11GrobdaSys::JobInit()
 	Kingdom_SetJobNo(job::GROBDA_MENU, false, 0);
 }
 
-// DOL 0x8000f10c
+// DOL 0x8000f10c [audited]
 void cG11GrobdaSys::JobEnd()
 {
 	delete KingdomGlobal::GrobdaSys;
@@ -72,7 +73,7 @@ void cG11GrobdaSys::JobEnd()
 	Kingdom_SetJobNo(job::MENU, false, 0);
 }
 
-// DOL 0x8000ed64 (table 0x80476828: stage01, stage02; the words after them are other data)
+// DOL 0x8000ed64 [audited] (table 0x80476828: stage01, stage02; the words after them are other data)
 const char* cG11GrobdaSys::StageArc(int n)
 {
 	static const char* const ARC[2] = {"g11_grobda/g11stage01.lzs", "g11_grobda/g11stage02.lzs"};

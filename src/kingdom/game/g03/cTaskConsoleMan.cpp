@@ -1,3 +1,4 @@
+#include "GamePad.hpp"
 #include "kingdom/game/g03/cTaskConsoleMan.hpp"
 
 #include "cJetTask.hpp"
@@ -30,8 +31,6 @@
 #include "kingdom/game/g03/cTaskPoint.hpp"
 #include "KingdomGlobal.hpp"
 #include "MotosUIManager.hpp"
-#include "MotosUIRollCaution.hpp"
-#include "MotosUIRollStageName.hpp"
 #include <InGamePadManager.hpp>
 #include <PadDefine.hpp>
 
@@ -52,8 +51,6 @@ cTaskConsoleMan::cTaskConsoleMan(cAppG03PacnRollGame* app)
 
 void cTaskConsoleMan::Init()
 {
-	UnityUIStageName = MotosUIManager::Get<MotosUIRollStageName>(MotosUIManager::EUIIndex::RollStageName);
-	UnityUICaution = MotosUIManager::Get<MotosUIRollCaution>(MotosUIManager::EUIIndex::RollCaution);
 	m_pApp = nullptr;
 	m_pPac = nullptr;
 	m_pBoss = nullptr;
@@ -83,8 +80,6 @@ void cTaskConsoleMan::Init()
 	ConnectChild(m_pTaskConsNotCameraCtrl = new cTaskConsNotCameraCtrl());
 	m_nWaitCnt = 0u;
 	m_bManagerVisible = true;
-	m_pTaskConsStageName->UnityUI = UnityUIStageName;
-	m_pTaskConsCookieWarning->UnityUI = UnityUICaution;
 }
 
 void cTaskConsoleMan::Term()
@@ -150,6 +145,7 @@ bool cTaskConsoleMan::RegistCheckPoint(cTaskPoint* pCheckPoint)
 	return true;
 }
 
+// DOL 0x80177478 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskConsoleMan::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -187,7 +183,7 @@ bool cTaskConsoleMan::Execute(cJetTask* pParam)
 		}
 		if (m_pApp->nModeState() == 2)
 		{
-			flag5 = (InGamePadManager::GetKeyDown(InGamePadManager::GetPad1No(), PadDefine::EPadKeycode::eKEY_CIRCLE) ? true : false);
+			flag5 = ((GamePad::Get(0).trig >> 5) & 1u) != 0u;   // DOL 0x80177478: get_pad1(0) trig bit 5 (A)
 			if (flag2 | flag3 | flag4 | flag5)
 			{
 				m_nWaitCnt = 0u;

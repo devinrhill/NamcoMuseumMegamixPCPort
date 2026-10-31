@@ -1,4 +1,9 @@
+#include "kingdom/KingdomJobTable.hpp"
+#include "wii/Anim.hpp"
+#include "wii/Brres.hpp"
+#include "wii/Archive.hpp"
 #include "kingdom/game/g03/cTaskCamera.hpp"
+#include "kingdom/game/g03/cDemoSceneCamera.hpp"
 #include "GamePad.hpp"
 #include <cstdio>
 #include <cstdlib>
@@ -146,6 +151,7 @@ cTaskCamera::~cTaskCamera()
 	Term();
 }
 
+// DOL 0x80156b38 [audited: described by the 43rd-session pass] (every field value checked: fov-independent defaults, 150 far clip, 3.4 wait distance, 0.1 at-delay, 0.05 deg phi accel, 1 deg theta accel)
 void cTaskCamera::Init()
 {
 	m_nCamIdx = 0u;
@@ -209,9 +215,10 @@ void cTaskCamera::Term()
 {
 }
 
+// DOL 0x80156c84 [audited: described by the 43rd-session pass] (type 0 pursuit 0x801580d0, 1 game clear 0x80159528, 2 free fall and 3 init game inlined, top menu 0x80157de8)
 bool cTaskCamera::Execute(cJetTask* pParam)
 {
-	if (std::getenv("MEGAMIX_SCENE_DEBUG")) std::fprintf(stderr, "camera: type %u topmenu %d pac %p pause %d nakajima %d\n", m_nType, (int)KingdomGlobal::PacnRollSys->IsTopMenuMode(), (void*)Constants::PACMAN_OBJ(), (int)Constants::IS_PAC_PAUSE(), (int)Constants::IS_NAKAJIMA_PAUSE());
+	if (std::getenv("MEGAMIX_SCENE_DEBUG")) std::fprintf(stderr, "camera: type %u topmenu %d pac %p pause %d nakajima %d\n", m_nType, (int)KingdomGlobal::PacnRollSys->IsTopMenuMode(), (void*)Constants::PACMAN_OBJ(), (int)Constants::IS_PAC_PAUSE(), (int)Constants::IS_NAKAJIMA_PAUSE(this));
 	if (std::getenv("MEGAMIX_SCENE_DEBUG")) std::fprintf(stderr, "camera: dist %.2f phi %.2f theta %.2f pos (%.1f %.1f %.1f) target (%.1f %.1f %.1f) nowparam %p flag %x\n", m_fDistance, m_fPhiAngle, m_fThetaAngle, m_vPos.x, m_vPos.y, m_vPos.z, m_vTarget.x, m_vTarget.y, m_vTarget.z, (void*)m_NowParam, m_NowParam ? m_NowParam->m_nFlag : 0u);
 	m_bCameraKeepOut = false;
 	m_bPrevFrameCameraHit = m_bNowFrameCameraHit;
@@ -245,20 +252,31 @@ bool cTaskCamera::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x80156fe0 [audited: described by the 43rd-session pass] (tail call to Update 0x801574a8)
 void cTaskCamera::Draw(int nStatus, cJetTask* pParam)
 {
 	Update();
 }
 
+// DOL 0x80156fe4 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::Setup(string key, uint camIdx, uint anmIdx, float frame)
 {
 	if (nullptr == m_mainCam)
 	{
 		// TODO(unity): m_mainCam = Camera.main;
 	}
-	// TODO(unity): m_mainCam.fieldOfView = 40f;
-	// TODO(unity): m_mainCam.nearClipPlane = 0.1f;
-	// TODO(unity): m_mainCam.farClipPlane = 32768f;
+	// DOL 0x80156fe4: the perspective comes from the SCN0 camera (ResAnmCamera::GetAnmResult at `frame`)
+	std::size_t size = 0;
+	const std::uint8_t* d = wii::ArchiveStore::Find(key, size);
+	wii::Brres brres;
+	wii::ScnAnim anm;
+	wii::CameraResult cam;
+	if (d != nullptr && brres.Load(d, size) && anm.Load(brres) && anm.SampleCamera("", frame, cam))
+	{
+		m_fFovy = cam.fovy;
+		m_fNear = cam.nearZ;
+		m_fFar = cam.farZ;
+	}
 	InitAreaParam();
 }
 
@@ -272,10 +290,14 @@ void cTaskCamera::Update()
 	{
 		// TODO(unity): m_gazePoint = GameObject.Find("GazePoint");
 	}
-	// native: the camera of the 3D pass (Wii space, no X mirror; Unity's camera was fov 40, near 0.1, far 32768)
+	// native: the camera of the 3D pass (Wii space, no X mirror)
 	{
 		const float eye[3] = {m_vPos.x, m_vPos.y, m_vPos.z}, target[3] = {m_vTarget.x, m_vTarget.y + devtools::G03FreecamTargetY(m_fDistance), m_vTarget.z};   // devtools: --g03-freecam
-		kingdom::NativeScene::SetCamera(eye, target, 40.0f, 0.1f, 32768.0f);
+		// the Golvis04 death demo's scene camera (cDemoSceneCamera: the ScnRoot's AnmScn) wins over this one while it is set
+		if (cDemoSceneCamera::Active() == nullptr || !cDemoSceneCamera::Active()->Apply())
+		{
+			kingdom::NativeScene::SetCamera(eye, target, m_fFovy, m_fNear, m_fFar);
+		}
 	}
 	Vector4 v = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 	Vector4 v2;
@@ -455,6 +477,7 @@ void cTaskCamera::UpdateFrame()
 {
 }
 
+// DOL 0x80157608 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::RegistCameraData(Constants::CAM_PARAM* pParam, bool bInit)
 {
 	if (std::getenv("MEGAMIX_SCENE_DEBUG")) std::fprintf(stderr, "camera: RegistCameraData init %d flag %x phi %.1f camdist %.1f initangle %.1f\n", (int)bInit, pParam->m_nFlag, pParam->m_fPhiAngle, pParam->m_fCamDistance, pParam->m_fInitAngle);
@@ -540,6 +563,7 @@ void cTaskCamera::RegistCameraData(Constants::CAM_PARAM* pParam, bool bInit)
 	}
 }
 
+// DOL 0x80157ab0 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::ChangeArea(int area)
 {
 	if (std::getenv("MEGAMIX_SCENE_DEBUG")) std::fprintf(stderr, "camera: ChangeArea %d\n", area);
@@ -580,6 +604,7 @@ void cTaskCamera::InitAreaParam()
 	m_nNowArea = 999;
 }
 
+// DOL 0x80157d2c [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::SetCameraType(uint cameraType)
 {
 	nType() = cameraType;
@@ -609,6 +634,7 @@ void cTaskCamera::SetCameraType(uint cameraType)
 	}
 }
 
+// DOL 0x80157de8 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::ControlFreeMenu()
 {
 	if (kingdom::Constants::IS_PAUSE())
@@ -626,7 +652,17 @@ void cTaskCamera::ControlFreeMenu()
 	Vector4 v3;
 	::Constants::jetGeoVecOuterProduct(v3, v2, m_vUp);
 	::Constants::jetGeoVecNormalize(v3, v3);
-	if (KingdomGlobal::SysCore->GetJobNo() != 146800640)
+	// DOL 0x80157de8: the classic hall (job 140) turns the offset toward the XZ direction target -> menu point; the hub toward the origin
+	if (KingdomGlobal::SysCore->GetJobNo() == kingdom::job::MENU_CLASSIC)
+	{
+		Vector4 vDir;
+		::Constants::jetGeoVecSub(vDir, m_vMenuCamera, m_vTarget);
+		vDir[1] = 0.0f;
+		::Constants::jetGeoVecNormalize(vDir, vDir);
+		::Constants::jetGeoVecScale(vDir, vDir, 6.0f);
+		::Constants::jetGeoMtxRotY(m, m, Mathf::Atan2(vDir[0], vDir[2]));
+	}
+	else
 	{
 		::Constants::jetGeoMtxRotY(m, m, Mathf::Atan2(0.0f - m_vTarget[0], 0.0f - m_vTarget[2]));
 	}
@@ -721,6 +757,7 @@ void cTaskCamera::DistanceLerp()
 	}
 }
 
+// inlined in 0x801580d0: (0, 0, distance) turned by -phi about X and theta about Y, added to the target
 void cTaskCamera::MakeCamPositionRT()
 {
 	Vector4 v = Vector4::zero;
@@ -730,9 +767,10 @@ void cTaskCamera::MakeCamPositionRT()
 	::Constants::jetGeoVecAdd(m_vPos, m_vTarget, v);
 }
 
+// DOL 0x801580d0 [audited: described by the 43rd-session pass] (order: pursuit, camera operation, position, phi / distance lerp, hit flag reset, HitProcess 0x8015901c, position again; the DOL uses nw4r table sin / cos / atan2, the port exact ones)
 void cTaskCamera::FrameMovePurSuit()
 {
-	if (Constants::IS_PAC_PAUSE() || Constants::IS_NAKAJIMA_PAUSE() || Constants::PACMAN_OBJ() == nullptr)
+	if (Constants::IS_PAC_PAUSE() || Constants::IS_NAKAJIMA_PAUSE(this) || Constants::PACMAN_OBJ() == nullptr)
 	{
 		return;
 	}
@@ -847,6 +885,7 @@ void cTaskCamera::FrameMovePurSuit()
 	MakeCamPositionRT();
 }
 
+// DOL 0x80158b08 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCamera::FrameMoveCameraOpe()
 {
 	float pAngle = m_fThetaAngle;
@@ -897,6 +936,7 @@ void cTaskCamera::FrameMoveCameraOpe()
 	}
 }
 
+// DOL 0x80158f1c [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskCamera::CheckExRange(float& pAngle, float fAngle, float fPower)
 {
 	pAngle = fAngle;
@@ -966,6 +1006,7 @@ bool cTaskCamera::CheckBGHit(float fAngle, Vector4& vCross)
 	return false;
 }
 
+// DOL 0x8015901c [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskCamera::HitProcess()
 {
 	int pad1No = InGamePadManager::GetPad1No();
@@ -1044,7 +1085,8 @@ bool cTaskCamera::HitProcess()
 	return true;
 }
 
-// DOL 0x80159428 (fRadius unused, as in the DOL)
+// DOL 0x80159428 [audited: described by the 43rd-session pass] (fRadius unused, as in the DOL)
+// DOL 0x80159428 (225 = 15^2 near sphere around the target)
 bool cTaskCamera::HitViewVolume(Vector4 vCenter, float fRadius)
 {
 	float fClipFarDist = m_fClipFarDist;
@@ -1069,9 +1111,10 @@ bool cTaskCamera::HitViewVolume(Vector4 vCenter, float fRadius)
 	return false;
 }
 
+// DOL 0x80159528 [audited: described by the 43rd-session pass] (theta += goal speed degrees per frame)
 void cTaskCamera::FrameMoveGameClearCamera()
 {
-	if (!Constants::IS_PAC_PAUSE() && !Constants::IS_NAKAJIMA_PAUSE() && Constants::PACMAN_OBJ() != nullptr)
+	if (!Constants::IS_PAC_PAUSE() && !Constants::IS_NAKAJIMA_PAUSE(this) && Constants::PACMAN_OBJ() != nullptr)
 	{
 		Vector4 v;
 		::Constants::jetGeoVecSub(v, Constants::PACMAN_OBJ()->vTrans(), m_vTarget);

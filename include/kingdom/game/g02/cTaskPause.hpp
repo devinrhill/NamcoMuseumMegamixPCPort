@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kingdom/game/cTaskGameBasePause.hpp"
+#include "kingdom/sMatchingData.hpp"
 
 // Rally-X Remix (g02) the pause menu: kingdom::game::g02::cTaskPause (0x1f0 bytes, vtable 0x804411a8, parent cTaskGameBasePause; ctor
 // 0x80123e84 + Init 0x8007a244, dtor 0x8012734c). Everything else is the shared cTaskGameBasePause (Execute 0x80147cb0 / Draw 0x80148b88):
@@ -14,5 +15,9 @@ class cTaskPause : public kingdom::game::cTaskGameBasePause
 public:
 	cTaskPause();                // DOL 0x80123e84 + 0x8007a244
 	~cTaskPause() override;      // DOL 0x8012734c
+
+private:
+	kingdom::sMatchingData m_Matching;
+	kingdom::sMatchingData::InfoData m_Info[4];
 };
 }

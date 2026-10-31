@@ -76,6 +76,7 @@ uint cTaskCharAreaGhost::GetPushOutLevel()
 	return 0u;
 }
 
+// DOL 0x8015dedc [audited: described by the 43rd-session pass] (vtable +0x5c: stat > 8)
 bool cTaskCharAreaGhost::IsDead()
 {
 	if (nStat() <= 8)
@@ -91,6 +92,7 @@ cTaskCharAreaGhost::cTaskCharAreaGhost()
 	Init();
 }
 
+// DOL 0x8015b5cc [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::Init()
 {
 	m_nCount = 0;
@@ -129,6 +131,7 @@ void cTaskCharAreaGhost::Term()
 	cTaskCharGhost::Term();
 }
 
+// DOL 0x8015b6cc [audited: described by the 43rd-session pass] (Blinky / Pinky / Inky / Clyde AI by GetKind 3 / 2 / 4 / 1)
 bool cTaskCharAreaGhost::Execute(cJetTask* pParam)
 {
 	InGamePadManager::GetPad1No();
@@ -500,7 +503,7 @@ bool cTaskCharAreaGhost::Execute(cJetTask* pParam)
 	return cTaskCharEnemy::Execute(pParam);
 }
 
-// DOL 0x8015c874 (the Visible / Invisible toggles are the C#'s; the DOL only submits the current model)
+// DOL 0x8015c874 [audited: described by the 43rd-session pass] (the Visible / Invisible toggles are the C#'s; the DOL only submits the current model)
 void cTaskCharAreaGhost::Draw(int nStatus, cJetTask* pParam)
 {
 	Matrix4x4 m;
@@ -511,7 +514,7 @@ void cTaskCharAreaGhost::Draw(int nStatus, cJetTask* pParam)
 	::Constants::jetGeoMtx44to34(_discard6, m);
 	DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 	DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
-	pCurrentModel()->UpdateMatrix();   // DOL 0x8015ca20: the current model's push-back (+0xd8) into this frame's scene list (0x8009c3f4)
+	pCurrentModel()->UpdateMatrix();   // DOL 0x8015ca20 [audited: described by the 43rd-session pass]: the current model's push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 	if (nStat() != 11)
 	{
 		if (nType() == 0)
@@ -543,6 +546,8 @@ void cTaskCharAreaGhost::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// inline in the DOL (Execute 0x8015b6cc, Attacked, CheckStatus ...): Invisible the current model + its expand model (+0x60), type +0x1d0,
+// Visible the new one + its expand model unless the item is hidden (+0x28c)
 void cTaskCharAreaGhost::SetType(const uint& type)
 {
 	CustomKingdomUtil::Assert(2 > type, "error");
@@ -594,6 +599,7 @@ void cTaskCharAreaGhost::SetAnm(string anime, uint idx)
 	}
 }
 
+// DOL 0x8015caa0 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::Move()
 {
 	(void)(static_cast<cTaskGhostArea*>(pParent()));
@@ -774,6 +780,7 @@ void cTaskCharAreaGhost::Move()
 	}
 }
 
+// DOL 0x8015d080 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::SetModel()
 {
 	nKind() = GetKind();
@@ -795,6 +802,7 @@ void cTaskCharAreaGhost::SetModel()
 	m_fFootDist = 0.0f - v[1];
 }
 
+// DOL 0x8015d2f8 [audited: described by the 43rd-session pass] (CSV +0x350 rows by kind, cols 1..4; common CSV +0x354; hit range 0.82)
 void cTaskCharAreaGhost::SetParam()
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -881,6 +889,7 @@ void cTaskCharAreaGhost::SetOptionItem(int type)
 	}
 }
 
+// DOL 0x8015def8 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::SetHydeItem(bool on)
 {
 	if (on)
@@ -936,6 +945,7 @@ void cTaskCharAreaGhost::FastDead()
 	nStat() = 11;
 }
 
+// DOL 0x8015e070 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::CheckStatus()
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -988,6 +998,7 @@ void cTaskCharAreaGhost::ChangeArea()
 	m_nMoveCount = 0;
 }
 
+// DOL 0x8015e394 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::Attacked(cHitChar* pRev, cHitChar* pAtk)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACN_APP()->IsNakajimaPause(this) && Constants::PACN_APP()->pTaskGhostMan()->IsIjike())
@@ -998,10 +1009,11 @@ void cTaskCharAreaGhost::Attacked(cHitChar* pRev, cHitChar* pAtk)
 		nStat() = 8;
 		m_bPackAttack = true;
 		m_nCount = 0;
-		KingdomGlobal::PacnRollSys->AddDeadEnemyCnt();
+		// (43rd: the C#'s AddDeadEnemyCnt here fed a Steam statistic; the DOL has none)
 	}
 }
 
+// DOL 0x8015e524 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharAreaGhost::HitPushOut(Vector4 vVec, cTaskChar* pChar)
 {
 	if (m_bFlying || (nKind() < cTaskChar::eKIND::eKIND_BOSS && nKind() < pChar->nKind()))

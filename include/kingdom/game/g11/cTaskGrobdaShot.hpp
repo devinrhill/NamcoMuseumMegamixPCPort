@@ -12,7 +12,6 @@ namespace kingdom { class cKingdomPtkHnd; class cKingdomModel; }
 // 0x800ab090, register 0x800ac6f8 = list 5, Resolve 0x800ac738) and cTaskGrobdaShotEnemy (ctor 0x800ab5b8, fire wrapper 0x800ab6e0 = the effect (slot 0x10 + type - 0x2000001) + the
 // sound m11se_beam + 0x800ab090, register 0x800ab8f0 = list 6, Resolve 0x800ab930). The shot is a PTK effect whose handle (+0xb38) follows it; the object has no model: position /
 // rotation live in members (vtable +0x18 / +0x28 of the DOL read the handle's translate / rotate). Radius 0.2.
-// NOT PORTED: the homing mode 1 of the enemy shots (FUN_800aadfc, FireAimed 0x800ab7cc / 0x800ab254).
 namespace kingdom::game::g11
 {
 class cTaskGrobdaShot : public kingdom::cTaskKingdom, public cGrobdaObject
@@ -23,7 +22,7 @@ public:
 	bool IsActive() const { return m_nState == 1; }
 	int nState() const { return m_nState; }
 	bool Execute(cJetTask* pParam) override;    // DOL 0x800aac50
-	void Resolve(int a, int b) override;        // DOL 0x800ac738 / 0x800ab930 (the same body)
+	void Resolve(int a, int b) override;        // DOL 0x800ac738
 
 	float* GetPos() override { return m_vPos; }
 	float* GetRot() override { return m_vRot; }
@@ -80,6 +79,7 @@ public:
 	explicit cTaskGrobdaShotEnemy(uint type);     // DOL 0x800ab5b8 (type 0x2000001 + the enemy kind)
 	bool Fire(float speed, const float pos[3], float rotY);   // DOL 0x800ab6e0: false when the effect could not be made
 	bool FireAimed(float speed, const float pos[3], const float rot[3]);   // DOL 0x800ab7cc: a homing shot at the nearest player (nothing when there is none)
+	void Resolve(int a, int b) override;          // DOL 0x800ab930
 protected:
 	int Layer() const override { return 6; }
 };

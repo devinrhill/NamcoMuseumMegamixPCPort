@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskBoss01.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -27,7 +28,8 @@ float cTaskBoss01::APPEAR_ADD_NEAR_FOG = 0.0f;
 float cTaskBoss01::APPEAR_ADD_FAR_FOG = 0.0f;
 Vector4 cTaskBoss01::s_vPos[6] = {};
 int cTaskBoss01::g_HitDamage[6] = {};
-const Constants::MO_BOSS_MODE_INFO* cTaskBoss01::s_ModeTbl[20] = {[]() { Constants::MO_BOSS_MODE_INFO* _o1 = new Constants::MO_BOSS_MODE_INFO(); _o1->m_nMode = 3; _o1->m_nMove = 1; _o1->m_nWait = 30; return _o1; }(), []() { Constants::MO_BOSS_MODE_INFO* _o2 = new Constants::MO_BOSS_MODE_INFO(); _o2->m_nMode = 4; _o2->m_nMove = -1; _o2->m_nWait = 5; return _o2; }(), []() { Constants::MO_BOSS_MODE_INFO* _o3 = new Constants::MO_BOSS_MODE_INFO(); _o3->m_nMode = 5; _o3->m_nMove = 2; _o3->m_nWait = 30; return _o3; }(), []() { Constants::MO_BOSS_MODE_INFO* _o4 = new Constants::MO_BOSS_MODE_INFO(); _o4->m_nMode = 6; _o4->m_nMove = -1; _o4->m_nWait = 30; _o4->m_nWork[0] = 1; _o4->m_nWork[1] = 0; _o4->m_nWork[2] = 0; _o4->m_nWork[3] = 0; return _o4; }(), []() { Constants::MO_BOSS_MODE_INFO* _o5 = new Constants::MO_BOSS_MODE_INFO(); _o5->m_nMode = 8; _o5->m_nMove = -1; _o5->m_nWait = 60; return _o5; }(), []() { Constants::MO_BOSS_MODE_INFO* _o6 = new Constants::MO_BOSS_MODE_INFO(); _o6->m_nMode = 6; _o6->m_nMove = -1; _o6->m_nWait = 30; _o6->m_nWork[0] = 1; _o6->m_nWork[1] = 0; _o6->m_nWork[2] = 0; _o6->m_nWork[3] = 0; return _o6; }(), []() { Constants::MO_BOSS_MODE_INFO* _o7 = new Constants::MO_BOSS_MODE_INFO(); _o7->m_nMode = 3; _o7->m_nMove = 3; _o7->m_nWait = 30; return _o7; }(), []() { Constants::MO_BOSS_MODE_INFO* _o8 = new Constants::MO_BOSS_MODE_INFO(); _o8->m_nMode = 6; _o8->m_nMove = -1; _o8->m_nWait = 30; return _o8; }(), []() { Constants::MO_BOSS_MODE_INFO* _o9 = new Constants::MO_BOSS_MODE_INFO(); _o9->m_nMode = 8; _o9->m_nMove = -1; _o9->m_nWait = 60; return _o9; }(), []() { Constants::MO_BOSS_MODE_INFO* _o10 = new Constants::MO_BOSS_MODE_INFO(); _o10->m_nMode = 6; _o10->m_nMove = -1; _o10->m_nWait = 30; return _o10; }(), []() { Constants::MO_BOSS_MODE_INFO* _o11 = new Constants::MO_BOSS_MODE_INFO(); _o11->m_nMode = 4; _o11->m_nMove = -1; _o11->m_nWait = 5; return _o11; }(), []() { Constants::MO_BOSS_MODE_INFO* _o12 = new Constants::MO_BOSS_MODE_INFO(); _o12->m_nMode = 5; _o12->m_nMove = 4; _o12->m_nWait = 30; return _o12; }(), []() { Constants::MO_BOSS_MODE_INFO* _o13 = new Constants::MO_BOSS_MODE_INFO(); _o13->m_nMode = 6; _o13->m_nMove = -1; _o13->m_nWait = 30; _o13->m_nWork[0] = 1; _o13->m_nWork[1] = 0; _o13->m_nWork[2] = 0; _o13->m_nWork[3] = 0; return _o13; }(), []() { Constants::MO_BOSS_MODE_INFO* _o14 = new Constants::MO_BOSS_MODE_INFO(); _o14->m_nMode = 8; _o14->m_nMove = -1; _o14->m_nWait = 60; return _o14; }(), []() { Constants::MO_BOSS_MODE_INFO* _o15 = new Constants::MO_BOSS_MODE_INFO(); _o15->m_nMode = 6; _o15->m_nMove = -1; _o15->m_nWait = 30; _o15->m_nWork[0] = 1; _o15->m_nWork[1] = 0; _o15->m_nWork[2] = 0; _o15->m_nWork[3] = 0; return _o15; }(), []() { Constants::MO_BOSS_MODE_INFO* _o16 = new Constants::MO_BOSS_MODE_INFO(); _o16->m_nMode = 3; _o16->m_nMove = 5; _o16->m_nWait = 30; return _o16; }(), []() { Constants::MO_BOSS_MODE_INFO* _o17 = new Constants::MO_BOSS_MODE_INFO(); _o17->m_nMode = 6; _o17->m_nMove = -1; _o17->m_nWait = 30; return _o17; }(), []() { Constants::MO_BOSS_MODE_INFO* _o18 = new Constants::MO_BOSS_MODE_INFO(); _o18->m_nMode = 8; _o18->m_nMove = -1; _o18->m_nWait = 60; return _o18; }(), []() { Constants::MO_BOSS_MODE_INFO* _o19 = new Constants::MO_BOSS_MODE_INFO(); _o19->m_nMode = 6; _o19->m_nMove = -1; _o19->m_nWait = 30; return _o19; }(), []() { Constants::MO_BOSS_MODE_INFO* _o20 = new Constants::MO_BOSS_MODE_INFO(); _o20->m_nMode = 7; _o20->m_nMove = 0; _o20->m_nWait = 40; return _o20; }()};
+// DOL 0x8038c1b0 [audited: described by the 43rd-session pass]: 19 entries of seven ints (mode, move, wait, work[4]); the C# had an extra (6, -1, 30) before the last (7, 0, 40), which the `% 19` wrap then never reached (audited 44th)
+const Constants::MO_BOSS_MODE_INFO* cTaskBoss01::s_ModeTbl[19] = {[]() { Constants::MO_BOSS_MODE_INFO* _o1 = new Constants::MO_BOSS_MODE_INFO(); _o1->m_nMode = 3; _o1->m_nMove = 1; _o1->m_nWait = 30; return _o1; }(), []() { Constants::MO_BOSS_MODE_INFO* _o2 = new Constants::MO_BOSS_MODE_INFO(); _o2->m_nMode = 4; _o2->m_nMove = -1; _o2->m_nWait = 5; return _o2; }(), []() { Constants::MO_BOSS_MODE_INFO* _o3 = new Constants::MO_BOSS_MODE_INFO(); _o3->m_nMode = 5; _o3->m_nMove = 2; _o3->m_nWait = 30; return _o3; }(), []() { Constants::MO_BOSS_MODE_INFO* _o4 = new Constants::MO_BOSS_MODE_INFO(); _o4->m_nMode = 6; _o4->m_nMove = -1; _o4->m_nWait = 30; _o4->m_nWork[0] = 1; _o4->m_nWork[1] = 0; _o4->m_nWork[2] = 0; _o4->m_nWork[3] = 0; return _o4; }(), []() { Constants::MO_BOSS_MODE_INFO* _o5 = new Constants::MO_BOSS_MODE_INFO(); _o5->m_nMode = 8; _o5->m_nMove = -1; _o5->m_nWait = 60; return _o5; }(), []() { Constants::MO_BOSS_MODE_INFO* _o6 = new Constants::MO_BOSS_MODE_INFO(); _o6->m_nMode = 6; _o6->m_nMove = -1; _o6->m_nWait = 30; _o6->m_nWork[0] = 1; _o6->m_nWork[1] = 0; _o6->m_nWork[2] = 0; _o6->m_nWork[3] = 0; return _o6; }(), []() { Constants::MO_BOSS_MODE_INFO* _o7 = new Constants::MO_BOSS_MODE_INFO(); _o7->m_nMode = 3; _o7->m_nMove = 3; _o7->m_nWait = 30; return _o7; }(), []() { Constants::MO_BOSS_MODE_INFO* _o8 = new Constants::MO_BOSS_MODE_INFO(); _o8->m_nMode = 6; _o8->m_nMove = -1; _o8->m_nWait = 30; return _o8; }(), []() { Constants::MO_BOSS_MODE_INFO* _o9 = new Constants::MO_BOSS_MODE_INFO(); _o9->m_nMode = 8; _o9->m_nMove = -1; _o9->m_nWait = 60; return _o9; }(), []() { Constants::MO_BOSS_MODE_INFO* _o10 = new Constants::MO_BOSS_MODE_INFO(); _o10->m_nMode = 6; _o10->m_nMove = -1; _o10->m_nWait = 30; return _o10; }(), []() { Constants::MO_BOSS_MODE_INFO* _o11 = new Constants::MO_BOSS_MODE_INFO(); _o11->m_nMode = 4; _o11->m_nMove = -1; _o11->m_nWait = 5; return _o11; }(), []() { Constants::MO_BOSS_MODE_INFO* _o12 = new Constants::MO_BOSS_MODE_INFO(); _o12->m_nMode = 5; _o12->m_nMove = 4; _o12->m_nWait = 30; return _o12; }(), []() { Constants::MO_BOSS_MODE_INFO* _o13 = new Constants::MO_BOSS_MODE_INFO(); _o13->m_nMode = 6; _o13->m_nMove = -1; _o13->m_nWait = 30; _o13->m_nWork[0] = 1; _o13->m_nWork[1] = 0; _o13->m_nWork[2] = 0; _o13->m_nWork[3] = 0; return _o13; }(), []() { Constants::MO_BOSS_MODE_INFO* _o14 = new Constants::MO_BOSS_MODE_INFO(); _o14->m_nMode = 8; _o14->m_nMove = -1; _o14->m_nWait = 60; return _o14; }(), []() { Constants::MO_BOSS_MODE_INFO* _o15 = new Constants::MO_BOSS_MODE_INFO(); _o15->m_nMode = 6; _o15->m_nMove = -1; _o15->m_nWait = 30; _o15->m_nWork[0] = 1; _o15->m_nWork[1] = 0; _o15->m_nWork[2] = 0; _o15->m_nWork[3] = 0; return _o15; }(), []() { Constants::MO_BOSS_MODE_INFO* _o16 = new Constants::MO_BOSS_MODE_INFO(); _o16->m_nMode = 3; _o16->m_nMove = 5; _o16->m_nWait = 30; return _o16; }(), []() { Constants::MO_BOSS_MODE_INFO* _o17 = new Constants::MO_BOSS_MODE_INFO(); _o17->m_nMode = 6; _o17->m_nMove = -1; _o17->m_nWait = 30; return _o17; }(), []() { Constants::MO_BOSS_MODE_INFO* _o18 = new Constants::MO_BOSS_MODE_INFO(); _o18->m_nMode = 8; _o18->m_nMove = -1; _o18->m_nWait = 60; return _o18; }(), []() { Constants::MO_BOSS_MODE_INFO* _o20 = new Constants::MO_BOSS_MODE_INFO(); _o20->m_nMode = 7; _o20->m_nMove = 0; _o20->m_nWait = 40; return _o20; }()};
 
 int cTaskBoss01::DAMAGE_BASE_HP(cTaskCharBoss* boss)
 {
@@ -103,6 +105,7 @@ float& cTaskBoss01::fCenterPosY()
 	return m_fCenterPosY;
 }
 
+// DOL 0x80039d08 [audited: per AUDIT_G03_G07 row]
 void cTaskBoss01::Init()
 {
 	m_fTargetRot = 0.0f;
@@ -118,6 +121,8 @@ void cTaskBoss01::Init()
 	fChargeDamageRate() = 0.0f;
 	m_fCenterPosY = 0.0f;
 	m_nCameraMode = 0u;
+	fFogNear() = -30.0f; // DOL 0x80039d08: +0xa4c / +0xa50
+	fFogFar() = 40.0f;
 	SetMode(1);
 	Vector4 v;
 	Constants::MOTOS_VEC4_SET(v, -5.5f, 0.0f, -0.5f);
@@ -167,6 +172,7 @@ void cTaskBoss01::Term()
 	cTaskCharBoss::Term();
 }
 
+// DOL 0x8003a458 [audited: per AUDIT_G03_G07 row]
 bool cTaskBoss01::ActionBoth()
 {
 	if (GetMode() != 10 && nHp() < cTaskBoss01::DAMAGE_BASE_HP(this))
@@ -177,6 +183,7 @@ bool cTaskBoss01::ActionBoth()
 	return true;
 }
 
+// DOL 0x8003a598 [audited: per AUDIT_G03_G07 row]
 bool cTaskBoss01::ActionLocal()
 {
 	if (CustomKingdomUtil::IF(m_nHitFlash))
@@ -223,6 +230,7 @@ bool cTaskBoss01::ActionOther()
 	return true;
 }
 
+// DOL 0x8003a734 [audited: per AUDIT_G03_G07 row]
 void cTaskBoss01::AdjustMaxSpeed()
 {
 	float num = ::Constants::jetGeoVecLength(vSpeed());
@@ -245,6 +253,7 @@ void cTaskBoss01::DrawEndDirection()
 {
 }
 
+// DOL 0x8003a7a4 [audited: per AUDIT_G03_G07 row] (every mode / message compared 2026-10-30)
 bool cTaskBoss01::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	if (GetMode() != 0)
@@ -339,7 +348,7 @@ bool cTaskBoss01::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (1 == nMes)
 			{
-				vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+				vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 				if (--nTimer() == 0)
 				{
 					int nWait2 = s_ModeTbl[nAction()]->m_nWait;
@@ -367,7 +376,7 @@ bool cTaskBoss01::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (1 == nMes)
 			{
-				vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.005);
+				vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.005);
 				m_fNowAccel = fRushAccel();
 				m_fNowMaxSpeed = fRushSpeed();
 				if (Constants::motosCharMove(this, s_vPos[nMovePoint()], 0.05f, m_fNowAccel))
@@ -581,6 +590,7 @@ bool cTaskBoss01::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 	return true;
 }
 
+// DOL 0x8003b61c [audited: per AUDIT_G03_G07 row] (the DOL's "count > counter - 5" is unsigned)
 void cTaskBoss01::RefAttacked(int nParts, int nGrobalID)
 {
 	cTaskChar* cTaskChar2 = KingdomGlobal::g_pMotosGame->pChars((uint)nGrobalID);
@@ -638,6 +648,7 @@ void cTaskBoss01::SET_STEP_WAIT(cTaskCharBoss* boss, ushort step, int time)
 	boss->Step(1) = (boss->Step(2) = (boss->Step(3) = 0));
 }
 
+// DOL (boss 01 appear camera): the camera vectors are set in game coordinates; the C#'s Extentions::GetUnityPos X flip is removed here and in cTaskBoss05 (44th)
 void cTaskBoss01::ApearCameraSet()
 {
 	switch (m_nCameraMode)
@@ -647,7 +658,7 @@ void cTaskBoss01::ApearCameraSet()
 		{
 			vMTrans()[1] -= 0.05f;
 			KingdomGlobal::g_pMotosGame->pCamera()->vPosition()[1] -= 0.025f;
-			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), Extentions::GetUnityPos(vMTrans()));
+			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), vMTrans());
 		}
 		break;
 	case 1u:
@@ -664,15 +675,16 @@ void cTaskBoss01::ApearCameraSet()
 			Vector4 v;
 			::Constants::jetGeoVecCopy(v, pModel(4u)->vTrans());
 			v[1] = 0.0f;
-			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), Extentions::GetUnityPos(v));
+			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), v);
 			v[1] = 8.0f;
 			v[2] += 4.0f;
-			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), Extentions::GetUnityPos(v));
+			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), v);
 			break;
 		}
 	}
 }
 
+// DOL 0x8003b7c0 [audited: per AUDIT_G03_G07 row]
 void cTaskBoss01::ModeAppear()
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) != 2 || !bTestFlag(4194304u))
@@ -715,8 +727,8 @@ void cTaskBoss01::ModeAppear()
 		}
 		break;
 	case 1:
-		SpawnAppearEffect(this, Constants::VEC3_GET(-6.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.7f);
-		SpawnAppearEffect(this, Constants::VEC3_GET(2.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.7f);
+		SpawnAppearEffect(this, Constants::VEC3_GET(-6.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.5f);
+		SpawnAppearEffect(this, Constants::VEC3_GET(2.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.5f);
 		fFogNear() = -30.0f;
 		fFogFar() = 40.0f;
 		cTaskBoss01::SET_STEP(this, 2);
@@ -731,7 +743,7 @@ void cTaskBoss01::ModeAppear()
 			break;
 		}
 		Constants::MOTOS_VEC4_SET(pModel(2u)->vScale(), 1.0f, 1.0f, 1.0f);
-		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE007_BOSS_DEATH, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE038_BOSS_APPEAR2, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
 		pModel(2u)->SetFogIdx(2);
 		SetFlash(2, 0.0f);
 		SetMortion(2u, "ANM_CHAR_BOSS_1_A03", 0u, 2u);
@@ -761,7 +773,6 @@ void cTaskBoss01::ModeAppear()
 		Step(1)++;
 		bApearDemoEnd() = true;
 		cTaskBoss01::SET_MODE_WAIT(this, 2, 10);
-		SetMortion(2u, "ANM_CHAR_BOSS_1_A02");
 		SetMortion(2u, "ANM_CHAR_BOSS_1_A04", 0u, 2u);
 		break;
 	case 255:
@@ -773,6 +784,7 @@ void cTaskBoss01::ModeAppear()
 	}
 }
 
+// DOL 0x8003bcdc [audited: per AUDIT_G03_G07 row]
 void cTaskBoss01::ModeDeath()
 {
 	cTaskMotosFade* cTaskMotosFade2 = KingdomGlobal::g_pMotosGame->pTaskFade();
@@ -782,8 +794,8 @@ void cTaskBoss01::ModeDeath()
 	_switch24_0:
 		pModel()->SetUpdateRateAnmChr(0u, 0.0f);
 		pModel(1u)->SetUpdateRateAnmChr(0u, 0.0f);
-		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE024_BOSS_ROT1, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
-		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE023_BOSS_MOVE1, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+		SoundManager::get_SE()->Stop(ESEKind::MOTOS_SND_SE024_BOSS_ROT1); // DOL 0x8003bcdc: FUN_800a2290 (cue 0x18 / 0x17, fade 0) = stop; the port started them
+		SoundManager::get_SE()->Stop(ESEKind::MOTOS_SND_SE023_BOSS_MOVE1);
 		if (Step(1) < 30)
 		{
 			Step(1)++;
@@ -793,7 +805,7 @@ void cTaskBoss01::ModeDeath()
 			nLTimer() = 90;
 			cTaskBoss01::SET_STEP(this, 1);
 		}
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		break;
 	case 1:
 	_switch24_1:
@@ -802,7 +814,7 @@ void cTaskBoss01::ModeDeath()
 		SpawnExplodeRandom(this, Constants::VEC3_GET(1.0f, 0.0f, -0.5f), 3.5f, 1.0f, 0.5f, 240);
 		SpawnExplodeRandom(this, Constants::VEC3_GET(1.0f, 0.0f, -0.5f), 3.5f, 1.0f, 0.5f, 240);
 		cTaskBoss01::SET_STEP(this, 2);
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		break;
 	case 2:
 	_switch24_2:
@@ -810,7 +822,7 @@ void cTaskBoss01::ModeDeath()
 		{
 			cTaskBoss01::SET_STEP(this, 3);
 		}
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		ExplodeSE();
 		break;
 	case 3:
@@ -819,17 +831,17 @@ void cTaskBoss01::ModeDeath()
 		{
 		case 0:
 		_switch25_0:
-			if (++Step(1) > 60)
+			if (++Step(1) > 120) // DOL 0x78 (the port had half the DOL's counts and fade times in this step)
 			{
 				Step(1) = 0;
 				Step(2)++;
 			}
 			ExplodeSE();
-			cTaskMotosFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 1000);
+			cTaskMotosFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 2000); // DAT_8047d4a4
 			break;
 		case 1:
 		_switch25_1:
-			if (++Step(1) > 30)
+			if (++Step(1) > 60)
 			{
 				Constants::SpawnEffect(21, vMTrans());
 				KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.2f, 20);
@@ -839,7 +851,7 @@ void cTaskBoss01::ModeDeath()
 			goto _switch25_2;
 		case 2:
 		_switch25_2:
-			if (++Step(1) > 10)
+			if (++Step(1) > 20)
 			{
 				Constants::SpawnEffect(21, vMTrans());
 				ExHitParam(0)->m_nKind = 2;
@@ -850,14 +862,21 @@ void cTaskBoss01::ModeDeath()
 			break;
 		case 3:
 		_switch25_3:
-			if (++Step(1) == 20)
+			if (!cTaskMotosFade2->IsEnd())
 			{
-				Step(1)++;
-				Constants::SpawnEffect(21, vMTrans());
-				KingdomGlobal::g_pMotosGame->nScore() += nScore();
-				KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.42f, 30);
+				if (Step(1) == 40)
+				{
+					Step(1)++;
+					Constants::SpawnEffect(21, vMTrans());
+					KingdomGlobal::g_pMotosGame->nScore() += nScore();
+					KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.42f, 30);
+				}
+				else if (Step(1) < 40)
+				{
+					Step(1)++;
+				}
 			}
-			else if (Step(1) > 20 && cTaskMotosFade2->IsEnd())
+			else
 			{
 				Step(1) = 0;
 				Step(2)++;
@@ -865,10 +884,10 @@ void cTaskBoss01::ModeDeath()
 			break;
 		case 4:
 		_switch25_4:
-			if (Step(1)++ > 30)
+			if (Step(1)++ > 60) // DAT_8047d4a8
 			{
 				OnFlag(33u);
-				cTaskMotosFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 1000);
+				cTaskMotosFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 2000);
 				Step(2)++;
 				for (uint num = 0u; pModel(num) != nullptr; num++)
 				{
@@ -884,12 +903,12 @@ void cTaskBoss01::ModeDeath()
 			}
 			break;
 		}
-		m_fCenterPosY = (float)((double)Random::Range(0, 10) * 0.02);
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		m_fCenterPosY = (float)((double)kingdom::MslRandRange(0, 10) * 0.02);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		break;
 	case 4:
 	_switch24_4:
-		if (++Step(1) > 50)
+		if (++Step(1) > 100)
 		{
 			ChangeTaiki();
 		}
@@ -905,7 +924,7 @@ void cTaskBoss01::ModeDeath()
 			num2 = 255u;
 		}
 		nCoreFogColor() = 0xFF0000FFu | (num2 << 16) | (num2 << 8);
-		m_fCenterPosY = (float)((double)Random::Range(0, 10) * 0.02 * (double)(1.0f - (float)(nLTimer() / 90)));
+		m_fCenterPosY = (float)((double)kingdom::MslRandRange(0, 10) * 0.02 * (double)(1.0f - (float)(nLTimer() / 90)));
 	}
 }
 

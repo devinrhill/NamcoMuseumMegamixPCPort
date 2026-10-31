@@ -11,7 +11,7 @@ cTaskCollision::cTaskCollision(cTaskEnemyManager* pEnemy, cTaskPacmanManager* pP
 	SetName("g04::cTaskCollision");
 }
 
-// DOL 0x8019d828 (the callbacks run even while paused: the Pac-Man only tests while lunging, and a paused Pac-Man does not move)
+// DOL 0x8019d828 [audited: callback vector replaced by the fixed 4 x 4 pacman/enemy loop] (the callbacks run even while paused: the Pac-Man only tests while lunging, and a paused Pac-Man does not move)
 bool cTaskCollision::Execute(cJetTask* pParam)
 {
 	for (uint p = 0; p < 4; p++)

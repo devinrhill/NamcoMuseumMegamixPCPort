@@ -125,7 +125,7 @@ uint& cSaveLoadMan::nMaxHP()
 	return m_SaveData.nMaxHP;
 }
 
-// DOL 0x8012aa04
+// DOL 0x8012aa04 [audited: per AUDIT_G03_G07 row]
 cSaveLoadMan::cSaveLoadMan()
 {
 	Init();
@@ -136,7 +136,7 @@ cSaveLoadMan::~cSaveLoadMan()
 	Term();
 }
 
-// DOL 0x8012aab0 (vtable slot 0): clear, defaults from the PAC_COMMON csv, cookie counts per round, round 0 open
+// DOL 0x8012aab0 [audited: per AUDIT_G03_G07 row] (vtable slot 0): clear, defaults from the PAC_COMMON csv, cookie counts per round, round 0 open
 void cSaveLoadMan::Init()
 {
 	m_SaveData = SSaveDataPacnRoll();
@@ -188,7 +188,7 @@ void cSaveLoadMan::InitData()
 	m_SaveData.nValidate = 3u;
 }
 
-// DOL 0x8012ac80
+// DOL 0x8012ac80 [audited: per AUDIT_G03_G07 row]
 bool cSaveLoadMan::GetStageRecord(SSaveDataPacnRoll::sStageRecord& _out, uint round)
 {
 	CustomKingdomUtil::Assert(26 > round, "error");
@@ -201,7 +201,7 @@ bool cSaveLoadMan::GetStageRecord(SSaveDataPacnRoll::sStageRecord& _out, uint ro
 	return true;
 }
 
-// DOL 0x8012acd4
+// DOL 0x8012acd4 [audited: per AUDIT_G03_G07 row]
 bool cSaveLoadMan::SetStageRecord(SSaveDataPacnRoll::sStageRecord set, uint round)
 {
 	CustomKingdomUtil::Assert(26 > round, "error");
@@ -213,7 +213,7 @@ bool cSaveLoadMan::SetStageRecord(SSaveDataPacnRoll::sStageRecord set, uint roun
 	return true;
 }
 
-// DOL 0x8012ad20: nValidate = 3, the data object into game data block 2 (museum.bin is written by the next SAVE job, cAppSaveLoad)
+// DOL 0x8012ad20 [audited: described by the 43rd-session pass]: nValidate = 3, the data object into game data block 2 (museum.bin is written by the next SAVE job, cAppSaveLoad)
 void cSaveLoadMan::SaveData()
 {
 	if (devtools::PreviewAll()) return; // devtools: --preview-all never persists (not 1:1)
@@ -223,7 +223,7 @@ void cSaveLoadMan::SaveData()
 	KingdomGlobal::KingSys->SaveGameData(SAVE_BLOCK, b, SAVE_SIZE);
 }
 
-// DOL 0x8012ad64: block 2 into the data object; an empty block (nValidate 0) or another version starts over (Init) as version 3
+// DOL 0x8012ad64 [audited: described by the 43rd-session pass]: block 2 into the data object; an empty block (nValidate 0) or another version starts over (Init) as version 3
 void cSaveLoadMan::LoadData()
 {
 	u8 b[SAVE_SIZE] = {};
@@ -242,7 +242,7 @@ void cSaveLoadMan::LoadData()
 	}
 }
 
-// DOL 0x8012adf0: rounds 0..24 open, all clear (also the sys flag, 0x8012a994), then SaveData
+// DOL 0x8012adf0 [audited: per AUDIT_G03_G07 row]: rounds 0..24 open, all clear (also the sys flag, 0x8012a994), then SaveData
 void cSaveLoadMan::ForceAllClear()
 {
 	SSaveDataPacnRoll::sStageRecord _out = SSaveDataPacnRoll::sStageRecord();

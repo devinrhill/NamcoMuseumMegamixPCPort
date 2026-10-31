@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g11/cTaskGrobdaEnemy.hpp"
 
 #include <algorithm>
@@ -24,7 +25,7 @@ namespace grobda_dir
 
 namespace
 {
-// DOL 0x8038ab60: eight directions, 0x8038abe0: sixteen (vec4 each)
+// DOL 0x8038ab60 [audited]: eight directions, 0x8038abe0: sixteen (vec4 each)
 const float DIR8[8][4] = {{0.0f, 0.0f, 1.0f, 0.0f},           {0.70710678f, 0.0f, 0.70710678f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.0f},
                           {0.70710678f, 0.0f, -0.70710678f, 0.0f}, {0.0f, 0.0f, -1.0f, 0.0f},         {-0.70710678f, 0.0f, -0.70710678f, 0.0f},
                           {-1.0f, 0.0f, 0.0f, 0.0f},          {-0.70710678f, 0.0f, 0.70710678f, 0.0f}};
@@ -109,7 +110,7 @@ int Nearest16(const float* v)
 
 namespace
 {
-// DOL 0x8002896c: the player nearest to `pos` (XZ); null without players
+// DOL 0x8002896c [audited]: the player nearest to `pos` (XZ); null without players
 cTaskGrobdaModel* NearestPlayer(const float* pos)
 {
 	cTaskGrobdaStage* st = cTaskGrobdaStage::Instance();
@@ -131,7 +132,7 @@ cTaskGrobdaModel* NearestPlayer(const float* pos)
 
 // ---- cTaskGrobdaEnemy --------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80026e54 (+ Init 0x80026fa0, run from the ctor through vtable +0x88)
+// DOL 0x80026e54 [audited] (+ Init 0x80026fa0, run from the ctor through vtable +0x88)
 cTaskGrobdaEnemy::cTaskGrobdaEnemy(uint type)
 {
 	SetName("cTaskGrobdaEnemy");
@@ -140,14 +141,14 @@ cTaskGrobdaEnemy::cTaskGrobdaEnemy(uint type)
 	m_pSpark->Generate(0x20, false, true, true, 0.0f, Vector4(0.0f, 0.0f, 0.0f, 0.0f));
 	if (m_pSpark->IsValid()) { m_pSpark->Inactive(); m_pSpark->Invisible(); }
 	m_pFragment = new kingdom::cKingdomPtkHnd();
-	m_pFragment->Generate(0x1f, false, true, true, 0.0f, Vector4(0.0f, 0.0f, 0.0f, 0.0f));
+	m_pFragment->Generate(0x1f, true, true, false, 0.0f, Vector4(0.0f, 0.0f, 0.0f, 0.0f));   // 0x80035ec0: slot 0x1f = one time
 	if (m_pFragment->IsValid()) { m_pFragment->Inactive(); m_pFragment->Invisible(); }
 	SetFlags(0);   // VCALL(+0x98)
 	m_nPhase = 0;
 	m_bEnter = true;
 }
 
-// DOL 0x800271e8 (Term, run by cTaskKingdom::TermOnce when the job releases the task): each handle is detached (FUN_8008a508(.., 1)) and
+// DOL 0x800271e8 [audited] (Term, run by cTaskKingdom::TermOnce when the job releases the task): each handle is detached (FUN_8008a508(.., 1)) and
 // destroyed (vtable +0x10 with 1)
 void cTaskGrobdaEnemy::ReleaseTerm()
 {
@@ -167,7 +168,7 @@ cTaskGrobdaEnemy::~cTaskGrobdaEnemy()
 	delete m_pFragment;
 }
 
-// DOL 0x80027b48
+// DOL 0x80027b48 [audited]
 bool cTaskGrobdaEnemy::TakeEnter(bool clear)
 {
 	if (m_bEnter)
@@ -178,7 +179,7 @@ bool cTaskGrobdaEnemy::TakeEnter(bool clear)
 	return false;
 }
 
-// DOL 0x80036b68: the object moves to another model slot (translation, rotation, scale), the old one hides, the new one shows
+// DOL 0x80036b68 [audited]: the object moves to another model slot (translation, rotation, scale), the old one hides, the new one shows
 void cTaskGrobdaEnemy::SwitchModel(int idx)
 {
 	if (idx == m_nModelIdx) return;
@@ -195,7 +196,7 @@ void cTaskGrobdaEnemy::SwitchModel(int idx)
 	m_nModelIdx = idx;
 }
 
-// DOL 0x800272ec
+// DOL 0x800272ec [audited]
 bool cTaskGrobdaEnemy::Execute(cJetTask* pParam)
 {
 	if (cTaskGrobdaCollision::Running())
@@ -218,7 +219,7 @@ bool cTaskGrobdaEnemy::Execute(cJetTask* pParam)
 	return cTaskGrobdaModel::Execute(pParam);
 }
 
-// DOL 0x80027bc0: wait for the stage to start playing
+// DOL 0x80027bc0 [audited]: wait for the stage to start playing
 void cTaskGrobdaEnemy::Phase0()
 {
 	if (m_bEnter) { m_bEnter = false; SetFlags(0); }
@@ -226,7 +227,7 @@ void cTaskGrobdaEnemy::Phase0()
 	if (st != nullptr && st->IsPlaying()) { m_nPhase = 2; m_bEnter = true; }
 }
 
-// DOL 0x80027c48: dropping in from y = 50 once the start delay is over; the footprint joins list 8 below y = 1.5
+// DOL 0x80027c48 [audited]: dropping in from y = 50 once the start delay is over; the footprint joins list 8 below y = 1.5
 void cTaskGrobdaEnemy::Phase1()
 {
 	float* pos = GetPos();
@@ -250,7 +251,7 @@ void cTaskGrobdaEnemy::Phase1()
 		{
 			UpdateShape();
 			cTaskGrobdaStage* st = cTaskGrobdaStage::Instance();
-			if (st != nullptr && !st->IsFinishing() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(8, this, nullptr);
+			if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(8, this, nullptr);
 		}
 		if (pos[1] <= 0.0f)
 		{
@@ -263,7 +264,7 @@ void cTaskGrobdaEnemy::Phase1()
 	}
 }
 
-// DOL 0x80027f24: active; the stage finishing ends it
+// DOL 0x80027f24 [audited]: active; the stage finishing ends it
 void cTaskGrobdaEnemy::Phase2()
 {
 	if (m_bEnter) { m_bEnter = false; SetFlags(2); }
@@ -271,7 +272,7 @@ void cTaskGrobdaEnemy::Phase2()
 	if (st != nullptr && st->IsFinishing()) { m_nPhase = 6; m_bEnter = true; }
 }
 
-// DOL 0x80027fb8: destroyed: the fragment effect at the wreck
+// DOL 0x80027fb8 [audited]: destroyed: the fragment effect at the wreck
 void cTaskGrobdaEnemy::Phase3()
 {
 	if (m_bEnter)
@@ -290,14 +291,14 @@ void cTaskGrobdaEnemy::Phase3()
 	}
 }
 
-// DOL 0x800280b0: the wreck; half of the time the spark effect shows
+// DOL 0x800280b0 [audited]: the wreck; half of the time the spark effect shows
 void cTaskGrobdaEnemy::Phase4()
 {
 	if (m_bEnter)
 	{
 		m_bEnter = false;
 		SetFlags(4);
-		if ((std::rand() & 1) == 0 && m_pSpark != nullptr && m_pSpark->IsValid())   // UNVERIFIED: the sign trick of the DOL's rand() & 1 test
+		if ((kingdom::MslRand() & 1) == 0 && m_pSpark != nullptr && m_pSpark->IsValid())   // rand() % 2 == 0: the sign trick of the DOL's rand() & 1 test
 		{
 			m_pSpark->Active();
 			m_pSpark->Visible();
@@ -309,7 +310,7 @@ void cTaskGrobdaEnemy::Phase4()
 	}
 }
 
-// DOL 0x800281a8: the wreck leaves
+// DOL 0x800281a8 [audited]: the wreck leaves
 void cTaskGrobdaEnemy::Phase5()
 {
 	if (m_bEnter)
@@ -320,20 +321,20 @@ void cTaskGrobdaEnemy::Phase5()
 	}
 }
 
-// DOL 0x800282a8: the stage ended
+// DOL 0x800282a8 [audited]: the stage ended
 void cTaskGrobdaEnemy::Phase6()
 {
 	if (m_bEnter) { m_bEnter = false; SetFlags(6); }
 }
 
-// DOL 0x80028234: gone once no shot is left in the air
+// DOL 0x80028234 [audited]: gone once no shot is left in the air
 void cTaskGrobdaEnemy::Phase7()
 {
 	if (m_bEnter) m_bEnter = false;
 	if (!HasShots()) SetFlags(7);
 }
 
-// DOL 0x8002777c: only an active enemy (flag word 2) reads its records: movers / walls (kinds 1, 2) and wrecks (4) set flags, shots and blasts (5, 3) hurt it
+// DOL 0x8002777c [audited]: only an active enemy (flag word 2) reads its records: movers / walls (kinds 1, 2) and wrecks (4) set flags, shots and blasts (5, 3) hurt it
 void cTaskGrobdaEnemy::Resolve(int a, int b)
 {
 	(void)b;
@@ -348,7 +349,7 @@ void cTaskGrobdaEnemy::Resolve(int a, int b)
 	if (!hits.empty()) Damage(hits);
 }
 
-// DOL 0x80027488: hit points; at 0 the enemy blows up (phase 3) and the nearest hit's owner scores it
+// DOL 0x80027488 [audited]: hit points; at 0 the enemy blows up (phase 3) and the nearest hit's owner scores it
 void cTaskGrobdaEnemy::Damage(std::vector<const sGrobdaHit*>& hits)
 {
 	Hp() -= (int)hits.size();
@@ -385,7 +386,7 @@ void cTaskGrobdaEnemy::Damage(std::vector<const sGrobdaHit*>& hits)
 
 // ---- cTaskGrobdaEnemyTank -------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8002c704 (Init) + the kind's Init: Purple 0x8002e7f0 (ENEMY_01, no turret), Orange 0x8002dff4 (ENEMY_02), Yellow 0x8002ec98 (ENEMY_03): the turret kinds have a shield effect (slot 0x1e)
+// DOL 0x8002c704 [audited] (Init) + the kind's Init: Purple 0x8002e7f0 (ENEMY_01, no turret), Orange 0x8002dff4 (ENEMY_02), Yellow 0x8002ec98 (ENEMY_03): the turret kinds have a shield effect (slot 0x1e)
 cTaskGrobdaEnemyTank::cTaskGrobdaEnemyTank(uint type, int model)
 	: cTaskGrobdaEnemy(type), m_nKindType(type)
 {
@@ -407,7 +408,7 @@ cTaskGrobdaEnemyTank::cTaskGrobdaEnemyTank(uint type, int model)
 	m->SetLightSetIdx(1);
 	m->SetFogIdx(1);
 	m->RegistExpand(0, "cannon", CANNON[model], 0x36f);
-	if (cKingdomModel* c = m->pExpandMdl(0)) { c->SetLightSetIdx(1); c->SetFogIdx(1); }
+	m->IsDrawShadowDepth(true);   // vtable +0x20 (1); the cannon takes the light set from the body in RegistExpand (0x8001fe58), not the fog
 	m->Visible();   // FUN_8001a1f4
 	cKingdomModel* d = CreateModel(1);
 	d->RegistModel(DEBRIS[model], 0x36f);
@@ -416,7 +417,7 @@ cTaskGrobdaEnemyTank::cTaskGrobdaEnemyTank(uint type, int model)
 	d->Invisible();   // FUN_8001a330
 	Anim(0);
 	m_nModelIdx = 0;
-	CreateShots(type);
+	CreateShots(0x2000001u + (uint)model);   // the kind's Init: Purple 0x2000001, Orange 0x2000002, Yellow 0x2000003 (not the record's type): the shot's effect slot
 	m_fRadius = 0.8f;   // FLOAT_80476a60 / 48 / 78
 	{
 		const float box[4][4] = {{1.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 1.0f, 0.0f}};   // FUN_8019334c(2, 2)
@@ -436,21 +437,21 @@ void cTaskGrobdaEnemyTank::LoadParams(const char* csv)
 	{
 		sTankParam& p = m_Par[l];
 		const int col = l + 1;
-		p.speed = m_Csv.F32(0, col, 0.0f);
-		p.speedDebris = m_Csv.F32(1, col, 0.0f);
-		p.shotSpeed = m_Csv.F32(2, col, 0.0f);
-		p.shotCount = (uint)m_Csv.F32(3, col, 0.0f);
-		p.moveTime = (uint)m_Csv.F32(4, col, 0.0f);
-		p.moveMin = (uint)m_Csv.F32(5, col, 0.0f);
-		p.turnTime = (uint)m_Csv.F32(6, col, 0.0f);
-		p.wallWait = (uint)m_Csv.F32(7, col, 0.0f);
-		p.shotInterval = (uint)m_Csv.F32(8, col, 0.0f);
-		p.shotIntervalSeen = (uint)m_Csv.F32(9, col, 0.0f);
-		p.turretTime = (uint)m_Csv.F32(10, col, 0.0f);
+		p.speed = m_Csv.F32(0, col, 255.0f);
+		p.speedDebris = m_Csv.F32(1, col, 255.0f);
+		p.shotSpeed = m_Csv.F32(2, col, 255.0f);
+		p.shotCount = (uint)m_Csv.F32(3, col, 255.0f);
+		p.moveTime = (uint)m_Csv.F32(4, col, 255.0f);
+		p.moveMin = (uint)m_Csv.F32(5, col, 255.0f);
+		p.turnTime = (uint)m_Csv.F32(6, col, 255.0f);
+		p.wallWait = (uint)m_Csv.F32(7, col, 255.0f);
+		p.shotInterval = (uint)m_Csv.F32(8, col, 255.0f);
+		p.shotIntervalSeen = (uint)m_Csv.F32(9, col, 255.0f);
+		p.turretTime = (uint)m_Csv.F32(10, col, 255.0f);
 	}
 }
 
-// DOL 0x8002ca34: eight enemy shots, children of the enemy
+// DOL 0x8002ca34 [audited]: eight enemy shots, children of the enemy
 void cTaskGrobdaEnemyTank::CreateShots(uint type)
 {
 	for (int i = 0; i < 8; i++)
@@ -461,7 +462,7 @@ void cTaskGrobdaEnemyTank::CreateShots(uint type)
 	}
 }
 
-// DOL 0x8002cad0
+// DOL 0x8002cad0 [audited]
 bool cTaskGrobdaEnemyTank::HasShots()
 {
 	for (cTaskGrobdaShotEnemy* s : m_pShot)
@@ -475,7 +476,7 @@ void cTaskGrobdaEnemyTank::SetRotY(float a)
 	if (m != nullptr) m->vRotate().y = a;
 }
 
-// DOL 0x8002c830: the record's three words: the angle in degrees (-> the first of the eight directions), the level (0..2) and the start delay
+// DOL 0x8002c830 [audited]: the record's three words: the angle in degrees (-> the first of the eight directions), the level (0..2) and the start delay
 void cTaskGrobdaEnemyTank::SetStart(int level, int delay, int angleDeg)
 {
 	int deg = angleDeg;
@@ -493,7 +494,7 @@ void cTaskGrobdaEnemyTank::SetStart(int level, int delay, int angleDeg)
 	ComboStep() = m_Csv.S32(13, m_nLevel + 1, 0xff);
 }
 
-// DOL 0x8002cb30: the clip sets (CRC names of the stage archive): 0 WAIT, 1 RUN (+ texture scroll), 2 ROT_L, 3 ROT_R, 4 SHOT (blend 1), 5 DIE
+// DOL 0x8002cb30 [audited]: the clip sets (CRC names of the stage archive): 0 WAIT, 1 RUN (+ texture scroll), 2 ROT_L, 3 ROT_R, 4 SHOT (blend 1), 5 DIE
 void cTaskGrobdaEnemyTank::Anim(int mode)
 {
 	m_nAnim = mode;
@@ -516,7 +517,7 @@ void cTaskGrobdaEnemyTank::Anim(int mode)
 	}
 }
 
-// DOL 0x8002d548: Orange / Yellow track the nearest player with the cannon (sixteen directions); Purple's cannon follows the body
+// DOL 0x8002d548 [audited]: Orange / Yellow track the nearest player with the cannon (sixteen directions); Purple's cannon follows the body
 void cTaskGrobdaEnemyTank::Cannon()
 {
 	if (!m_bTurret)
@@ -581,7 +582,7 @@ void cTaskGrobdaEnemyTank::Cannon()
 		if (cKingdomModel* c = m->pExpandMdl(0)) c->vRotate().y = a2 - a1;
 }
 
-// DOL 0x8002d830: the first idle shot leaves one unit ahead of the cannon (y + 0.8) while fewer than the level's shot count are flying
+// DOL 0x8002d830 [audited]: the first idle shot leaves one unit ahead of the cannon (y + 0.8) while fewer than the level's shot count are flying
 void cTaskGrobdaEnemyTank::Shoot()
 {
 	uint active = 0;
@@ -598,7 +599,7 @@ void cTaskGrobdaEnemyTank::Shoot()
 	}
 }
 
-// DOL 0x8002cdc0: the actions (+0xb74): 0 pick the way (turn toward the nearest player), 1 drive, 3 turn away after a block, 4 drive on; 2 nothing
+// DOL 0x8002cdc0 [audited]: the actions (+0xb74): 0 pick the way (turn toward the nearest player), 1 drive, 3 turn away after a block, 4 drive on; 2 nothing
 void cTaskGrobdaEnemyTank::Ai()
 {
 	float* pos = GetPos();
@@ -683,7 +684,7 @@ void cTaskGrobdaEnemyTank::Ai()
 		{
 			TimerReset(0);
 			TimerStart(0);
-			m_nTurn = (std::rand() & 1) != 0 ? 1 : 0;
+			if (m_nModePrev != 4) m_nTurn = (kingdom::MslRand() & 1) != 0 ? 1 : 0;   // 0x80027b7c: coming from mode 4 keeps the last side
 			beginTurn(m_nTurn);
 		}
 		const uint t = TimerMs(0);
@@ -734,7 +735,7 @@ void cTaskGrobdaEnemyTank::Ai()
 	}
 }
 
-// DOL 0x8002da88: the drop-in; on entering, face the nearest player (8 directions, and the turret's 16 where there is one)
+// DOL 0x8002da88 [audited]: the drop-in; on entering, face the nearest player (8 directions, and the turret's 16 where there is one)
 void cTaskGrobdaEnemyTank::Phase1()
 {
 	if (TakeEnter(false))
@@ -762,7 +763,7 @@ void cTaskGrobdaEnemyTank::Phase1()
 	cTaskGrobdaEnemy::Phase1();
 }
 
-// DOL 0x8002dbd8 (Orange / Yellow 0x8002e5d4 / 0x8002f278 first follow the shield effect for 120 ms)
+// DOL 0x8002dbd8 [audited] (Orange / Yellow 0x8002e5d4 / 0x8002f278 first follow the shield effect for 120 ms)
 void cTaskGrobdaEnemyTank::Phase2()
 {
 	if (m_bTurret && m_pShield != nullptr && m_pShield->IsValid() && m_pShield->IsVisible())
@@ -782,10 +783,10 @@ void cTaskGrobdaEnemyTank::Phase2()
 	Ai();
 	UpdateShape();
 	cTaskGrobdaStage* st = cTaskGrobdaStage::Instance();
-	if (st != nullptr && !st->IsFinishing() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(1, this, nullptr);
+	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(1, this, nullptr);
 }
 
-// DOL 0x8002dc50 (Orange / Yellow 0x8002e68c: the shield effect goes first)
+// DOL 0x8002dc50 [audited] (Orange / Yellow 0x8002e68c: the shield effect goes first)
 void cTaskGrobdaEnemyTank::Phase3()
 {
 	if (m_bTurret && TakeEnter(false) && m_pShield != nullptr && m_pShield->IsValid())
@@ -804,7 +805,7 @@ void cTaskGrobdaEnemyTank::Phase3()
 		if (m->GetFrameMaxAnmChr(0) <= m->GetFrameAnmChr(0)) SetPhase(4);
 }
 
-// DOL 0x8002dd74: the wreck is the second model; it stands in list 4 (it slows the tanks driving over it)
+// DOL 0x8002dd74 [audited]: the wreck is the second model; it stands in list 4 (it slows the tanks driving over it)
 void cTaskGrobdaEnemyTank::Phase4()
 {
 	if (TakeEnter(false))
@@ -814,10 +815,10 @@ void cTaskGrobdaEnemyTank::Phase4()
 	}
 	cTaskGrobdaEnemy::Phase4();
 	cTaskGrobdaStage* st = cTaskGrobdaStage::Instance();
-	if (st != nullptr && !st->IsFinishing() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(4, this, nullptr);
+	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(4, this, nullptr);
 }
 
-// DOL 0x8002ddf8: the wreck fades (BIN_CLA_DEBRIS_REMOVE_ENEMY_TANK), then it is gone
+// DOL 0x8002ddf8 [audited]: the wreck fades (BIN_CLA_DEBRIS_REMOVE_ENEMY_TANK), then it is gone
 void cTaskGrobdaEnemyTank::Phase5()
 {
 	if (TakeEnter(false))
@@ -839,7 +840,7 @@ void cTaskGrobdaEnemyTank::Phase5()
 		}
 }
 
-// DOL 0x8002c7d0; the colours' own Execute (Orange 0x8002e464, Purple 0x8002eb34, Yellow 0x8002f108) are the same wrapper around it: the
+// DOL 0x8002c7d0 [audited]; the colours' own Execute (Orange 0x8002e464, Purple 0x8002eb34, Yellow 0x8002f108) are the same wrapper around it: the
 // KingSys +0xa40 / +0x1b4 test only gates get_pad1(0) (0x800219bc, an address computation whose result is dropped).
 // Orange / Yellow's Term: cTaskGrobdaEnemyTank::ReleaseTerm.
 bool cTaskGrobdaEnemyTank::Execute(cJetTask* pParam)
@@ -847,7 +848,7 @@ bool cTaskGrobdaEnemyTank::Execute(cJetTask* pParam)
 	return cTaskGrobdaEnemy::Execute(pParam);
 }
 
-// DOL 0x8002e404 / 0x8002f0a8 (Orange / Yellow Term): detach the shield +0xc8c (FUN_8008a508(.., 1)), destroy it, clear it; then the
+// DOL 0x8002e404 [audited] / 0x8002f0a8 (Orange / Yellow Term): detach the shield +0xc8c (FUN_8008a508(.., 1)), destroy it, clear it; then the
 // enemy's Term (the DOL dtor chain)
 void cTaskGrobdaEnemyTank::ReleaseTerm()
 {
@@ -860,7 +861,7 @@ void cTaskGrobdaEnemyTank::ReleaseTerm()
 	cTaskGrobdaEnemy::ReleaseTerm();
 }
 
-// DOL 0x8002e4c4 / 0x8002f168 (Orange / Yellow): a hit that does not kill shows the shield for 120 ms
+// DOL 0x8002e4c4 [audited] / 0x8002f168 (Orange / Yellow): a hit that does not kill shows the shield for 120 ms
 void cTaskGrobdaEnemyTank::Resolve(int a, int b)
 {
 	const int before = Hp();

@@ -29,6 +29,7 @@ void cTaskCharEnemyBeecon::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x800506ec [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBeecon::FallEffect(int nRefID)
 {
 	cTaskChar* cTaskChar2 = nullptr;
@@ -42,6 +43,7 @@ void cTaskCharEnemyBeecon::FallEffect(int nRefID)
 	}
 }
 
+// DOL 0x80050784 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBeecon::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();

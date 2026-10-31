@@ -1,4 +1,6 @@
+#include "GamePad.hpp"
 #include "kingdom/game/g03/cTaskBgGimmickArrow.hpp"
+#include "kingdom/MslRand.hpp"
 #include "DummyNW4R.hpp"
 
 #include "cJetTask.hpp"
@@ -21,6 +23,7 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x8014e348 [audited: per AUDIT_G03_G07 row] (user data IntervalTime / LifeTime / |Speed|; life defaults to the interval; direction = (0,0,1) turned by the node's raw Y rotation (ResNode here is Unity-mirrored, the x flip undoes that); default position copy; sound radius 15)
 cTaskBgGimmickArrow::cTaskBgGimmickArrow(ResNode* const& node0, ResNode* const& node1)
 	: cTaskBgGimmick(node0, node1)
 {
@@ -78,6 +81,7 @@ void cTaskBgGimmickArrow::Term()
 	cTaskBgGimmick::Term();
 }
 
+// DOL 0x8014ed44 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGimmickArrow::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -117,8 +121,9 @@ bool cTaskBgGimmickArrow::Execute(cJetTask* pParam)
 				{
 					m_bBreak = true;
 					m_nBreakTime = 16u;
-					m_fBreakRot = ::Constants::JET_DEG2RAD(array[Random::Range(0, 6)]);
+					m_fBreakRot = ::Constants::JET_DEG2RAD(array[kingdom::MslRandRange(0, 6)]   /* DOL 0x8014ed44: rand() % 6 (PtkSim::Rand15) */);
 					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE059_YA, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+					GamePad::Rumble(0, 500);   // DOL 0x8014efd4 [audited: class row done in the 43rd session; function not individually re-read]
 				}
 				Vector4 v2;
 				::Constants::jetGeoVecSub(v2, cTaskCharPacman2->vTrans(), this->Model->vTrans());
@@ -153,6 +158,7 @@ bool cTaskBgGimmickArrow::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8014f180 [audited: per AUDIT_G03_G07 row]
 void cTaskBgGimmickArrow::Draw(int nStatus, cJetTask* pParam)
 {
 	Matrix4x4 m;
@@ -164,6 +170,7 @@ void cTaskBgGimmickArrow::Draw(int nStatus, cJetTask* pParam)
 	DummyNW4R::SetMtx(this->Model->pScnMdl(), m);
 }
 
+// inlined in Execute: squared distance <= radius^2 + 0.36
 bool cTaskBgGimmickArrow::HitCheck()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();

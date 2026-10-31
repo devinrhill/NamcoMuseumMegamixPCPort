@@ -29,7 +29,7 @@ void cTaskKingdom::TermOnce()
 	ReleaseTerm();
 }
 
-// DOL 0x80009dc8 (delete this: the dtor chain = ReleaseTerm)
+// DOL 0x80009dc8 [audited] (delete this: the dtor chain = ReleaseTerm)
 void cTaskKingdom::DeleteExecute()
 {
 	TermOnce();
@@ -82,12 +82,14 @@ void cTaskKingdom::NextMode(uint n, uint mode)
 	}
 }
 
+// DOL 0x800077f8 [audited]
 void cTaskKingdom::nDrawPriority(uint n)
 {
 	CustomKingdomUtil::Assert(65536 <= n && n <= 4294901760u, "fatal error");
 	cSysTaskUser::nDrawPriority(n);
 }
 
+// DOL 0x80009dfc [audited]
 uint cTaskKingdom::nDrawPriority()
 {
 	return cSysTaskUser::nDrawPriority();

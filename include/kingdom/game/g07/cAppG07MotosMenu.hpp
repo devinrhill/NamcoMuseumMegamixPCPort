@@ -45,13 +45,11 @@ private:
 public:
 	void FadeInEndCallBack() override;
 
-	void FadeInStartCallBack() override;
 
 	void TutorialOutCallBack() override;
 
 	void MainExec() override;
 
-	void FadeOutEndCallBack() override;
 };
 
 }

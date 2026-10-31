@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/game/g03/cTaskBgGimmick.hpp"
 #include "ResNode.hpp"
 #include "cJetTask.hpp"
@@ -13,9 +14,7 @@ class cTaskBgGimmickTruck : public cTaskBgGimmick
 private:
 	uint m_nStep{};
 
-	GameObject* m_SndHnd{};
-
-	Transform* m_moveRoot{};
+	kingdom::cKingdomSndActor* m_pSndActor{};   // DOL +0x520 (made by 0x800ba17c in Init, deleted in Term)
 
 public:
 	cTaskBgGimmickTruck(ResNode* const& node0, ResNode* const& node1);

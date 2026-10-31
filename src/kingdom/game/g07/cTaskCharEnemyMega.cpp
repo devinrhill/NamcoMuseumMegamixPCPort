@@ -21,6 +21,7 @@ cTaskCharEnemy* cTaskCharEnemyMega::Construct()
 	return new cTaskCharEnemyMega();
 }
 
+// DOL 0x8005603c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyMega::Init()
 {
 	OnFlag(2048u);
@@ -32,6 +33,7 @@ void cTaskCharEnemyMega::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80056058 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyMega::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -48,6 +50,7 @@ bool cTaskCharEnemyMega::Create(uint no)
 	return true;
 }
 
+// DOL 0x8005613c [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyMega::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -76,7 +79,7 @@ uint cTaskCharEnemyMega::Input()
 	}
 	float fDx = v[0] - vMTrans()[0];
 	float fDz = v[2] - vMTrans()[2];
-	if ((float)nHamariTimer() > (float)(int)fExParam(0) / 10.0f && bTestFlag(2048u) && IsFall(vMTrans()) && !CheckFall(vMTrans()))
+	if (nHamariTimer() > (int)fExParam(0) /* DOL 0x8005613c: no / 10 (the port divided) */ && bTestFlag(2048u) && IsFall(vMTrans()) && !CheckFall(vMTrans()))
 	{
 		num2 = nHamariRecoverDir(vMTrans(), v);
 	}
@@ -111,6 +114,7 @@ uint cTaskCharEnemyMega::Input()
 	return num2;
 }
 
+// DOL 0x800564a8 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyMega::ActionBoth()
 {
 	if (IsFall())
@@ -131,6 +135,7 @@ bool cTaskCharEnemyMega::ActionBoth()
 	return true;
 }
 
+// DOL 0x800565e8 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyMega::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

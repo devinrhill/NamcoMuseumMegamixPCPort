@@ -36,6 +36,7 @@ bool cTaskConsMenuArrow::IsActive()
 	return bActive();
 }
 
+// DOL 0x801c57ac [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuArrow::SetData(uint nType, bool bActive)
 {
 	CustomKingdomUtil::Assert(0 <= nType && nType < 2, "ArrowType Over");
@@ -49,6 +50,7 @@ void cTaskConsMenuArrow::SetData(uint nType, bool bActive)
 	nHitPat() = array[nArrowType()];
 }
 
+// DOL 0x801c58bc [audited: anim tables, priorities and step logic checked vs decomp]
 int cTaskConsMenuArrow::nGetArrowAnmNo(int nAnmState)
 {
 	int obj[2][4] = {{326, 327, 328, 329}, {330, 331, 332, 333}};
@@ -57,22 +59,25 @@ int cTaskConsMenuArrow::nGetArrowAnmNo(int nAnmState)
 	return obj[nArrowType()][nAnmState];
 }
 
-// DOL 0x801c5924: hit test of anita 0, only while active (+0x1d8), pattern +0x1e0 (the C# returned false: Unity used colliders)
+// DOL 0x801c5924 [audited: described by the 43rd-session pass]: hit test of anita 0, only while active (+0x1d8), pattern +0x1e0 (the C# returned false: Unity used colliders)
 bool cTaskConsMenuArrow::IsDpdHit(float x, float y)
 {
 	return bActive() && DpdHitPat(x, y, nHitPat());
 }
 
+// DOL 0x801c5a7c [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuArrow::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetArrowAnmNo(1), false);
 }
 
+// DOL 0x801c5ae0 [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuArrow::PointExec()
 {
 	pAnita(0u)->SetAnimNo(nGetArrowAnmNo(2), false);
 }
 
+// DOL 0x801c5b44 [audited: anim tables, priorities and step logic checked vs decomp]
 bool cTaskConsMenuArrow::AppearExec()
 {
 	if (nStep() == 0)
@@ -91,6 +96,7 @@ bool cTaskConsMenuArrow::AppearExec()
 	return false;
 }
 
+// DOL 0x801c5c14 [audited: anim tables, priorities and step logic checked vs decomp]
 bool cTaskConsMenuArrow::DecideExec()
 {
 	if (nStep() == 0)

@@ -145,7 +145,7 @@ private:
 	static int g_HitDamage[6];
 
 public:
-	static const Constants::MO_BOSS_MODE_INFO* s_ModeTbl[20];
+	static const Constants::MO_BOSS_MODE_INFO* s_ModeTbl[19];
 
 private:
 	Matrix4x4 m_mRoll{};

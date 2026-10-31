@@ -2,6 +2,7 @@
 // Stand-ins for the UnityEngine types the C# port still refers to. Behaviour is filled in
 // as the platform layer (raylib / OpenGL) grows; these exist so the game code compiles.
 
+#include "kingdom/MslRand.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -155,8 +156,8 @@ inline bool Approximately(float a, float b) { return std::fabs(a - b) < 1e-6f; }
 }
 
 namespace Random {
-inline int Range(int lo, int hi) { return hi <= lo ? lo : lo + std::rand() % (hi - lo); }
-inline float Range(float lo, float hi) { return lo + (hi - lo) * (std::rand() / (float)RAND_MAX); }
+inline int Range(int lo, int hi) { return hi <= lo ? lo : lo + kingdom::MslRand() % (hi - lo); }
+inline float Range(float lo, float hi) { return lo + (hi - lo) * (kingdom::MslRand() / 32767.0f); }
 }
 
 namespace Time {

@@ -10,7 +10,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800d1638: the segment count (+0x2b0), then the base setup 0x800f6200 with the boss overrides: scn files (+0x70 = 0x800d173c:
+// DOL 0x800d1638 [audited]: the segment count (+0x2b0), then the base setup 0x800f6200 with the boss overrides: scn files (+0x70 = 0x800d173c:
 // cDemoSceneBase::LoadScnData per segment), lights, course "a", ResetCourse, demo object (+0x8c = 0x800d1888: cDemoSceneBoss for stage 10,
 // registered with the demo manager; its goal part is cTaskScene's state 1 with cam_50) and the course camera (+0x80)
 cTaskBossScene::cTaskBossScene(int nStage, int nSegments, float fSpeed) : cTaskScene(nStage, fSpeed, NoSetup{})
@@ -36,7 +36,7 @@ cTaskBossScene::cTaskBossScene(int nStage, int nSegments, float fSpeed) : cTaskS
 	ApplyLights();
 }
 
-// DOL 0x800d1a5c: lights, course of the stage (segment "a"), ResetCourse
+// DOL 0x800d1a5c [audited]: lights, course of the stage (segment "a"), ResetCourse
 void cTaskBossScene::SetCourseCamera()
 {
 	LoadLights();
@@ -44,7 +44,7 @@ void cTaskBossScene::SetCourseCamera()
 	ResetCourse();
 }
 
-// DOL 0x800d1644: the last segment again from its start, the frame overflow kept, +0x2bd
+// DOL 0x800d1644 [audited]: the last segment again from its start, the frame overflow kept, +0x2bd
 void cTaskBossScene::LastSegmentEnd()
 {
 	const float over = m_fLastFrame - m_fLength;
@@ -54,7 +54,7 @@ void cTaskBossScene::LastSegmentEnd()
 	if (std::getenv("MEGAMIX_G01DBG")) std::fprintf(stderr, "g01 boss scene: segment %d loops (overflow %.1f)\n", m_nSeg, over);
 }
 
-// DOL 0x800d16a0: lights, the course of stage + segment, +700, the segment's scn data, ResetCourse, the frame overflow
+// DOL 0x800d16a0 [audited]: lights, the course of stage + segment, +700, the segment's scn data, ResetCourse, the frame overflow
 void cTaskBossScene::NextSegment(int nSeg)
 {
 	const float over = m_fLastFrame - m_fLength;
@@ -70,7 +70,7 @@ void cTaskBossScene::NextSegment(int nSeg)
 // The other overrides: +0x78 0x800d19fc (scene state 7: the current camera from frame 0 at rate 1, then it runs) is reached only from
 // cTaskScene::GoalStart 0x800f6ad0, which only Pac-Man's goal run calls (stage 10 has none); +0x84 0x800d1aa8 (cam_10 / lig_10 of stage 1) is
 // only called by cDemoSceneW1S1's Init (stage 10 has cDemoSceneBoss). Both are unreachable on stage 10.
-// DOL 0x800d1918
+// DOL 0x800d1918 [audited: the +0x1fa / +0x1f9 flags are not kept, cTaskPacman pins itself to the scene every tick]
 void cTaskBossScene::GameStep()
 {
 	m_bSegChanged = false;

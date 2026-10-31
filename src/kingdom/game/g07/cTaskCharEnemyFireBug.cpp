@@ -19,6 +19,7 @@ cTaskCharEnemy* cTaskCharEnemyFireBug::Construct()
 	return new cTaskCharEnemyFireBug();
 }
 
+// DOL 0x80054d40 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyFireBug::Init()
 {
 	nChangeMoveFrame() = 30;
@@ -30,6 +31,7 @@ void cTaskCharEnemyFireBug::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80054d5c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyFireBug::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -46,6 +48,7 @@ bool cTaskCharEnemyFireBug::Create(uint no)
 	return true;
 }
 
+// DOL 0x80054e40 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyFireBug::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -135,6 +138,7 @@ bool cTaskCharEnemyFireBug::ActionBoth()
 	return cTaskCharEnemy::ActionBoth();
 }
 
+// DOL 0x8005518c [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyFireBug::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

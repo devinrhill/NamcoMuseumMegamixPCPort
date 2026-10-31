@@ -127,6 +127,14 @@ struct LineVertex
 	std::uint8_t rgba[4];
 };
 void DrawLines3D(const LineVertex* verts, std::size_t count, bool depthTest);
+// Flat coloured triangles inside the open 3D pass (three vertices each, world space, alpha blended); depthTest = hidden by the scene, writeDepth =
+// hides what is drawn after it. Dev tools only (the graybox primitives of the Pac-N-Roll editor).
+struct TriVertex
+{
+	float pos[3];
+	std::uint8_t rgba[4];
+};
+void DrawTriangles3D(const TriVertex* verts, std::size_t count, bool depthTest, bool writeDepth);
 // The share (0..1) of a square facing the camera (centre `c`, half size `half`, world units) that the depth already in the buffer does not
 // hide: an occlusion query, outside a 3D pass (the lens flare's visibility test; the Wii reads the EFB depth back). -1 when unsupported.
 float VisibleShare(const float view[16], const float proj[16], const float c[3], float half);

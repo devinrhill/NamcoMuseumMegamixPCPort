@@ -24,38 +24,39 @@ bool Running()
 }
 }
 
-// DOL 0x8012d738
+// DOL 0x8012d738 [audited]
 cTaskGrobdaConsoleBase::cTaskGrobdaConsoleBase()
 {
 	SetName("cTaskGrobdaConsoleBase");
 }
 
-// DOL 0x8012d79c
+// DOL 0x8012d79c [audited]
 bool cTaskGrobdaConsoleBase::Execute(cJetTask* pParam)
 {
 	if (Running()) return kingdom::cTaskAnita::Execute(pParam);   // FUN_80014d58(+0x1b4): the anita vector update
 	return true;
 }
 
-// DOL 0x8012d800
+// DOL 0x8012d800 [audited]
 void cTaskGrobdaConsoleBase::SetVisible(uint n, bool b)
 {
 	pAnita(n)->SetState(1u, b);
 }
 
-// DOL 0x8012d854
+// DOL 0x8012d854 [audited]
 bool cTaskGrobdaConsoleBase::IsVisible(uint n)
 {
 	return pAnita(n)->IsState(1u);
 }
 
-// DOL 0x8012d880
+// DOL 0x8012d880 [audited]
 bool cTaskGrobdaConsoleBase::IsAnimEnd(uint n)
 {
+	if (!IsVisible(n)) return true;   // vtable +0x54: a hidden layer counts as ended
 	return pAnita(n)->IsState(ANIM_END);
 }
 
-// DOL 0x80130e54
+// DOL 0x80130e54 [audited]
 cTaskGrobdaConsoleReadyGo::cTaskGrobdaConsoleReadyGo()
 {
 	SetName("cTaskGrobdaConsoleReadyGo");
@@ -63,7 +64,7 @@ cTaskGrobdaConsoleReadyGo::cTaskGrobdaConsoleReadyGo()
 	SetVisible(0, false);
 }
 
-// DOL 0x8013111c
+// DOL 0x8013111c [audited]
 void cTaskGrobdaConsoleReadyGo::Start()
 {
 	m_nMode = 1;
@@ -71,7 +72,7 @@ void cTaskGrobdaConsoleReadyGo::Start()
 	SetVisible(0, true);
 }
 
-// DOL 0x80130f20
+// DOL 0x80130f20 [audited]
 bool cTaskGrobdaConsoleReadyGo::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -98,11 +99,11 @@ bool cTaskGrobdaConsoleReadyGo::Execute(cJetTask* pParam)
 	return cTaskGrobdaConsoleBase::Execute(pParam);
 }
 
-// DOL 0x801326b8
+// DOL 0x801326b8 [audited]
 cTaskGrobdaConsoleTime::cTaskGrobdaConsoleTime()
 {
 	SetName("cTaskGrobdaConsoleTime");
-	const bool multi = false;   // FUN_8000ed74 (sys +4 matching block): multiplayer is NOT PORTED
+	const bool multi = cG11GrobdaSys::Instance()->IsMulti();   // FUN_8000ed74
 	const int pat = multi ? 0x16 : 2;
 	for (uint i = 0; i < 8; i++)
 	{
@@ -113,7 +114,7 @@ cTaskGrobdaConsoleTime::cTaskGrobdaConsoleTime()
 	}
 }
 
-// DOL 0x80132b6c
+// DOL 0x80132b6c [audited]
 int cTaskGrobdaConsoleTime::AnimNo(uint layer, int mode, int digit)
 {
 	if (layer - 2u < 6u)
@@ -132,17 +133,17 @@ int cTaskGrobdaConsoleTime::AnimNo(uint layer, int mode, int digit)
 	return -1;
 }
 
-// DOL 0x8013295c
+// DOL 0x8013295c [audited]
 void cTaskGrobdaConsoleTime::ShowTime(int mode)
 {
 	const int sec = m_nTimeMs / 1000;
 	const int min = sec / 60;
 	const int cs = (m_nTimeMs / 10) % 100;
-	const int d[8] = {0, 0, cs % 10, cs / 10, (sec % 60) % 10, (sec % 60) / 10, min % 10, (min / 10) % 10};   // UNVERIFIED: min tens wraps like the DOL's last division chain
+	const int d[8] = {0, 0, cs % 10, cs / 10, (sec % 60) % 10, (sec % 60) / 10, min % 10, (min / 10) % 10};   // min tens wraps like the DOL's last division chain
 	for (uint i = 0; i < 8; i++) pAnita(i)->SetAnimNo(AnimNo(i, mode, d[i]), false, 0.0f);   // FLOAT_8047c118 = start frame
 }
 
-// DOL 0x801327e0
+// DOL 0x801327e0 [audited]
 bool cTaskGrobdaConsoleTime::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -161,7 +162,7 @@ bool cTaskGrobdaConsoleTime::Execute(cJetTask* pParam)
 	return cTaskGrobdaConsoleBase::Execute(pParam);
 }
 
-// DOL 0x80132c10
+// DOL 0x80132c10 [audited]
 void cTaskGrobdaConsoleTime::Start()
 {
 	m_nMode = 1;
@@ -169,7 +170,7 @@ void cTaskGrobdaConsoleTime::Start()
 	for (uint i = 0; i < 8; i++) SetVisible(i, true);
 }
 
-// DOL 0x80132c7c
+// DOL 0x80132c7c [audited]
 void cTaskGrobdaConsoleTime::End()
 {
 	m_nMode = 3;
@@ -199,7 +200,7 @@ bool cTaskGrobdaConsoleBase::PlaceLayer(uint anita, uint layer, int pat, bool sc
 
 // ---- Finish ----
 
-// DOL 0x8012df78
+// DOL 0x8012df78 [audited]
 cTaskGrobdaConsoleFinish::cTaskGrobdaConsoleFinish()
 {
 	SetName("cTaskGrobdaConsoleFinish");
@@ -207,7 +208,7 @@ cTaskGrobdaConsoleFinish::cTaskGrobdaConsoleFinish()
 	SetVisible(0, false);
 }
 
-// DOL 0x8012e1a4
+// DOL 0x8012e1a4 [audited]
 void cTaskGrobdaConsoleFinish::Start()
 {
 	m_nMode = 1;
@@ -215,7 +216,7 @@ void cTaskGrobdaConsoleFinish::Start()
 	SetVisible(0, true);
 }
 
-// DOL 0x8012e20c
+// DOL 0x8012e20c [audited]
 void cTaskGrobdaConsoleFinish::End()
 {
 	if (m_nMode == 2)
@@ -225,7 +226,7 @@ void cTaskGrobdaConsoleFinish::End()
 	}
 }
 
-// DOL 0x8012e044
+// DOL 0x8012e044 [audited]
 bool cTaskGrobdaConsoleFinish::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -251,7 +252,7 @@ bool cTaskGrobdaConsoleFinish::Execute(cJetTask* pParam)
 
 // ---- Score ----
 
-// DOL 0x80131fd4
+// DOL 0x80131fd4 [audited]
 cTaskGrobdaConsoleScore::cTaskGrobdaConsoleScore(int player)
 {
 	SetName("cTaskGrobdaConsoleScore");
@@ -269,7 +270,7 @@ cTaskGrobdaConsoleScore::cTaskGrobdaConsoleScore(int player)
 	}
 }
 
-// DOL 0x80132188
+// DOL 0x80132188 [audited]
 bool cTaskGrobdaConsoleScore::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -292,7 +293,7 @@ bool cTaskGrobdaConsoleScore::Execute(cJetTask* pParam)
 	return cTaskGrobdaConsoleBase::Execute(pParam);
 }
 
-// DOL 0x801322dc
+// DOL 0x801322dc [audited]
 void cTaskGrobdaConsoleScore::Start()
 {
 	m_nScore = 0;
@@ -305,7 +306,7 @@ void cTaskGrobdaConsoleScore::Start()
 	}
 }
 
-// DOL 0x80132390
+// DOL 0x80132390 [audited]
 void cTaskGrobdaConsoleScore::End()
 {
 	for (uint i = 0; i < Count(); i++)
@@ -315,7 +316,7 @@ void cTaskGrobdaConsoleScore::End()
 	}
 }
 
-// DOL 0x8013241c (the cap: DAT_80477ee8 = 999999 single, DAT_80477eec = 99999 multiplayer)
+// DOL 0x8013241c [audited] (the cap: DAT_80477ee8 = 999999 single, DAT_80477eec = 99999 multiplayer)
 void cTaskGrobdaConsoleScore::SetScore(int score)
 {
 	const int cap = m_bMulti ? 99999 : 999999;
@@ -334,7 +335,7 @@ void cTaskGrobdaConsoleScore::SetScore(int score)
 	}
 }
 
-// DOL 0x80132524
+// DOL 0x80132524 [audited]
 void cTaskGrobdaConsoleScore::Flash()
 {
 	for (uint i = 0; i < Count(); i++) pAnita(i)->SetAnimNo(m_nDigit[i] * 4 + 3, true);
@@ -342,7 +343,7 @@ void cTaskGrobdaConsoleScore::Flash()
 
 // ---- HighScore ----
 
-// DOL 0x8012ec48
+// DOL 0x8012ec48 [audited]
 cTaskGrobdaConsoleHighScore::cTaskGrobdaConsoleHighScore()
 {
 	SetName("cTaskGrobdaConsoleHighScore");
@@ -357,7 +358,7 @@ cTaskGrobdaConsoleHighScore::cTaskGrobdaConsoleHighScore()
 	}
 }
 
-// DOL 0x8012ed50
+// DOL 0x8012ed50 [audited]
 bool cTaskGrobdaConsoleHighScore::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -376,7 +377,7 @@ bool cTaskGrobdaConsoleHighScore::Execute(cJetTask* pParam)
 	return cTaskGrobdaConsoleBase::Execute(pParam);
 }
 
-// DOL 0x8012ee8c
+// DOL 0x8012ee8c [audited]
 void cTaskGrobdaConsoleHighScore::Start()
 {
 	int n = m_nHigh;
@@ -390,7 +391,7 @@ void cTaskGrobdaConsoleHighScore::Start()
 	}
 }
 
-// DOL 0x8012ef50
+// DOL 0x8012ef50 [audited]
 void cTaskGrobdaConsoleHighScore::End()
 {
 	for (uint i = 0; i < 6; i++)
@@ -400,7 +401,7 @@ void cTaskGrobdaConsoleHighScore::End()
 	}
 }
 
-// DOL 0x8012efd4 (cap DAT_80477ea8 = 999999)
+// DOL 0x8012efd4 [audited] (cap DAT_80477ea8 = 999999)
 void cTaskGrobdaConsoleHighScore::SetNew(int score)
 {
 	if (m_nHigh >= score) return;
@@ -417,7 +418,7 @@ void cTaskGrobdaConsoleHighScore::SetNew(int score)
 
 // ---- Combo ----
 
-// DOL 0x8012d8f8
+// DOL 0x8012d8f8 [audited]
 cTaskGrobdaConsoleCombo::cTaskGrobdaConsoleCombo()
 {
 	SetName("cTaskGrobdaConsoleCombo");
@@ -430,7 +431,7 @@ cTaskGrobdaConsoleCombo::cTaskGrobdaConsoleCombo()
 	PlaceLayer(2, 0, 4, false);
 }
 
-// DOL 0x8012dcf0
+// DOL 0x8012dcf0 [audited]
 void cTaskGrobdaConsoleCombo::Set(int n)
 {
 	m_nMode = 1;
@@ -449,7 +450,7 @@ void cTaskGrobdaConsoleCombo::Set(int n)
 	}
 }
 
-// DOL 0x8012d9f4
+// DOL 0x8012d9f4 [audited]
 bool cTaskGrobdaConsoleCombo::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -492,7 +493,7 @@ bool cTaskGrobdaConsoleCombo::Execute(cJetTask* pParam)
 
 // ---- Gage ----
 
-// DOL 0x8012e900. UNVERIFIED rows: layer 1 of multiplayer is the same for every player (read from the branch table)
+// DOL 0x8012e900 [audited]. UNVERIFIED rows: layer 1 of multiplayer is the same for every player (read from the branch table)
 int cTaskGrobdaConsoleGage::AnimNo(uint layer, int mode) const
 {
 	const bool multi = cG11GrobdaSys::Instance()->IsMulti();
@@ -524,7 +525,7 @@ void cTaskGrobdaConsoleGage::ClearHold()
 	pAnita(1)->SetFrameRate(1.0f);   // FLOAT_8047c0d0
 }
 
-// DOL 0x8012e358
+// DOL 0x8012e358 [audited]
 cTaskGrobdaConsoleGage::cTaskGrobdaConsoleGage(int player)
 {
 	SetName("cTaskGrobdaConsoleGage");
@@ -539,13 +540,13 @@ cTaskGrobdaConsoleGage::cTaskGrobdaConsoleGage(int player)
 	}
 }
 
-// DOL 0x8012e8d0
+// DOL 0x8012e8d0 [audited]
 void cTaskGrobdaConsoleGage::SetGauge(float f)
 {
 	m_fGauge = f > 1.0f ? 1.0f : (f < 0.0f ? 0.0f : f);
 }
 
-// DOL 0x8012e728
+// DOL 0x8012e728 [audited]
 void cTaskGrobdaConsoleGage::Start()
 {
 	m_nMode = 1;
@@ -556,7 +557,7 @@ void cTaskGrobdaConsoleGage::Start()
 	SetVisible(1, true);
 }
 
-// DOL 0x8012e818
+// DOL 0x8012e818 [audited]
 void cTaskGrobdaConsoleGage::End()
 {
 	m_nMode = 3;
@@ -565,7 +566,7 @@ void cTaskGrobdaConsoleGage::End()
 	pAnita(1)->SetAnimNo(AnimNo(1, 2), false);
 }
 
-// DOL 0x8012e484
+// DOL 0x8012e484 [audited]
 bool cTaskGrobdaConsoleGage::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -604,7 +605,7 @@ bool cTaskGrobdaConsoleGage::Execute(cJetTask* pParam)
 
 // ---- Icon (multiplayer) ----
 
-// DOL 0x8012f1b4
+// DOL 0x8012f1b4 [audited: cTaskFaceIcon child (Mii, RFL) not ported]
 cTaskGrobdaConsoleIcon::cTaskGrobdaConsoleIcon(int player)
 {
 	SetName("cTaskGrobdaConsoleIcon");
@@ -616,7 +617,7 @@ cTaskGrobdaConsoleIcon::cTaskGrobdaConsoleIcon(int player)
 	// pattern player + 10, scale (0.5, 0.5): NOT PORTED (RFL)
 }
 
-// DOL 0x8012f5d0
+// DOL 0x8012f5d0 [audited]
 void cTaskGrobdaConsoleIcon::Start()
 {
 	m_nMode = 1;
@@ -624,7 +625,7 @@ void cTaskGrobdaConsoleIcon::Start()
 	SetVisible(0, true);
 }
 
-// DOL 0x8012f644
+// DOL 0x8012f644 [audited: face icon hide flag (Mii) not ported]
 void cTaskGrobdaConsoleIcon::End()
 {
 	m_nMode = 3;
@@ -632,7 +633,7 @@ void cTaskGrobdaConsoleIcon::End()
 	// face icon +0x7c = 0 (NOT PORTED)
 }
 
-// DOL 0x8012f498
+// DOL 0x8012f498 [audited: face icon show flag (Mii) not ported]
 bool cTaskGrobdaConsoleIcon::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -655,7 +656,7 @@ bool cTaskGrobdaConsoleIcon::Execute(cJetTask* pParam)
 
 // ---- Result (multiplayer) ----
 
-// DOL 0x80131288
+// DOL 0x80131288 [audited: cTaskFaceIcon child (Mii) not ported]
 cTaskGrobdaConsoleResult::cTaskGrobdaConsoleResult()
 {
 	SetName("cTaskGrobdaConsoleResult");
@@ -670,7 +671,7 @@ cTaskGrobdaConsoleResult::cTaskGrobdaConsoleResult()
 	// + a cTaskFaceIcon child (+0x1dc) for the winners' Miis: NOT PORTED (RFL)
 }
 
-// DOL 0x80131604
+// DOL 0x80131604 [audited: winner Mii faces not ported]
 void cTaskGrobdaConsoleResult::Start(const int* scores)
 {
 	const uint count = (uint)cG11GrobdaSys::Instance()->nPlayer();
@@ -704,7 +705,7 @@ void cTaskGrobdaConsoleResult::Start(const int* scores)
 	}
 }
 
-// DOL 0x80131d7c
+// DOL 0x80131d7c [audited: face icon show (Mii) not ported]
 void cTaskGrobdaConsoleResult::Hold()
 {
 	m_nMode = 2;
@@ -719,7 +720,7 @@ void cTaskGrobdaConsoleResult::Hold()
 		pAnita(1)->SetAnimNo(0x41, true);
 }
 
-// DOL 0x80131c7c
+// DOL 0x80131c7c [audited: face icon hide (Mii) not ported]
 void cTaskGrobdaConsoleResult::End()
 {
 	m_nMode = 3;
@@ -733,7 +734,7 @@ void cTaskGrobdaConsoleResult::End()
 		pAnita(1)->SetAnimNo(0x42, true);
 }
 
-// DOL 0x8013147c
+// DOL 0x8013147c [audited]
 bool cTaskGrobdaConsoleResult::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;
@@ -763,7 +764,7 @@ bool cTaskGrobdaConsoleResult::Execute(cJetTask* pParam)
 
 // ---- Manager ----
 
-// DOL 0x8012f7c8 (single player branch; priorities as the builder sets them)
+// DOL 0x8012f7c8 [audited: face icon priorities 0x8000000b (Mii) not ported] (single player branch; priorities as the builder sets them)
 cTaskGrobdaConsoleManager::cTaskGrobdaConsoleManager(int nPlayer)
 {
 	SetName("cTaskGrobdaConsoleManager");
@@ -811,7 +812,7 @@ cTaskGrobdaConsoleManager::cTaskGrobdaConsoleManager(int nPlayer)
 	nDrawPriority(0x80000001u);
 }
 
-// DOL 0x80130a5c
+// DOL 0x80130a5c [audited]
 void cTaskGrobdaConsoleManager::Start()
 {
 	m_nMode = 1;
@@ -827,7 +828,7 @@ void cTaskGrobdaConsoleManager::Start()
 	if (m_pHigh) m_pHigh->Start();
 }
 
-// DOL 0x80130b84
+// DOL 0x80130b84 [audited]
 void cTaskGrobdaConsoleManager::End()
 {
 	m_nMode = 5;
@@ -842,7 +843,7 @@ void cTaskGrobdaConsoleManager::End()
 	if (m_pHigh) m_pHigh->End();
 }
 
-// DOL 0x80130ca8
+// DOL 0x80130ca8 [audited]
 void cTaskGrobdaConsoleManager::Finish()
 {
 	m_nMode = 3;
@@ -850,19 +851,19 @@ void cTaskGrobdaConsoleManager::Finish()
 	m_pFinish->Start();
 }
 
-// DOL 0x80130c94
+// DOL 0x80130c94 [audited]
 void cTaskGrobdaConsoleManager::StartReadyGo()
 {
 	m_pReadyGo->Start();
 }
 
-// DOL 0x80130d08
+// DOL 0x80130d08 [audited]
 bool cTaskGrobdaConsoleManager::IsReadyDone() const
 {
 	return m_pReadyGo->Mode() > 2 && m_pFinish->Mode() < 1;
 }
 
-// DOL 0x80130778
+// DOL 0x80130778 [audited]
 bool cTaskGrobdaConsoleManager::Execute(cJetTask* pParam)
 {
 	if (!Running()) return true;

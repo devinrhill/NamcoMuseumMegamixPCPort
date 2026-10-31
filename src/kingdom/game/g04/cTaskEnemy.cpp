@@ -20,29 +20,29 @@ namespace
 {
 constexpr float HALF_PI = -1.5707964f;   // FLOAT_8047cc94 (-pi/2)
 
-// DOL 0x8037cf28: the CHR clips by +0x248
+// DOL 0x8037cf28 [audited]: the CHR clips by +0x248
 const char* const CLIP_A[5] = {"ANIME_W1_A01", "ANIME_W1_A02", "ANIME_W1_A03", "ANIME_W1_A04", "ANIME_W1_A05"};
-// DOL 0x8037cff8: the body colour clips [colour * 5 + kind] (colour 0 B, 1 G, 2 O, 3 P; kind W1..W5)
+// DOL 0x8037cff8 [audited]: the body colour clips [colour * 5 + kind] (colour 0 B, 1 G, 2 O, 3 P; kind W1..W5)
 const char* const BODY_CLA[20] = {
 	"ANIME_B_W1_CLA", "ANIME_B_W2_CLA", "ANIME_B_W3_CLA", "ANIME_B_W4_CLA", "ANIME_B_W5_CLA",
 	"ANIME_G_W1_CLA", "ANIME_G_W2_CLA", "ANIME_G_W3_CLA", "ANIME_G_W4_CLA", "ANIME_G_W5_CLA",
 	"ANIME_O_W1_CLA", "ANIME_O_W2_CLA", "ANIME_O_W3_CLA", "ANIME_O_W4_CLA", "ANIME_O_W5_CLA",
 	"ANIME_P_W1_CLA", "ANIME_P_W2_CLA", "ANIME_P_W3_CLA", "ANIME_P_W4_CLA", "ANIME_P_W5_CLA"};
-// DOL 0x80449fe8 (multiplayer) / 0x80449ffc (single, green only): the colour clip while out [colour * 5 + kind]
+// DOL 0x80449fe8 [audited] (multiplayer) / 0x80449ffc (single, green only): the colour clip while out [colour * 5 + kind]
 const char* const OUT_A_CLA[20] = {
 	"ANIME_OA_B_W1_A_CLA", "ANIME_OA_B_W2_A_CLA", "ANIME_OA_B_W3_A_CLA", "ANIME_OA_B_W4_A_CLA", "ANIME_OA_B_W5_A_CLA",
 	"ANIME_OA_G_W1_A_CLA", "ANIME_OA_G_W2_A_CLA", "ANIME_OA_G_W3_A_CLA", "ANIME_OA_G_W4_A_CLA", "ANIME_OA_G_W5_A_CLA",
 	"ANIME_OA_O_W1_A_CLA", "ANIME_OA_O_W2_A_CLA", "ANIME_OA_O_W3_A_CLA", "ANIME_OA_O_W4_A_CLA", "ANIME_OA_O_W5_A_CLA",
 	"ANIME_OA_P_W1_A_CLA", "ANIME_OA_P_W2_A_CLA", "ANIME_OA_P_W3_A_CLA", "ANIME_OA_P_W4_A_CLA", "ANIME_OA_P_W5_A_CLA"};
-// DOL 0x8044a038: the colour clip going back into the hole [colour * 5 + kind]
+// DOL 0x8044a038 [audited]: the colour clip going back into the hole [colour * 5 + kind]
 const char* const BACK_A1_CLA[20] = {
 	"ANIME_OA_B_W1_A1_CLA", "ANIME_OA_B_W2_A1_CLA", "ANIME_OA_B_W3_A1_CLA", "ANIME_OA_B_W4_A1_CLA", "ANIME_OA_B_W5_A1_CLA",
 	"ANIME_OA_G_W1_A1_CLA", "ANIME_OA_G_W2_A1_CLA", "ANIME_OA_G_W3_A1_CLA", "ANIME_OA_G_W4_A1_CLA", "ANIME_OA_G_W5_A1_CLA",
 	"ANIME_OA_O_W1_A1_CLA", "ANIME_OA_O_W2_A1_CLA", "ANIME_OA_O_W3_A1_CLA", "ANIME_OA_O_W4_A1_CLA", "ANIME_OA_O_W5_A1_CLA",
 	"ANIME_OA_P_W1_A1_CLA", "ANIME_OA_P_W2_A1_CLA", "ANIME_OA_P_W3_A1_CLA", "ANIME_OA_P_W4_A1_CLA", "ANIME_OA_P_W5_A1_CLA"};
-// DOL 0x8037cf40: the eye clip by kind
+// DOL 0x8037cf40 [audited]: the eye clip by kind
 const char* const EYE_TSA[5] = {"ANIME_EYE_W1_TSA", "ANIME_EYE_W2_TSA", "ANIME_EYE_W3_TSA", "ANIME_EYE_W4_TSA", "ANIME_EYE_W5_TSA"};
-// DOL 0x8037cf58: {TPA, CLA} by (kind + colour * 5)
+// DOL 0x8037cf58 [audited]: {TPA, CLA} by (kind + colour * 5)
 const char* TexPair(int idx, int which)
 {
 	static const char* const COLOR = "BGOP";
@@ -72,7 +72,7 @@ cTaskEnemy::cTaskEnemy(cTaskEnemyManager* pMan, uint nPlace) : m_pMan(pMan), m_R
 
 cTaskEnemy::~cTaskEnemy() = default;
 
-// DOL 0x801a91e0
+// DOL 0x801a91e0 [audited]
 void cTaskEnemy::Init()
 {
 	kingdom::cKingdomModel* m = CreateModel(0u);   // FUN_8009991c
@@ -134,13 +134,13 @@ void cTaskEnemy::Init()
 	SetState(1);
 }
 
-// DOL 0x801a9810 (the rand and the param are members natively)
+// DOL 0x801a9810 [audited] (the rand and the param are members natively)
 void cTaskEnemy::Term()
 {
 	cTaskModel::Term();
 }
 
-// DOL 0x801a96fc (a new game: the look back to green W1, the timing cleared)
+// DOL 0x801a96fc [audited] (a new game: the look back to green W1, the timing cleared)
 void cTaskEnemy::Reset()
 {
 	kingdom::cKingdomModel* m = pModel(0u);
@@ -162,7 +162,7 @@ void cTaskEnemy::Reset()
 	SetState(1);
 }
 
-// DOL 0x801ad238
+// DOL 0x801ad238 [audited]
 void cTaskEnemy::SetHomePos(const Vector4& v)
 {
 	m_vHome = v;
@@ -215,7 +215,7 @@ void cTaskEnemy::SwapChr(const char* next)
 	m_Anime.SetWeight(0.0f, m, 1u);
 }
 
-// DOL 0x801aafd4 (checked case by case against the decomp)
+// DOL 0x801aafd4 [audited: case by case vs decomp (earlier pass)] (checked case by case against the decomp)
 void cTaskEnemy::SetState(int state)
 {
 	const int old = m_nState;
@@ -411,7 +411,7 @@ void cTaskEnemy::SetState(int state)
 	}
 }
 
-// DOL 0x801ad250
+// DOL 0x801ad250 [audited: checked]
 void cTaskEnemy::NextCommand()
 {
 	if (m_nCmd < m_cmd.size())
@@ -442,7 +442,7 @@ void cTaskEnemy::NextCommand()
 	}
 }
 
-// DOL 0x801ad688
+// DOL 0x801ad688 [audited: checked]
 void cTaskEnemy::SetupCommand(const sEnemyCommand* c)
 {
 	const sEnemyPattern* p = c->pPattern;
@@ -465,7 +465,7 @@ void cTaskEnemy::SetupCommand(const sEnemyCommand* c)
 	for (uint i = 0; i < 2; i++) pModel(i)->Invisible();
 }
 
-// DOL 0x801ad840
+// DOL 0x801ad840 [audited: checked incl tables]
 void cTaskEnemy::SetLook(int kind, int color)
 {
 	kingdom::cKingdomModel* cur = pCurModel();
@@ -495,7 +495,7 @@ void cTaskEnemy::SetLook(int kind, int color)
 	m->vScale() = s;
 }
 
-// DOL 0x801adf08 (the result look: single = kind `k`, multiplayer = the winner's colour, 4 = red)
+// DOL 0x801adf08 [audited: checked] (the result look: single = kind `k`, multiplayer = the winner's colour, 4 = red)
 void cTaskEnemy::SetResultLook(int k)
 {
 	if (IsSingle())
@@ -528,7 +528,7 @@ void cTaskEnemy::SetResultLook(int k)
 	SetLook(m_nKind, m_nColor);
 }
 
-// DOL 0x801adcb0
+// DOL 0x801adcb0 [audited: checked]
 void cTaskEnemy::MouthPos(float out[3])
 {
 	kingdom::cKingdomModel* m = pCurModel();
@@ -540,7 +540,7 @@ void cTaskEnemy::MouthPos(float out[3])
 	out[2] = s * (a[2] + b[2] + d[2]);
 }
 
-// DOL 0x801ae1f0: the hit effect at the mouth (+1, +1 in y / z): slot player + 1 (multiplayer), 4 (red), 0
+// DOL 0x801ae1f0 [audited: checked]: the hit effect at the mouth (+1, +1 in y / z): slot player + 1 (multiplayer), 4 (red), 0
 void cTaskEnemy::HitEffect(uint player)
 {
 	float o[3];
@@ -552,7 +552,7 @@ void cTaskEnemy::HitEffect(uint player)
 	else m_HitFx[0].Generate(0u, true, true, true, 0.0f, p);
 }
 
-// DOL 0x801ae024: the hit effect, then the eye blinks shut for `frames` (EYE_W2, the SRT clip released; Execute puts EYE_W6 back on red)
+// DOL 0x801ae024 [audited: checked]: the hit effect, then the eye blinks shut for `frames` (EYE_W2, the SRT clip released; Execute puts EYE_W6 back on red)
 void cTaskEnemy::HitBlink(int frames, uint player)
 {
 	HitEffect(player);
@@ -563,7 +563,7 @@ void cTaskEnemy::HitBlink(int frames, uint player)
 	m->ReleaseAnmTexSrt(0u);
 }
 
-// DOL 0x801ade58
+// DOL 0x801ade58 [audited: checked]
 bool cTaskEnemy::IsHittableOut(float range) const
 {
 	if (m_nState != 7) return false;
@@ -572,13 +572,13 @@ bool cTaskEnemy::IsHittableOut(float range) const
 	return lo <= t && t <= 1.0f;
 }
 
-// DOL 0x801aded8: still more than (range - 4) frames of "before" left
+// DOL 0x801aded8 [audited: checked]: still more than (range - 4) frames of "before" left
 bool cTaskEnemy::IsBeforeBiteEnd(float range) const
 {
 	return !(m_fBefore - m_fTimer <= range - 4.0f);
 }
 
-// DOL 0x801ae714
+// DOL 0x801ae714 [audited: checked]
 bool cTaskEnemy::IsAfterBite(float range) const
 {
 	if (m_nState != 10) return false;
@@ -603,7 +603,7 @@ void cTaskEnemy::FootFxAt(int k, const float pos[3], float upL, float upR, bool 
 	m_FootFx[k].Generate(slot, true, true, true, 0.0f, Vector4(pos[0] + r[0], pos[1] + r[1] + upR, pos[2] + r[2], 1.0f));
 }
 
-// DOL 0x801ae4a4: the first unspent sixth of the walk that t has passed makes a splash
+// DOL 0x801ae4a4 [audited: checked]: the first unspent sixth of the walk that t has passed makes a splash
 void cTaskEnemy::FootFx(float t, const float pos[3])
 {
 	for (int k = 0; k < 6; k++)
@@ -616,7 +616,7 @@ void cTaskEnemy::FootFx(float t, const float pos[3])
 		}
 }
 
-// DOL 0x801a9d60 (state 7)
+// DOL 0x801a9d60 [audited: foot fx order/offsets, ClrEnd gate, blend 0.1 checked] (state 7)
 void cTaskEnemy::Move(cJetTask*)
 {
 	kingdom::cKingdomModel* m = pCurModel();
@@ -644,7 +644,7 @@ void cTaskEnemy::Move(cJetTask*)
 	if (1.0f <= t) SetState(9);
 }
 
-// DOL 0x801aa254 (state 8)
+// DOL 0x801aa254 [audited: lerp, clip rate, SetFrameMatClr checked] (state 8)
 void cTaskEnemy::Back()
 {
 	kingdom::cKingdomModel* m = pCurModel();
@@ -677,7 +677,7 @@ void cTaskEnemy::Back()
 	if (1.0f <= t) SetState(4);
 }
 
-// DOL 0x801aa548 (state 0xb)
+// DOL 0x801aa548 [audited: damage branches, camera shake, clr rate checked] (state 0xb)
 void cTaskEnemy::Bite()
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -703,7 +703,7 @@ void cTaskEnemy::Bite()
 	}
 }
 
-// DOL 0x801aa718 (state 0xc)
+// DOL 0x801aa718 [audited: checked] (state 0xc)
 void cTaskEnemy::BackOff()
 {
 	kingdom::cKingdomModel* m = pCurModel();
@@ -742,7 +742,7 @@ void cTaskEnemy::BackOff()
 	if (p[2] < m_vHome[2]) SetState(4);
 }
 
-// DOL 0x801aac00 (state 0x11: only the far gator A comes out for the angry event)
+// DOL 0x801aac00 [audited: checked] (state 0x11: only the far gator A comes out for the angry event)
 void cTaskEnemy::AngryOut()
 {
 	if (m_nPlace != 0) return;
@@ -771,7 +771,7 @@ void cTaskEnemy::AngryOut()
 	if (1.0f <= t) SetState(0x12);
 }
 
-// DOL 0x801ae380 (state 0x17: place 0 goes back in 32 frames)
+// DOL 0x801ae380 [audited: checked] (state 0x17: place 0 goes back in 32 frames)
 void cTaskEnemy::EventBack()
 {
 	if (m_nPlace != 0) return;
@@ -789,7 +789,7 @@ void cTaskEnemy::EventBack()
 	m_Anime.Blend(0.2f, m);
 }
 
-// DOL 0x801a992c. The app's pause flag (+0x1b4) and the HOME bit stop everything; natively the clips then do not advance either (the DOL
+// DOL 0x801a992c [audited: cases/consts checked; DOL ends with cJetTask::Execute (no model UpdateFrame), port calls UpdateFrame UNVERIFIED]. The app's pause flag (+0x1b4) and the HOME bit stop everything; natively the clips then do not advance either (the DOL
 // advances them in the app's ScnRoot::UpdateFrame, which the pause skips).
 bool cTaskEnemy::Execute(cJetTask* pParam)
 {
@@ -858,7 +858,7 @@ bool cTaskEnemy::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801a9d5c: b cTaskModel::Draw (the models are submitted for this frame)
+// DOL 0x801a9d5c [audited]: b cTaskModel::Draw (the models are submitted for this frame)
 void cTaskEnemy::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskModel::Draw(nStatus, pParam);

@@ -434,6 +434,46 @@ void DrawLines3D(const LineVertex* v, std::size_t n, bool depthTest)
 	rlSetMatrixProjection(oldProj);
 	rlSetMatrixModelview(oldView);
 }
+
+// same set-up as DrawLines3D, triangles instead (no depth range trick: the surfaces are meant to occlude each other)
+void DrawTriangles3D(const TriVertex* v, std::size_t n, bool depthTest, bool writeDepth)
+{
+	if (!g_in3d || n < 3) return;
+	rlDrawRenderBatchActive();
+	const auto toMatrix = [](const float a[16]) {
+		Matrix m;
+		m.m0 = a[0]; m.m1 = a[1]; m.m2 = a[2]; m.m3 = a[3]; m.m4 = a[4]; m.m5 = a[5]; m.m6 = a[6]; m.m7 = a[7];
+		m.m8 = a[8]; m.m9 = a[9]; m.m10 = a[10]; m.m11 = a[11]; m.m12 = a[12]; m.m13 = a[13]; m.m14 = a[14]; m.m15 = a[15];
+		return m;
+	};
+	const Matrix oldProj = rlGetMatrixProjection(), oldView = rlGetMatrixModelview();
+	rlSetMatrixProjection(toMatrix(g_proj));
+	rlSetMatrixModelview(toMatrix(g_view));
+	if (depthTest) rlEnableDepthTest(); else rlDisableDepthTest();
+	if (writeDepth) rlEnableDepthMask(); else rlDisableDepthMask();
+	rlDisableBackfaceCulling();
+	rlSetBlendMode(RL_BLEND_ALPHA);
+	rlEnableColorBlend();
+	rlSetTexture(0);
+	const std::size_t chunk = 3072;   // vertices per batch
+	for (std::size_t s = 0; s + 2 < n; s += chunk)
+	{
+		const std::size_t e = s + std::min(chunk, ((n - s) / 3) * 3);
+		rlCheckRenderBatchLimit((int)(e - s));
+		rlBegin(RL_TRIANGLES);
+		for (std::size_t i = s; i < e; i++)
+		{
+			rlColor4ub(v[i].rgba[0], v[i].rgba[1], v[i].rgba[2], v[i].rgba[3]);
+			rlVertex3f(v[i].pos[0], v[i].pos[1], v[i].pos[2]);
+		}
+		rlEnd();
+	}
+	rlDrawRenderBatchActive();
+	rlEnableDepthMask();
+	rlEnableDepthTest();
+	rlSetMatrixProjection(oldProj);
+	rlSetMatrixModelview(oldView);
+}
 }
 
 // ---- TEV material path -----------------------------------------------------------------------------------------------------
@@ -1017,7 +1057,7 @@ namespace
 // GL state, shader uniforms and texture units of a material (the TEV program stays bound until EndMaterial)
 void ApplyMaterial(const MaterialDraw& mIn)
 {
-	// the light pass (DOL 0x80024ce4: ForceDrawMode, colour update off, GX_CULL_FRONT, z compare LEQUAL with writes): no blending, no alpha test
+	// the light pass (DOL 0x80024ce4 [audited: shadow light pass states (no colour write, front-face cull, LEQUAL z) taken from the DOL]: ForceDrawMode, colour update off, GX_CULL_FRONT, z compare LEQUAL with writes): no blending, no alpha test
 	MaterialDraw shadowCopy;
 	if (g_shadowPass)
 	{

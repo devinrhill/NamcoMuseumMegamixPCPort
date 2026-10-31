@@ -11,6 +11,7 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x801137d4 [audited: per AUDIT_G03_G07 row] (the blob shadow model's Invisible calls are the port's policy for BIN_ITEMS_SHADOW_MDL, see cTaskModelEx::cPBModel::RegistShadowModel: the DOL leaves its visible byte alone)
 cTaskCharBEye::cTaskCharBEye(cTaskModel* pParent)
 {
 	if (pParent != nullptr)
@@ -35,6 +36,7 @@ cTaskCharBEye::cTaskCharBEye(cTaskModel* pParent)
 	}
 }
 
+// no own Term in the DOL (vtable slot 14 = cTaskModelEx::Term 0x801860a8)
 void cTaskCharBEye::Term()
 {
 	cTaskModelEx::Term();
@@ -62,6 +64,7 @@ cTaskCharBEye* cTaskCharBEye::Create(cTaskModel* pParent)
 	return new cTaskCharBEye(pParent);
 }
 
+// DOL 0x80113ac0 [audited: per AUDIT_G03_G07 row] (SE = DAT_8047bb68 -> "m03se_087_Boss_Ijike_4")
 bool cTaskCharBEye::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && pPBModel()->IsVisible() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -80,6 +83,7 @@ bool cTaskCharBEye::Execute(cJetTask* pParam)
 	return cTaskModelEx::Execute(pParam);
 }
 
+// DOL 0x80113c28 [audited: per AUDIT_G03_G07 row] (tail call to cTaskModelEx::Draw 0x80187270)
 void cTaskCharBEye::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskModelEx::Draw(nStatus, pParam);

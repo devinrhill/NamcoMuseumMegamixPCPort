@@ -75,13 +75,13 @@ void InstallMapHooks()
 }
 }
 
-// DOL 0x800c677c (job 195)
+// DOL 0x800c677c [audited] (job 195)
 void cAppG02RallyXGame::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG02RallyXGame());
 }
 
-// DOL 0x801236bc
+// DOL 0x801236bc [audited: FUN_80125940 / 80125938 / 8009195c at the ctor tail not read; the BGM timer scale 0x80125948 is not ported]
 cAppG02RallyXGame::cAppG02RallyXGame()
 {
 	SetName("cAppG02RallyXGame");
@@ -90,6 +90,7 @@ cAppG02RallyXGame::cAppG02RallyXGame()
 	// counterpart 0x800c5da0 is the debug menu's own business here)
 	if (KingdomGlobal::SysCore->GetLastJobNo() == job::RALLYX_DEBUG_MENU && KingdomGlobal::RallyXSys->IsMulti()) cG02RallyXSysExt::DebugMatching();
 	kingdom::cKingdomModelBase::ClearAssetCache();
+	cG02RallyXSysExt::bNewStageApear = false;   // 0x800c5c70(sys, 0)
 	m_pPause = new cTaskPause();   // +0x2ac
 	ConnectChild(m_pPause);
 	m_pParam = new cParamGame();   // +0x280
@@ -170,7 +171,7 @@ cAppG02RallyXGame::cAppG02RallyXGame()
 		m_pConsole->Regist(m_pCars[n], colour, false);
 	}
 	// FUN_80126930(app, table 0x80378a58[players]): the screen layout and every ScnRoot camera's fovy from car 0's camera
-	static const s32 LAYOUT[5] = {0, 0, 4, 7, 7};   // DOL 0x80378a58
+	static const s32 LAYOUT[5] = {0, 0, 4, 7, 7};   // DOL 0x80378a58 [audited]
 	m_nScnLayout = LAYOUT[nPlayer < 5 ? nPlayer : 4];
 	kingdom::NativeScene::SetLayout(m_nScnLayout);   // cTaskScnRoot +0x1b8: the split screen
 	if (m_pCars[0] != nullptr && m_pCars[0]->pCamera() != nullptr)
@@ -210,7 +211,7 @@ int cAppG02RallyXGame::nPlayers() const
 	return n < 1 ? 1 : (n > 4 ? 4 : n);
 }
 
-// DOL 0x80126a10
+// DOL 0x80126a10 [audited]
 bool cAppG02RallyXGame::Score(int v, bool bSet)
 {
 	if (bSet) m_nScore = v;
@@ -223,7 +224,7 @@ bool cAppG02RallyXGame::Score(int v, bool bSet)
 	return true;
 }
 
-// DOL 0x80126a54: the stage ends (lucky flag) unless the player already has every flag
+// DOL 0x80126a54 [audited]: the stage ends (lucky flag) unless the player already has every flag
 bool cAppG02RallyXGame::UnitStageEnd(bool b, int unitId)
 {
 	const bool r = m_pCars[0] == nullptr || m_pCars[0]->nFlags() != MapFlagTotal();
@@ -235,26 +236,26 @@ bool cAppG02RallyXGame::UnitStageEnd(bool b, int unitId)
 	return r;
 }
 
-// DOL 0x80126ac8: the red car crashed on the boss stage -> clear
+// DOL 0x80126ac8 [audited]: the red car crashed on the boss stage -> clear
 void cAppG02RallyXGame::UnitRedCrash()
 {
 	NextState(7);
 	WiiSnd::SetVolume(m_SndBgm, 0.5f, 500);   // 0x80126b00: 0x80026394(0.5 (FLOAT_8047c00c), +0x28c, 500)
 }
 
-// DOL 0x801272c0: a car clash of the multiplayer match shows the hit mark of the player
+// DOL 0x801272c0 [audited]: a car clash of the multiplayer match shows the hit mark of the player
 void cAppG02RallyXGame::UnitMultiHit(int nIndex)
 {
 	if (m_pConsole != nullptr) m_pConsole->HitMark(nIndex);
 }
 
-// DOL 0x8006cfa0 (via the car's FUN_800881dc)
+// DOL 0x8006cfa0 [audited] (via the car's FUN_800881dc)
 void cAppG02RallyXGame::FxFlagScore(int count, int special, const Vector4& pos)
 {
 	if (m_pEffect != nullptr) m_pEffect->FlagScore(count, special != 0, pos);
 }
 
-// DOL 0x8006d114
+// DOL 0x8006d114 [audited]
 void cAppG02RallyXGame::FxRedFlag(const Vector4& pos)
 {
 	if (m_pEffect != nullptr) m_pEffect->RedFlag(pos);
@@ -276,12 +277,12 @@ void cAppG02RallyXGame::PlayBgm(const char* cue)
 	m_bBgmFading = false;
 }
 
-// DOL 0x80125a14: effects clear (0x8008a814), BG reset (0x8006016c, cTaskBG::ResetPtk), every car reset (vtable +0x48) and back
+// DOL 0x80125a14 [audited]: effects clear (0x8008a814), BG reset (0x8006016c, cTaskBG::ResetPtk), every car reset (vtable +0x48) and back
 // on its start (0x800780ec)
 void cAppG02RallyXGame::ResetCars()
 {
 	if (m_pEffect != nullptr) m_pEffect->Clear();
-	if (m_pTaskBG != nullptr) m_pTaskBG->ResetPtk();   // UNVERIFIED gate: the DOL calls it between 0x800c6428 / 0x800c5ca0 and the cars
+	if (m_pTaskBG != nullptr && !KingdomGlobal::RallyXSys->IsMulti()) m_pTaskBG->ResetPtk();   // single player only (0x800c5ca0 == 0)
 	const int nPlayer = nPlayers();
 	int n = 0;
 	for (int i = 0; i < nPlayer && n < 7; i++, n++)
@@ -303,7 +304,7 @@ void cAppG02RallyXGame::StartPause()
 	m_pPause->Start();   // 0x80147c8c
 }
 
-// DOL 0x80126908
+// DOL 0x80126908 [audited]
 void cAppG02RallyXGame::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus;
@@ -312,7 +313,7 @@ void cAppG02RallyXGame::Draw(int nStatus, cJetTask* pParam)
 	m_nStep = m_nNextStep;
 }
 
-// DOL 0x80125b1c. Its state switch (+0x2e4) jumps through the table at 0x804410ec, right after cTaskRallyAnitaBase's secondary vtable, so
+// DOL 0x80125b1c [audited]. Its state switch (+0x2e4) jumps through the table at 0x804410ec, right after cTaskRallyAnitaBase's secondary vtable, so
 // vtable_audit read the case labels as that class's slots: 0x80125c18 0x80125ca0 0x80125e50 0x80126028 0x8012613c 0x80126488 0x801265b8 0x801266ec
 // 0x801266f8 0x80126704 0x80126710 0x80126860 0x8012682c (all inside this function)
 bool cAppG02RallyXGame::Execute(cJetTask* pParam)
@@ -556,7 +557,7 @@ bool cAppG02RallyXGame::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80126f70 (bWin) / 0x80127118 (draw): step 0 the cars' nitro goes off (0x80088ba0), step 1 the console's result is shown (m02se_22win /
+// DOL 0x80126f70 [audited] (bWin) / 0x80127118 (draw): step 0 the cars' nitro goes off (0x80088ba0), step 1 the console's result is shown (m02se_22win /
 // m02se_23draw), step 2 after CSV_GAME +0x2c / +0x30 frames or A / B / Z: back to the multiplayer menu (job 200)
 void cAppG02RallyXGame::StateMultiResult(bool bWin)
 {
@@ -566,7 +567,7 @@ void cAppG02RallyXGame::StateMultiResult(bool bWin)
 			if (m_pCars[i] != nullptr) m_pCars[i]->ResetNitro();   // 0x80088ba0: +0x2a4 = 0
 		NextStep(1);
 	}
-	if (m_nStep == 1)
+	if (m_nStep <= 1)   // step 0 falls through into step 1 (the step store takes effect in Draw)
 	{
 		if (bWin ? m_pConsole->IsWinShown() : m_pConsole->IsDrawShown())
 		{
@@ -586,7 +587,7 @@ void cAppG02RallyXGame::StateMultiResult(bool bWin)
 	}
 }
 
-// DOL 0x80126b18 (state 7: stage clear)
+// DOL 0x80126b18 [audited] (state 7: stage clear)
 void cAppG02RallyXGame::StateClear()
 {
 	cG02RallyXSys* sys = KingdomGlobal::RallyXSys;
@@ -648,7 +649,7 @@ void cAppG02RallyXGame::StateClear()
 			if (cG02RallyXSysExt::IsBossStageOf(next)) next = stage + 2;   // 0x800c5bf8
 			if ((unsigned)next < 0x18u)
 			{
-				if (rec.GetScore(next) == 0)
+				if (!rec.IsOpen(next))   // 0x800c61f4
 				{
 					rec.SetOpen(next);   // 0x800c63f0
 					cG02RallyXSysExt::bNewStageApear = true;   // 0x800c5c70

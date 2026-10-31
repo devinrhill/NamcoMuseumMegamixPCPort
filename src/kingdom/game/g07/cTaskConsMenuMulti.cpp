@@ -23,6 +23,7 @@ cTaskConsMenuMulti::~cTaskConsMenuMulti()
 {
 }
 
+// DOL 0x801c92e0 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 void cTaskConsMenuMulti::SetData()
 {
 	nDrawPriority(2147483656u);
@@ -33,6 +34,7 @@ void cTaskConsMenuMulti::SetData()
 	UnityUI = (static_cast<cTaskConsMenuMan*>(pTaskConsMenuMan()))->UnityUI;
 }
 
+// DOL 0x801c93c4 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 int cTaskConsMenuMulti::nGetAnmNo(int nAnmState)
 {
 	int obj[4] = {338, 339, 340, 341};
@@ -40,12 +42,13 @@ int cTaskConsMenuMulti::nGetAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
-// DOL 0x801c9400: hit test of anita 0, pattern +0x1d8 (nHitPat); shared by the multiplayer menu's Single / Start buttons (the C# returned false: Unity used colliders)
+// DOL 0x801c9400 [audited: described by the 43rd-session pass]: hit test of anita 0, pattern +0x1d8 (nHitPat); shared by the multiplayer menu's Single / Start buttons (the C# returned false: Unity used colliders)
 bool cTaskConsMenuMulti::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, nHitPat());
 }
 
+// DOL 0x801c9544 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 void cTaskConsMenuMulti::WaitExec()
 {
 	// the C# tested `UnityUI != null || !(this is Start)`, so with no Unity UI the plain Multi button never went back to its idle animation (it kept
@@ -60,6 +63,7 @@ void cTaskConsMenuMulti::WaitExec()
 	}
 }
 
+// DOL 0x801c95a8 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 bool cTaskConsMenuMulti::AppearExec()
 {
 	if (nullptr != UnityUI && !((dynamic_cast<cTaskConsMultiMenuStart*>(this) != nullptr)))
@@ -80,6 +84,7 @@ bool cTaskConsMenuMulti::AppearExec()
 	return false;
 }
 
+// DOL 0x801c96a4 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 void cTaskConsMenuMulti::PointExec()
 {
 	if (nullptr != UnityUI && !((dynamic_cast<cTaskConsMultiMenuStart*>(this) != nullptr)))
@@ -98,6 +103,7 @@ void cTaskConsMenuMulti::PointExec()
 	}
 }
 
+// DOL 0x801c9708 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 bool cTaskConsMenuMulti::DecideExec()
 {
 	if (nStep() == 0)

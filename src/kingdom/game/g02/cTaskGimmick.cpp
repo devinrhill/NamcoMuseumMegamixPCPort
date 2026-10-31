@@ -46,13 +46,13 @@ cParamGimmick::cParamGimmick()
 	bLoaded = true;
 }
 
-// DOL 0x800b1944 (the reference count part)
+// DOL 0x800b1944 [audited] (the reference count part)
 void cParamGimmick::AddRef()
 {
 	if (s_nRef++ == 0) s_pParam = new cParamGimmick();
 }
 
-// DOL 0x800b1a48
+// DOL 0x800b1a48 [audited]
 void cParamGimmick::Release()
 {
 	if (--s_nRef == 0 && s_pParam != nullptr)
@@ -73,7 +73,7 @@ cTaskGimmick::cTaskGimmick()
 	InitGimmick();   // vtable +0x3c while the cTaskGimmick vtable is installed
 }
 
-// DOL 0x80070830
+// DOL 0x80070830 [audited]
 cTaskGimmick::~cTaskGimmick() {}
 
 // DOL 0x800b1944
@@ -92,7 +92,7 @@ void cTaskGimmick::Term()
 	cTaskModel::Term();
 }
 
-// DOL 0x800b1b38
+// DOL 0x800b1b38 [audited]
 bool cTaskGimmick::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -106,7 +106,7 @@ bool cTaskGimmick::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800b1d24
+// DOL 0x800b1d24 [audited]
 bool cTaskGimmick::IsAt(int x, int z) const { return m_nX == x && m_nZ == z; }
 
 bool cTaskGimmick::IsFrozen()
@@ -116,7 +116,7 @@ bool cTaskGimmick::IsFrozen()
 	return home || (h != nullptr && (h->IsUnitPause() || h->IsUnitStageEnd()));
 }
 
-// DOL 0x800b1d74 (dir 3: 0x800b1dc4)
+// DOL 0x800b1d74 [audited] (dir 3: 0x800b1dc4)
 void cTaskGimmick::RotY(Vector4& rot) const
 {
 	switch (m_nDir)
@@ -128,7 +128,7 @@ void cTaskGimmick::RotY(Vector4& rot) const
 	}
 }
 
-// DOL 0x800b1dd0
+// DOL 0x800b1dd0 [audited]
 bool cTaskGimmick::IsCollector(cTaskUnit* pUnit)
 {
 	if (pUnit == nullptr) return false;
@@ -137,7 +137,7 @@ bool cTaskGimmick::IsCollector(cTaskUnit* pUnit)
 	return (pUnit->nUnitId() & (boss ? 0x20u : 0x10u)) != 0;   // vtable +0x44
 }
 
-// DOL 0x800c5ce0 (the same pick as cRallyModelShadow): table 0x80371188 {WORLD1, WORLD1, WORLD2, WORLD3, WORLD4} by world; multiplayer by
+// DOL 0x800c5ce0 [audited] (the same pick as cRallyModelShadow): table 0x80371188 {WORLD1, WORLD1, WORLD2, WORLD3, WORLD4} by world; multiplayer by
 // the stage in the world (the DOL reads past the table for 5 / 6)
 const char* cTaskGimmick::ShadowClip()
 {
@@ -187,7 +187,7 @@ void cTaskGimmick::Se(const char* cue)
 	WiiSnd::Detach(h);
 }
 
-// DOL 0x800b1d6c (cTaskConsole::Hooks.GimmickRespawn)
+// DOL 0x800b1d6c [audited] (cTaskConsole::Hooks.GimmickRespawn)
 bool GimmickActive(kingdom::cTaskModel* g)
 {
 	const cTaskGimmick* p = dynamic_cast<const cTaskGimmick*>(g);
@@ -197,21 +197,21 @@ bool GimmickActive(kingdom::cTaskModel* g)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // the road hazards
 
-// DOL 0x8007352c
+// DOL 0x8007352c [audited]
 cTaskGimmickStone::cTaskGimmickStone()
 {
 	SetName("g02::cTaskGimmickStone");
 	SetupModel(0, "GIMMICK_STONE", nullptr, false);   // 0x52795f9c
 }
 
-// DOL 0x80073474
+// DOL 0x80073474 [audited]
 cTaskGimmickOil::cTaskGimmickOil()
 {
 	SetName("g02::cTaskGimmickOil");
 	SetupModel(0, "GIMMICK_OIL", nullptr, false);     // 0xaa1baf48
 }
 
-// DOL 0x800733bc
+// DOL 0x800733bc [audited]
 cTaskGimmickSpike::cTaskGimmickSpike()
 {
 	SetName("g02::cTaskGimmickSpike");
@@ -226,7 +226,7 @@ const char* const MUD_NAME[7] = {"Mud ONE", "Mud_0_RIGHT_OR_DOWN", "Mud_1_RIGHT_
                                  "Mud_1_LEFT_OR_UP"};
 }
 
-// DOL 0x800732d4 / 0x800731ec / 0x80073104 / 0x8007301c / 0x80072f34 / 0x80072e4c / 0x80072d64 (types 4..10)
+// DOL 0x800732d4 [audited] / 0x800731ec / 0x80073104 / 0x8007301c / 0x80072f34 / 0x80072e4c / 0x80072d64 (types 4..10)
 cTaskGimmickMud::cTaskGimmickMud(int nType)
 	: m_nKind(nType >= 4 && nType <= 10 ? nType - 4 : 0)
 {
@@ -235,13 +235,13 @@ cTaskGimmickMud::cTaskGimmickMud(int nType)
 	SetupModel(0, MUD_MODEL[m_nKind], nullptr, false);
 }
 
-// DOL 0x800b22d8 / 0x800b20a4 / 0x800b1e70 / 0x800b2160 / 0x800b1f2c / 0x800b221c / 0x800b1fe8
+// DOL 0x800b22d8 [audited] / 0x800b20a4 / 0x800b1e70 / 0x800b2160 / 0x800b1f2c / 0x800b221c / 0x800b1fe8
 const char* cTaskGimmickMud::GetName() const { return MUD_NAME[m_nKind]; }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // cTaskGimmickSmoke
 
-// DOL 0x800735e4
+// DOL 0x800735e4 [audited]
 cTaskGimmickSmoke::cTaskGimmickSmoke()
 {
 	SetName("g02::cTaskGimmickSmoke");
@@ -249,7 +249,7 @@ cTaskGimmickSmoke::cTaskGimmickSmoke()
 	InitSmoke();   // vtable +0x3c with the smoke vtable
 }
 
-// DOL 0x800b2390
+// DOL 0x800b2390 [audited]
 void cTaskGimmickSmoke::InitSmoke()
 {
 	m_nOwner = 0x20070222;   // no owner
@@ -257,7 +257,7 @@ void cTaskGimmickSmoke::InitSmoke()
 	Disable();               // vtable +0x54
 }
 
-// DOL 0x800b23f0
+// DOL 0x800b23f0 [audited]
 bool cTaskGimmickSmoke::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -265,17 +265,17 @@ bool cTaskGimmickSmoke::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800b261c
+// DOL 0x800b261c [audited]
 void cTaskGimmickSmoke::Disable()
 {
 	if (m_Fx.IsValid()) m_Fx.Detach(false);   // FUN_8008a508(+0x1f0, 0)
 	cTaskGimmick::Disable();
 }
 
-// DOL 0x800b24bc
+// DOL 0x800b24bc [audited]
 void cTaskGimmickSmoke::Enable() { Start(0); }
 
-// DOL 0x800b24d0
+// DOL 0x800b24d0 [audited]
 void cTaskGimmickSmoke::Start(int nIndex)
 {
 	uint slot = 1;
@@ -292,7 +292,7 @@ void cTaskGimmickSmoke::Start(int nIndex)
 	cTaskGimmick::Enable();   // FUN_800b1d60
 }
 
-// DOL 0x800b2658
+// DOL 0x800b2658 [audited]
 bool cTaskGimmickSmoke::Put(int nOwner, const int pCell[2], int nIndex)
 {
 	if (IsActive()) return false;
@@ -314,7 +314,7 @@ cTaskGimmickMan::cTaskGimmickMan()
 	SetName("g02::cTaskGimmickMan");
 }
 
-// DOL 0x800736cc
+// DOL 0x800736cc [audited]
 cTaskGimmick* cTaskGimmickMan::Create(int nType, const int* pCell, int nDir)
 {
 	cTaskGimmick* g = nullptr;
@@ -353,7 +353,7 @@ cTaskGimmick* cTaskGimmickMan::Create(int nType, const int* pCell, int nDir)
 	return g;
 }
 
-// DOL 0x80073a2c
+// DOL 0x80073a2c [audited]
 bool cTaskGimmickMan::Contact(cTaskUnit* pUnit, int x, int z, bool bReact)
 {
 	bool hit = false;
@@ -372,8 +372,8 @@ bool cTaskGimmickMan::Contact(cTaskUnit* pUnit, int x, int z, bool bReact)
 	return hit;
 }
 
-// DOL 0x80073af4
-// DOL 0x80073ba0 / 0x80073c24
+// DOL 0x80073af4 [audited]
+// DOL 0x80073ba0 [audited] / 0x80073c24
 bool cTaskGimmickMan::IsTypeActive(int nType) const
 {
 	for (const cTaskGimmick* g : m_vec)

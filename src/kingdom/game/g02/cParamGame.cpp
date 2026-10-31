@@ -8,7 +8,7 @@ namespace
 constexpr float FPS = 60.0f;   // FLOAT_8047bff0
 }
 
-// DOL 0x80123fbc: cJetCSV ctor (FUN_801393c0), vtable slot +0x08 (clear), data lookup FUN_8000bcd4 -> SetData FUN_80139428, then the rows
+// DOL 0x80123fbc [audited]: cJetCSV ctor (FUN_801393c0), vtable slot +0x08 (clear), data lookup FUN_8000bcd4 -> SetData FUN_80139428, then the rows
 // in this order; +0x68 is set whether or not the data was found (the DOL does not test SetData)
 cParamGame::cParamGame()
 {

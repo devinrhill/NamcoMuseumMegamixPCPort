@@ -27,7 +27,7 @@ void Regist(kingdom::cKingdomAnita* a, const char* name)
 	a->RegistData(ResourceDatabase::GetPath(name));
 }
 
-// the two-digit number anims of the flag / time consoles: DOL 0x803775e8 / 0x80377ac8 [digit][appear, wait, delete]
+// the two-digit number anims of the flag / time consoles: DOL 0x803775e8 [audited] / 0x80377ac8 [digit][appear, wait, delete]
 int DigitAnm(int digit, int nCol)
 {
 	return 0x24 + digit * 3 + nCol;
@@ -42,7 +42,7 @@ const int cTaskConsMultiMenuArrow::s_HitPat[6] = {0x21, 0x22, 0x1d, 0x1d, 0x1d, 
 const int cTaskConsMultiMenuArrow::s_LayPat[6] = {0x11, 0x12, 8, 8, 9, 9};
 const int cTaskConsMultiMenuArrow::s_LayLayer[6] = {0, 0, 1, 0, 1, 0};
 
-// DOL 0x8010b7b4: priority 0x80000005, wait anim (reset), hidden, position = layer s_LayLayer of pattern s_LayPat, hit pattern s_HitPat
+// DOL 0x8010b7b4 [audited]: priority 0x80000005, wait anim (reset), hidden, position = layer s_LayLayer of pattern s_LayPat, hit pattern s_HitPat
 cTaskConsMultiMenuArrow::cTaskConsMultiMenuArrow(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nIndex, bool bActive)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -56,22 +56,22 @@ cTaskConsMultiMenuArrow::cTaskConsMultiMenuArrow(kingdom::game::cTaskConsMenuMan
 	m_nHitPat = s_HitPat[m_nIndex];
 }
 
-// DOL 0x8010b914
+// DOL 0x8010b914 [audited]
 cTaskConsMultiMenuArrow::~cTaskConsMultiMenuArrow()
 {
 }
 
-// DOL 0x8010b96c: an inactive arrow never hits
+// DOL 0x8010b96c [audited]: an inactive arrow never hits
 bool cTaskConsMultiMenuArrow::IsDpdHit(float x, float y)
 {
 	if (!m_bActive) return false;
 	return DpdHitPat(x, y, m_nHitPat);
 }
 
-void cTaskConsMultiMenuArrow::WaitExec() { pAnita(0u)->SetAnimNo(s_AnmTbl[m_nIndex][1], false); }    // DOL 0x8010bac4
-void cTaskConsMultiMenuArrow::PointExec() { pAnita(0u)->SetAnimNo(s_AnmTbl[m_nIndex][2], false); }   // DOL 0x8010bb1c
+void cTaskConsMultiMenuArrow::WaitExec() { pAnita(0u)->SetAnimNo(s_AnmTbl[m_nIndex][1], false); }    // DOL 0x8010bac4 [audited]
+void cTaskConsMultiMenuArrow::PointExec() { pAnita(0u)->SetAnimNo(s_AnmTbl[m_nIndex][2], false); }   // DOL 0x8010bb1c [audited]
 
-// DOL 0x8010bb74: shown only when active
+// DOL 0x8010bb74 [audited]: shown only when active
 bool cTaskConsMultiMenuArrow::AppearExec()
 {
 	if (nStep() == 0)
@@ -87,7 +87,7 @@ bool cTaskConsMultiMenuArrow::AppearExec()
 	return false;
 }
 
-// DOL 0x8010bc34
+// DOL 0x8010bc34 [audited]
 bool cTaskConsMultiMenuArrow::DecideExec()
 {
 	if (nStep() == 0)
@@ -113,7 +113,7 @@ cTaskConsMultiMenuBack::~cTaskConsMultiMenuBack()
 {
 }
 
-// DOL 0x8010bd78: priority 0x8000000b, hit pattern 0x24, wait anim (reset), hidden, position = layer 0 of pattern 2
+// DOL 0x8010bd78 [audited]: priority 0x8000000b, hit pattern 0x24, wait anim (reset), hidden, position = layer 0 of pattern 2
 void cTaskConsMultiMenuBack::Init()
 {
 	nDrawPriority(0x8000000bu);
@@ -124,7 +124,7 @@ void cTaskConsMultiMenuBack::Init()
 	pAnita(0u)->GetLayerPos(pAnita(0u)->vTrans(), 0u, 2);
 }
 
-// DOL 0x8010be88 (table 0x80377430)
+// DOL 0x8010be88 [audited] (table 0x80377430)
 int cTaskConsMultiMenuBack::GetAnm(int n)
 {
 	static const int s_Anm[4] = {0x9f, 0xa0, 0xa1, 0xa2};
@@ -142,7 +142,7 @@ cTaskConsMultiMenuBg::~cTaskConsMultiMenuBg()
 {
 }
 
-// DOL 0x8010bf68: priority 0x10001, ANITA_MENU_BG, the key's anim (reset); the same as cTaskConsMenuBg::SetData (0x801072e8)
+// DOL 0x8010bf68 [audited]: priority 0x10001, ANITA_MENU_BG, the key's anim (reset); the same as cTaskConsMenuBg::SetData (0x801072e8)
 void cTaskConsMultiMenuBg::Init()
 {
 	SetData();
@@ -150,7 +150,7 @@ void cTaskConsMultiMenuBg::Init()
 
 // ---- cTaskConsMultiMenuBoard ------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8010c034: priority 0x10003, anim 0x92 (no reset), hidden
+// DOL 0x8010c034 [audited]: priority 0x10003, anim 0x92 (no reset), hidden
 cTaskConsMultiMenuBoard::cTaskConsMultiMenuBoard(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -164,7 +164,7 @@ cTaskConsMultiMenuBoard::~cTaskConsMultiMenuBoard()
 {
 }
 
-// DOL 0x8010c16c: the board folds out (0x91), then stays (0x92)
+// DOL 0x8010c16c [audited]: the board folds out (0x91), then stays (0x92)
 bool cTaskConsMultiMenuBoard::AppearExec()
 {
 	if (nStep() == 0)
@@ -189,7 +189,7 @@ const int cTaskConsMultiMenuController::s_Anm[2][4][4] = {
 	{{0x5d, 0x5e, 0x5f, 0x60}, {0x67, 0x68, 0x69, 0x6a}, {0x71, 0x72, 0x73, 0x74}, {0x7b, 0x7c, 0x7d, 0x7e}},   // type 2 (Nunchuk)
 };
 
-// DOL 0x8010c234
+// DOL 0x8010c234 [audited]
 cTaskConsMultiMenuController::cTaskConsMultiMenuController(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nType, int nPlayer)
 	: cTaskConsMenuController(pConsMan, nType)
 {
@@ -200,7 +200,7 @@ cTaskConsMultiMenuController::~cTaskConsMultiMenuController()
 {
 }
 
-// DOL 0x8010c2e0: priority 0x80000003, hit pattern of the player, wait anim (reset), hidden
+// DOL 0x8010c2e0 [audited]: priority 0x80000003, hit pattern of the player, wait anim (reset), hidden
 void cTaskConsMultiMenuController::Init()
 {
 	nDrawPriority(0x80000003u);
@@ -210,7 +210,7 @@ void cTaskConsMultiMenuController::Init()
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x8010c3f4
+// DOL 0x8010c3f4 [audited]
 int cTaskConsMultiMenuController::GetAnm(int n)
 {
 	return s_Anm[m_nType - 1][m_nPlayer][n];
@@ -227,7 +227,7 @@ cTaskConsMultiMenuCurtain::~cTaskConsMultiMenuCurtain()
 {
 }
 
-// DOL 0x8010c4f8: priority 0x10002, wait anim (reset), hidden
+// DOL 0x8010c4f8 [audited]: priority 0x10002, wait anim (reset), hidden
 void cTaskConsMultiMenuCurtain::Init()
 {
 	nDrawPriority(0x10002u);
@@ -236,7 +236,7 @@ void cTaskConsMultiMenuCurtain::Init()
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x8010c5d4 (table 0x80377598 [key][appear, wait])
+// DOL 0x8010c5d4 [audited] (table 0x80377598 [key][appear, wait])
 int cTaskConsMultiMenuCurtain::GetAnm(int n)
 {
 	static const int s_Anm[4][2] = {{0xb3, 0xb4}, {0xb5, 0xb6}, {0xb7, 0xb8}, {0xb9, 0xba}};
@@ -245,12 +245,12 @@ int cTaskConsMultiMenuCurtain::GetAnm(int n)
 
 // ---- cTaskConsMultiMenuFlag -------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8010c644: priority 0x80000007; anitas 0 (tens) and 1 (ones): digit 0 anim (no reset), hidden, at layer {1, 0} of pattern 0xb
+// DOL 0x8010c644 [audited]: priority 0x80000007; anitas 0 (tens) and 1 (ones): digit 0 anim (no reset), hidden, at layer {1, 0} of pattern 0xb
 cTaskConsMultiMenuFlag::cTaskConsMultiMenuFlag(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
 	nDrawPriority(0x80000007u);
-	static const int s_Layer[2] = {1, 0};   // DOL 0x8047ba40
+	static const int s_Layer[2] = {1, 0};   // DOL 0x8047ba40 [audited]
 	for (uint i = 0; i < 2; i++)
 	{
 		kingdom::cKingdomAnita* a = pAnita(i);
@@ -265,7 +265,7 @@ cTaskConsMultiMenuFlag::~cTaskConsMultiMenuFlag()
 {
 }
 
-// DOL 0x8010c7b8: the tens digit shows only from 10 up (a leading zero hides); the ones digit moves to the centre (pattern 0xc) below 10
+// DOL 0x8010c7b8 [audited]: the tens digit shows only from 10 up (a leading zero hides); the ones digit moves to the centre (pattern 0xc) below 10
 void cTaskConsMultiMenuFlag::SetNumber(int nCol)
 {
 	const u32 v = (u32)m_nValue;
@@ -288,9 +288,9 @@ void cTaskConsMultiMenuFlag::SetNumber(int nCol)
 	pAnita(1u)->GetLayerPos(pAnita(1u)->vTrans(), 0u, m_nValue < 10 ? 0xc : 0xb);   // DAT_80477b80 / DAT_80477b84
 }
 
-void cTaskConsMultiMenuFlag::WaitExec() { SetNumber(1); }   // DOL 0x8010ca38
+void cTaskConsMultiMenuFlag::WaitExec() { SetNumber(1); }   // DOL 0x8010ca38 [audited]
 
-// DOL 0x8010c978: the last digit decides the end
+// DOL 0x8010c978 [audited]: the last digit decides the end
 bool cTaskConsMultiMenuFlag::AppearExec()
 {
 	if (nStep() == 0)
@@ -306,7 +306,7 @@ bool cTaskConsMultiMenuFlag::AppearExec()
 	return false;
 }
 
-// DOL 0x8010ca40
+// DOL 0x8010ca40 [audited]
 bool cTaskConsMultiMenuFlag::DeleteExec()
 {
 	if (nStep() == 0)
@@ -325,13 +325,13 @@ bool cTaskConsMultiMenuFlag::DeleteExec()
 
 namespace
 {
-const int s_NumAnmA[4][2] = {{0x51, 0x52}, {0x54, 0x55}, {0x57, 0x58}, {0x5a, 0x5b}};   // DOL 0x80377818 [player][appear, wait]
-const int s_NumAnmB[4][2] = {{0xbf, 0xc0}, {0xc2, 0xc3}, {0xc5, 0xc6}, {0xc8, 0xc9}};   // DOL 0x80377838
-const int s_NumLayerA[4] = {3, 2, 1, 0};                                                  // DOL 0x80377858
-const int s_NumLayerC[4] = {0, 1, 2, 3};                                                  // DOL 0x80377878
+const int s_NumAnmA[4][2] = {{0x51, 0x52}, {0x54, 0x55}, {0x57, 0x58}, {0x5a, 0x5b}};   // DOL 0x80377818 [audited] ([player][appear, wait])
+const int s_NumAnmB[4][2] = {{0xbf, 0xc0}, {0xc2, 0xc3}, {0xc5, 0xc6}, {0xc8, 0xc9}};   // DOL 0x80377838 [audited]
+const int s_NumLayerA[4] = {3, 2, 1, 0};                                                  // DOL 0x80377858 [audited]
+const int s_NumLayerC[4] = {0, 1, 2, 3};                                                  // DOL 0x80377878 [audited]
 }
 
-// DOL 0x8010e7e8: priority 0x80000001; anita 0 / 1 = the plate (wait anims, reset), anita 2 = the mark (0xcc); all hidden. The mark's flag is
+// DOL 0x8010e7e8 [audited]: priority 0x80000001; anita 0 / 1 = the plate (wait anims, reset), anita 2 = the mark (0xcc); all hidden. The mark's flag is
 // the sys' player mask bit (0x800c58b0)
 cTaskConsMultiMenuPlayer::cTaskPlayerNumber::cTaskPlayerNumber(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nPlayer)
 	: cTaskConsMenuBase(pConsMan)
@@ -357,7 +357,7 @@ cTaskConsMultiMenuPlayer::cTaskPlayerNumber::~cTaskPlayerNumber()
 {
 }
 
-// DOL 0x8010eaa8
+// DOL 0x8010eaa8 [audited]
 bool cTaskConsMultiMenuPlayer::cTaskPlayerNumber::AppearExec()
 {
 	if (nStep() == 0)
@@ -377,7 +377,7 @@ bool cTaskConsMultiMenuPlayer::cTaskPlayerNumber::AppearExec()
 	return false;
 }
 
-// DOL 0x8010ec08 (the mark's reset flag is the player mask bit, as in the DOL)
+// DOL 0x8010ec08 [audited] (the mark's reset flag is the player mask bit, as in the DOL)
 void cTaskConsMultiMenuPlayer::cTaskPlayerNumber::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(s_NumAnmA[m_nPlayer][1], false);
@@ -390,7 +390,7 @@ void cTaskConsMultiMenuPlayer::cTaskPlayerNumber::WaitExec()
 const int cTaskConsMultiMenuPlayer::s_AnmTbl[4][2] = {{0xa7, 0xa8}, {0xaa, 0xab}, {0xad, 0xae}, {0xb0, 0xb1}};
 const int cTaskConsMultiMenuPlayer::s_LayLayer[4] = {3, 2, 1, 0};
 
-// DOL 0x8010ecac: priority 0x10005, wait anim (reset), hidden, the name's position = layer s_LayLayer of pattern 5 (+ half the 640 x 480 screen,
+// DOL 0x8010ecac [audited: font writer settings UNVERIFIED, the car's Mii head not ported]: priority 0x10005, wait anim (reset), hidden, the name's position = layer s_LayLayer of pattern 5 (+ half the 640 x 480 screen,
 // y flipped), the number plate (+0x1e0), the control button (+0x1e4; the sys' type of the player), the car (+0x1e8) and the font writer, all
 // connected to the main app. The name is drawn in Draw (the DOL's cTaskFontWriter at priority 0x80000002).
 cTaskConsMultiMenuPlayer::cTaskConsMultiMenuPlayer(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nPlayer, const string& name)
@@ -432,7 +432,7 @@ cTaskConsMultiMenuPlayer::~cTaskConsMultiMenuPlayer()
 {
 }
 
-// DOL 0x8010f148 (vtable +0x64): the state wait, then the children wait (the car resets)
+// DOL 0x8010f148 [audited] (vtable +0x64): the state wait, then the children wait (the car resets)
 void cTaskConsMultiMenuPlayer::WaitState()
 {
 	cTaskConsMenuBase::WaitState();
@@ -441,12 +441,12 @@ void cTaskConsMultiMenuPlayer::WaitState()
 	m_pCar->Reset();
 }
 
-void cTaskConsMultiMenuPlayer::WaitExec()   // DOL 0x8010f30c
+void cTaskConsMultiMenuPlayer::WaitExec()   // DOL 0x8010f30c [audited]
 {
 	pAnita(0u)->SetAnimNo(s_AnmTbl[m_nPlayer][1], false);
 }
 
-// DOL 0x8010f1bc. Step 1 tests anita 0's SHOWN bit (state & 1), not the end bit, as the DOL does.
+// DOL 0x8010f1bc [audited]. Step 1 tests anita 0's SHOWN bit (state & 1), not the end bit, as the DOL does.
 bool cTaskConsMultiMenuPlayer::AppearExec()
 {
 	if (nStep() == 0)
@@ -473,14 +473,14 @@ bool cTaskConsMultiMenuPlayer::AppearExec()
 	return false;
 }
 
-// DOL 0x8010f440: the name's position is set every frame (Draw), then the state machine unless the main app is paused
+// DOL 0x8010f440 [audited]: the name's position is set every frame (Draw), then the state machine unless the main app is paused
 bool cTaskConsMultiMenuPlayer::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::KingSys->pAppMain()->IsPause()) return true;
 	return cTaskConsMenuBase::Execute(pParam);
 }
 
-// DOL 0x8010f364 (an orthographic setup around the anita draw: the same projection as the default 2D pass) + the font writer's text.
+// DOL 0x8010f364 [audited: the DOL's ortho setup around the anita draw is not reproduced (same 2D projection)] (an orthographic setup around the anita draw: the same projection as the default 2D pass) + the font writer's text.
 // UNVERIFIED: the name is drawn centred on the pane position, RESIDENT_FONT_MII, size 28 (the writer's settings are not traced).
 void cTaskConsMultiMenuPlayer::Draw(int nStatus, cJetTask* pParam)
 {
@@ -509,7 +509,7 @@ cTaskConsMultiMenuRule::~cTaskConsMultiMenuRule()
 {
 }
 
-// DOL 0x8010f528: priority 0x80000009, hit pattern 0x1b, wait anim (reset), hidden (no layer position)
+// DOL 0x8010f528 [audited]: priority 0x80000009, hit pattern 0x1b, wait anim (reset), hidden (no layer position)
 void cTaskConsMultiMenuRule::RegistData()
 {
 	nDrawPriority(0x80000009u);
@@ -519,7 +519,7 @@ void cTaskConsMultiMenuRule::RegistData()
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x8010f60c (table 0x803779c8)
+// DOL 0x8010f60c [audited] (table 0x803779c8)
 int cTaskConsMultiMenuRule::GetAnm(int n)
 {
 	static const int s_Anm[4] = {0x93, 0x94, 0x95, 0x96};
@@ -528,7 +528,7 @@ int cTaskConsMultiMenuRule::GetAnm(int n)
 
 // ---- cTaskConsMultiMenuSingle -----------------------------------------------------------------------------------------------------------
 
-// DOL 0x8010f6a8: priority 0x8000000a, anim 0xa4 (reset), hidden, position = layer 0 of pattern 0x14 (DAT_80479080 = 0, DAT_80477bb4)
+// DOL 0x8010f6a8 [audited]: priority 0x8000000a, anim 0xa4 (reset), hidden, position = layer 0 of pattern 0x14 (DAT_80479080 = 0, DAT_80477bb4)
 cTaskConsMultiMenuSingle::cTaskConsMultiMenuSingle(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -543,16 +543,16 @@ cTaskConsMultiMenuSingle::~cTaskConsMultiMenuSingle()
 {
 }
 
-// DOL 0x8010f80c (hit pattern DAT_80477bb0 = 0x26)
+// DOL 0x8010f80c [audited] (hit pattern DAT_80477bb0 = 0x26)
 bool cTaskConsMultiMenuSingle::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, 0x26);
 }
 
-void cTaskConsMultiMenuSingle::WaitExec() { pAnita(0u)->SetAnimNo(0xa4, false); }    // DOL 0x8010f950
-void cTaskConsMultiMenuSingle::PointExec() { pAnita(0u)->SetAnimNo(0xa5, false); }   // DOL 0x8010fa48
+void cTaskConsMultiMenuSingle::WaitExec() { pAnita(0u)->SetAnimNo(0xa4, false); }    // DOL 0x8010f950 [audited]
+void cTaskConsMultiMenuSingle::PointExec() { pAnita(0u)->SetAnimNo(0xa5, false); }   // DOL 0x8010fa48 [audited]
 
-// DOL 0x8010f988
+// DOL 0x8010f988 [audited]
 bool cTaskConsMultiMenuSingle::AppearExec()
 {
 	if (nStep() == 0)
@@ -569,7 +569,7 @@ bool cTaskConsMultiMenuSingle::AppearExec()
 	return false;
 }
 
-// DOL 0x8010fa80
+// DOL 0x8010fa80 [audited]
 bool cTaskConsMultiMenuSingle::DecideExec()
 {
 	if (nStep() == 0)
@@ -586,7 +586,7 @@ bool cTaskConsMultiMenuSingle::DecideExec()
 
 // ---- cTaskConsMultiMenuStage ------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8010fb14: priority 0x80000004, key 0's wait anim (reset), hidden, position = layer 0 of pattern 0 (DAT_8047908c / DAT_80479088, never written)
+// DOL 0x8010fb14 [audited]: priority 0x80000004, key 0's wait anim (reset), hidden, position = layer 0 of pattern 0 (DAT_8047908c / DAT_80479088, never written)
 cTaskConsMultiMenuStage::cTaskConsMultiMenuStage(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -602,9 +602,9 @@ cTaskConsMultiMenuStage::~cTaskConsMultiMenuStage()
 {
 }
 
-void cTaskConsMultiMenuStage::WaitExec() { pAnita(0u)->SetAnimNo(0x45 + m_nStageKey * 3 + 1, false); }   // DOL 0x8010fc94
+void cTaskConsMultiMenuStage::WaitExec() { pAnita(0u)->SetAnimNo(0x45 + m_nStageKey * 3 + 1, false); }   // DOL 0x8010fc94 [audited]
 
-// DOL 0x8010fcec (table 0x80377a38 [key][appear, wait, delete])
+// DOL 0x8010fcec [audited] (table 0x80377a38 [key][appear, wait, delete])
 bool cTaskConsMultiMenuStage::AppearExec()
 {
 	if (nStep() == 0)
@@ -620,7 +620,7 @@ bool cTaskConsMultiMenuStage::AppearExec()
 	return false;
 }
 
-// DOL 0x8010fda0
+// DOL 0x8010fda0 [audited]
 bool cTaskConsMultiMenuStage::DeleteExec()
 {
 	if (nStep() == 0)
@@ -637,7 +637,7 @@ bool cTaskConsMultiMenuStage::DeleteExec()
 
 // ---- cTaskConsMultiMenuStart ------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8010fe48: priority 0x80000008, anim 0x8e (reset), hidden, position = layer 0 of pattern 0xf (DAT_80479090 = 0, DAT_80477bcc)
+// DOL 0x8010fe48 [audited]: priority 0x80000008, anim 0x8e (reset), hidden, position = layer 0 of pattern 0xf (DAT_80479090 = 0, DAT_80477bcc)
 cTaskConsMultiMenuStart::cTaskConsMultiMenuStart(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -652,16 +652,16 @@ cTaskConsMultiMenuStart::~cTaskConsMultiMenuStart()
 {
 }
 
-// DOL 0x8010ffac (hit pattern DAT_80477bc8 = 0x1f)
+// DOL 0x8010ffac [audited] (hit pattern DAT_80477bc8 = 0x1f)
 bool cTaskConsMultiMenuStart::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, 0x1f);
 }
 
-void cTaskConsMultiMenuStart::WaitExec() { pAnita(0u)->SetAnimNo(0x8e, false); }    // DOL 0x801100f0
-void cTaskConsMultiMenuStart::PointExec() { pAnita(0u)->SetAnimNo(0x8f, false); }   // DOL 0x801101e8
+void cTaskConsMultiMenuStart::WaitExec() { pAnita(0u)->SetAnimNo(0x8e, false); }    // DOL 0x801100f0 [audited]
+void cTaskConsMultiMenuStart::PointExec() { pAnita(0u)->SetAnimNo(0x8f, false); }   // DOL 0x801101e8 [audited]
 
-// DOL 0x80110128
+// DOL 0x80110128 [audited]
 bool cTaskConsMultiMenuStart::AppearExec()
 {
 	if (nStep() == 0)
@@ -678,7 +678,7 @@ bool cTaskConsMultiMenuStart::AppearExec()
 	return false;
 }
 
-// DOL 0x80110220
+// DOL 0x80110220 [audited]
 bool cTaskConsMultiMenuStart::DecideExec()
 {
 	if (nStep() == 0)
@@ -695,13 +695,13 @@ bool cTaskConsMultiMenuStart::DecideExec()
 
 // ---- cTaskConsMultiMenuTime -------------------------------------------------------------------------------------------------------------
 
-// DOL 0x801102b4: priority 0x80000006; anitas 0..2 (minute, two second digits): digit 0 anim (reset), hidden, at layer {3, 1, 0} of pattern 0xd;
+// DOL 0x801102b4 [audited]: priority 0x80000006; anitas 0..2 (minute, two second digits): digit 0 anim (reset), hidden, at layer {3, 1, 0} of pattern 0xd;
 // anita 3 = the colon (0x42), at layer 2 of pattern 0xd
 cTaskConsMultiMenuTime::cTaskConsMultiMenuTime(kingdom::game::cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
 	nDrawPriority(0x80000006u);
-	static const int s_Layer[3] = {3, 1, 0};   // DOL 0x80377b4c
+	static const int s_Layer[3] = {3, 1, 0};   // DOL 0x80377b4c [audited]
 	for (uint i = 0; i < 3; i++)
 	{
 		kingdom::cKingdomAnita* a = pAnita(i);
@@ -721,7 +721,7 @@ cTaskConsMultiMenuTime::~cTaskConsMultiMenuTime()
 {
 }
 
-// DOL 0x801104c8: minutes (anita 0), the two seconds digits (1, 2), the colon (3)
+// DOL 0x801104c8 [audited]: minutes (anita 0), the two seconds digits (1, 2), the colon (3)
 void cTaskConsMultiMenuTime::SetNumber(int nCol)
 {
 	const u32 v = (u32)m_nValue;
@@ -737,9 +737,9 @@ void cTaskConsMultiMenuTime::SetNumber(int nCol)
 	pAnita(3u)->SetState(1u);
 }
 
-void cTaskConsMultiMenuTime::WaitExec() { SetNumber(1); }   // DOL 0x80110730
+void cTaskConsMultiMenuTime::WaitExec() { SetNumber(1); }   // DOL 0x80110730 [audited]
 
-// DOL 0x80110658
+// DOL 0x80110658 [audited]
 bool cTaskConsMultiMenuTime::AppearExec()
 {
 	if (nStep() == 0)
@@ -757,7 +757,7 @@ bool cTaskConsMultiMenuTime::AppearExec()
 	return false;
 }
 
-// DOL 0x80110738
+// DOL 0x80110738 [audited]
 bool cTaskConsMultiMenuTime::DeleteExec()
 {
 	if (nStep() == 0)
@@ -786,28 +786,28 @@ const char* const ANITA_TUTORIAL_02 = "ANITA_MENU_TUTORIAL_02";   // 0xef09a34b
 const char* const TEXT_TUTORIAL = "MENU_TEXT_TUTORIAL";           // 0x9e486902
 const char* const COMMON_TUTORIAL = "COMMON_ANITA_TUTORIAL";      // 0xbc299e43
 
-sTutorialPage s_PageMotion[6] = {   // DOL 0x8043e360
+sTutorialPage s_PageMotion[6] = {   // DOL 0x8043e360 [audited]
 	{-1, 15, ANITA_TUTORIAL_01}, {0, 16, ANITA_TUTORIAL_01}, {4, 17, ANITA_TUTORIAL_01},
 	{1, 18, ANITA_TUTORIAL_02}, {-1, 19, ANITA_TUTORIAL_02}, {2, 20, ANITA_TUTORIAL_02},
 };
-sTutorialPage s_PageCtl[6] = {      // DOL 0x8043e3a8
+sTutorialPage s_PageCtl[6] = {      // DOL 0x8043e3a8 [audited]
 	{-1, 22, ANITA_TUTORIAL_01}, {0, 23, ANITA_TUTORIAL_01}, {-1, 24, ANITA_TUTORIAL_01},
 	{1, 25, ANITA_TUTORIAL_02}, {-1, 26, ANITA_TUTORIAL_02}, {2, 27, ANITA_TUTORIAL_02},
 };
 
-sTutorialData* DataMotion()   // DOL 0x80377b88
+sTutorialData* DataMotion()   // DOL 0x80377b88 [audited]
 {
 	static sTutorialData s{6u, TEXT_TUTORIAL, {&s_PageMotion[0], &s_PageMotion[1], &s_PageMotion[2], &s_PageMotion[3], &s_PageMotion[4], &s_PageMotion[5]}};
 	return &s;
 }
-sTutorialData* DataCtl()      // DOL 0x80377b94
+sTutorialData* DataCtl()      // DOL 0x80377b94 [audited]
 {
 	static sTutorialData s{6u, TEXT_TUTORIAL, {&s_PageCtl[0], &s_PageCtl[1], &s_PageCtl[2], &s_PageCtl[3], &s_PageCtl[4], &s_PageCtl[5]}};
 	return &s;
 }
 }
 
-// DOL 0x801107ec (FUN_80145a9c(this, cursor, COMMON_ANITA_TUTORIAL, 0x80377b88); natively SetCursor + RegistData as the single-player pages)
+// DOL 0x801107ec [audited] (FUN_80145a9c(this, cursor, COMMON_ANITA_TUTORIAL, 0x80377b88); natively SetCursor + RegistData as the single-player pages)
 cTaskConsMultiMenuMotionTutorial::cTaskConsMultiMenuMotionTutorial(kingdom::cTaskCursor* pCursor)
 {
 	SetCursor(pCursor);
@@ -818,7 +818,7 @@ cTaskConsMultiMenuMotionTutorial::~cTaskConsMultiMenuMotionTutorial()
 {
 }
 
-// DOL 0x80110840
+// DOL 0x80110840 [audited]
 cTaskConsMultiMenuCtlTutorial::cTaskConsMultiMenuCtlTutorial(kingdom::cTaskCursor* pCursor)
 {
 	SetCursor(pCursor);
@@ -836,7 +836,7 @@ namespace
 constexpr float DEG2RAD = 0.01745329238474369f;
 }
 
-// DOL 0x80111050: cTaskMenuPacman's ctor, then priority 0x10006 + player
+// DOL 0x80111050 [audited]: cTaskMenuPacman's ctor, then priority 0x10006 + player
 cTaskMultiMenuCar::cTaskMultiMenuCar(int nPlayer)
 {
 	SetName("g02::cTaskMultiMenuCar");
@@ -844,12 +844,12 @@ cTaskMultiMenuCar::cTaskMultiMenuCar(int nPlayer)
 	m_nPlayer = nPlayer;
 }
 
-// DOL 0x801111a4 (the Mii head object and the CSV_CAR parameters of the DOL are not ported: Mii, out of scope)
+// DOL 0x801111a4 [audited] (the Mii head object and the CSV_CAR parameters of the DOL are not ported: Mii, out of scope)
 cTaskMultiMenuCar::~cTaskMultiMenuCar()
 {
 }
 
-// DOL 0x80111274: model 1 = MENU_NULL_MODEL (the placement), model 0 = the player's coloured car (blue, green, yellow, white) + CAR_ANIM_NORMAL,
+// DOL 0x80111274 [audited: the Mii face on node face + the CSV_CAR cParamCar not ported]: model 1 = MENU_NULL_MODEL (the placement), model 0 = the player's coloured car (blue, green, yellow, white) + CAR_ANIM_NORMAL,
 // light set 1, shown, placed at node "set_<p+1>p" of the null model (rotation degrees -> radians), scale 0 until it appears; its node "man_root"
 // carries the coloured body + BODY_ANIM_NORMAL. NOT PORTED (Mii, out of scope): the player's Mii head on the body's node "face" and the
 // CSV_CAR (cParamCar) values the DOL loads only for its scale.
@@ -881,7 +881,7 @@ void cTaskMultiMenuCar::Init()
 
 // ---- cTaskMultiMenuMap ------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80112830: cTaskMenuMap(man, 0, key), priority 0x10004
+// DOL 0x80112830 [audited]: cTaskMenuMap(man, 0, key), priority 0x10004
 cTaskMultiMenuMap::cTaskMultiMenuMap(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nStageKey)
 	: cTaskMenuMap(pConsMan, 0, nStageKey)
 {
@@ -893,7 +893,7 @@ cTaskMultiMenuMap::~cTaskMultiMenuMap()
 {
 }
 
-// DOL 0x80112898: model 4 = MENU_NULL_MODEL; models 0..3 = MENU_WORLD_1A / 2A / 3B / 4C (table 0x80377db8) + MENU_WORLD_ANIM, light set 0, hidden,
+// DOL 0x80112898 [audited]: model 4 = MENU_NULL_MODEL; models 0..3 = MENU_WORLD_1A / 2A / 3B / 4C (table 0x80377db8) + MENU_WORLD_ANIM, light set 0, hidden,
 // placed at node "set_bg"; then the hit layout on anita 0
 void cTaskMultiMenuMap::RegistData()
 {

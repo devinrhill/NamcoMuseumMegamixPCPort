@@ -43,6 +43,7 @@ cTaskAnita* cTaskConsPacIcon::Construct()
 	return new cTaskConsPacIcon();
 }
 
+// DOL 0x801009f8 [audited: per AUDIT_G03_G07 row]
 void cTaskConsPacIcon::SetpExecNumber(Ref<int>* set)
 {
 	m_pExecNumber = set;
@@ -71,6 +72,7 @@ void cTaskConsPacIcon::Term()
 {
 }
 
+// DOL 0x80102730 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsPacIcon::Execute(cJetTask* pParam)
 {
 	CustomKingdomUtil::Assert(m_pExecNumber != nullptr, "nullpo");
@@ -97,6 +99,7 @@ bool cTaskConsPacIcon::Execute(cJetTask* pParam)
 	return cTaskConsoleBase::Execute(pParam);
 }
 
+// DOL 0x80102954 [audited: per AUDIT_G03_G07 row]
 void cTaskConsPacIcon::Visible(uint set)
 {
 	if (set == std::numeric_limits<uint>::max())
@@ -113,6 +116,7 @@ void cTaskConsPacIcon::Visible(uint set)
 	}
 }
 
+// DOL 0x801029d0 [audited: per AUDIT_G03_G07 row]
 void cTaskConsPacIcon::Invisible(uint set)
 {
 	if (set == std::numeric_limits<uint>::max())

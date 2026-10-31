@@ -5,6 +5,8 @@
 #include "kingdom/game/g07/cTaskConsMenuMan.hpp"
 #include "kingdom/game/g07/cTaskConsMenuTutorial.hpp"
 #include "KingdomGlobal.hpp"
+#include "GamePad.hpp"
+#include "kingdom/KingdomJob.hpp"
 #include "kingdom/cTaskCursor.hpp"
 #include <ESEKind.hpp>
 #include <SoundManager.hpp>
@@ -34,6 +36,7 @@ void cAppG07MotosMenu::Free()
 	cAppGameBaseMenu::Free();
 }
 
+// DOL 0x801c490c [audited: per AUDIT_G03_G07 row] (ctor); dtor 0x801c4e64 = Term (detach g07menu.lzs only, no BGM fade)
 void cAppG07MotosMenu::Init()
 {
 	if (KingdomGlobal::MotosSys->nStageIdx() == 0)
@@ -79,6 +82,8 @@ void cAppG07MotosMenu::Term()
 	KingdomGlobal::MotosSys->DetachMenuData();
 }
 
+// DOL 0x801c4c48 [audited: per AUDIT_G03_G07 row] (vtable +0x40): menu manager all-appear 0x801c8a0c, then PlaySndSe("NEWSTAGE") when MotosSys +0x239 is set.
+// FadeInStart / FadeOutEnd are the base's blr in the DOL (the C# had Unity-UI resets there: removed)
 void cAppG07MotosMenu::FadeInEndCallBack()
 {
 	pTaskConsMenuMan()->AppearStart();
@@ -88,38 +93,21 @@ void cAppG07MotosMenu::FadeInEndCallBack()
 	}
 }
 
-void cAppG07MotosMenu::FadeInStartCallBack()
-{
-	if (pTaskConsMenuMan()->UnityUI != nullptr)
-	{
-		pTaskConsMenuMan()->UnityUI->ResetBaseAnim(true);
-	}
-	if (pTaskConsMenuMan()->UnityUI != nullptr)
-	{
-		pTaskConsMenuMan()->UnityUI->SetEnable(false);
-	}
-	if (pTaskTutorial()->UnityUIButton != nullptr)
-	{
-		pTaskTutorial()->UnityUIButton->SetEnable(false);
-	}
-	if (pTaskTutorial()->UnityUIImage != nullptr)
-	{
-		pTaskTutorial()->UnityUIImage->SetEnable(false);
-	}
-	if (pTaskTutorial()->UnityUIText != nullptr)
-	{
-		pTaskTutorial()->UnityUIText->SetEnable(false);
-	}
-}
 
+// DOL 0x801c4ca4 [audited: per AUDIT_G03_G07 row] (vtable +0x60): menu manager 0x801c8348 (= Reset)
 void cAppG07MotosMenu::TutorialOutCallBack()
 {
 	pTaskConsMenuMan()->Reset();
 }
 
+// DOL 0x801c4cac [audited: per AUDIT_G03_G07 row] (vtable +0x50)
 void cAppG07MotosMenu::MainExec()
 {
 	uint n = 0u;
+	if (GamePad::Get(0).hold == 0xffffffffu) // DOL 0x801c4cc4 [audited: described by the 43rd-session pass]: every bit held (disconnected pad word) -> job 273 (the C# dropped it)
+	{
+		kingdom::Kingdom_SetJobNo(job::MOTOS_DEBUG_MENU, false, false);
+	}
 	if (nModeState(n) == 0)
 	{
 		nOldState(n) = nModeState(n);
@@ -166,16 +154,16 @@ void cAppG07MotosMenu::MainExec()
 			pTaskConsMenuMan()->Select();
 			if (pTaskConsMenuMan()->IsBackDecide())
 			{
-				nSetNextJob(300941312u);
+				nSetNextJob(kingdom::job::MOTOS_TERM);
 			}
 			if (pTaskConsMenuMan()->IsStageDecide())
 			{
 				pTaskConsMenuMan()->Uplode();
-				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c4dec: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
+				nSetNextJob(job::MOTOS_NUNCHUK); // DOL 0x801c4dec [audited: described by the 43rd-session pass]: the Nunchuk card (job 280), which goes on to the game; the C# went straight to 0x11300000
 			}
 			if (pTaskConsMenuMan()->IsMultiDecide())
 			{
-				nSetNextJob(291504128u);
+				nSetNextJob(kingdom::job::MOTOS_MATCHING);
 				SetSndAllStop(false);
 			}
 			if (pTaskConsMenuMan()->IsRuleDecide())
@@ -196,9 +184,5 @@ void cAppG07MotosMenu::MainExec()
 	}
 }
 
-void cAppG07MotosMenu::FadeOutEndCallBack()
-{
-	if (pTaskConsMenuMan()->UnityUI != nullptr) pTaskConsMenuMan()->UnityUI->SetEnable(false);
-}
 
 }

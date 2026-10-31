@@ -118,7 +118,7 @@ protected:
 	bool ChangeToAttack(int iAttackKind) override;
 
 protected:
-	void ReleaseTerm() override { cTaskCharGolvis05::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
+	void ReleaseTerm() override { cTaskCharGolvis05::Term(); cTaskCharGolvis::ReleaseTerm(); }   // DOL dtor chain: ~cTaskCharGolvis05 (Term = blr) then ~cTaskCharGolvis (its Term)
 };
 
 }

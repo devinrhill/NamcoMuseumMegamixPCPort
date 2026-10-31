@@ -16,20 +16,20 @@ namespace
 constexpr int ROW_MODE = 1, ROW_STAGE = 2;
 }
 
-// DOL 0x8000ef44 (the entry table 0x803899a0)
+// DOL 0x8000ef44 [audited] (the entry table 0x803899a0)
 cAppGrobdaDebugMenu::cAppGrobdaDebugMenu()
 {
 	SetName("Grobda Debug Menu");
 	SetMenu("Grobda", {{"MENU", job::GROBDA_MENU}, {"MODE", job::GROBDA_DEBUG_SELECT}, {"STAGE", job::GROBDA_DEBUG_SELECT}, {"GAMEOVER", job::GROBDA_GAMEOVER}, {"STAFFROLL", job::GROBDA_STAFFROLL}, {"EXIT", job::GROBDA_TERM}});
 }
 
-// DOL 0x8000fcf8
+// DOL 0x8000fcf8 [audited]
 bool cAppGrobdaDebugMenu::Execute(cJetTask* pParam)
 {
 	cG11GrobdaSys* sys = cG11GrobdaSys::Instance();
 	const GamePad::State& pad = GamePad::Get(0);
-	const bool prev = (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_LEFT)) != 0;
-	const bool next = !prev && (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_RIGHT)) != 0;
+	const bool next = (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_RIGHT)) != 0;   // the DOL tests right (+8 & 8) first
+	const bool prev = !next && (pad.repeat & GamePad::PhysicalBit(WiiPad::DIR_LEFT)) != 0;
 	if (m_cursor == ROW_MODE)
 	{
 		int n = sys->nPlayer();
@@ -47,7 +47,7 @@ bool cAppGrobdaDebugMenu::Execute(cJetTask* pParam)
 	return cAppBaseDebugMenu::Execute(pParam);
 }
 
-// DOL 0x8000fc38
+// DOL 0x8000fc38 [audited]
 void cAppGrobdaDebugMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_title != nullptr)

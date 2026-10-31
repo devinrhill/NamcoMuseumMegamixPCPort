@@ -38,7 +38,7 @@ bool Exists(const std::string& name)
 	return wii::ArchiveStore::Find(name, size) != nullptr;
 }
 
-// cObject +0x20 / +0x30 / +0x40 from the node (DOL 0x800c8b78: translate +0x38, rotate +0x2c * DEG2RAD, scale +0x20)
+// cObject +0x20 / +0x30 / +0x40 from the node (DOL 0x800c8b78 [audited: +0x224 stage and virtual +0x74 (clip start) not mirrored]: translate +0x38, rotate +0x2c * DEG2RAD, scale +0x20)
 void PlaceFromNode(cKingdomModel* m, const wii::Mdl0Node& node)
 {
 	m->vTrans() = Vector4(node.translate[0], node.translate[1], node.translate[2], 1.0f);
@@ -82,7 +82,7 @@ void cTaskBg::Setup(const wii::Mdl0Node& node, int nStage)
 		if (cDemoMan* dm = KingdomGlobal::GalagaSys->pDemoMan()) dm->Regist(this);
 }
 
-// DOL 0x800c8fe8
+// DOL 0x800c8fe8 [audited]
 void cTaskBg::LoadDemoModel()
 {
 	static const char* const A10[5] = {"m01b_s1_bg_a10_cha.brres", "m01b_s1_bg_a10_cla.brres", "m01b_s1_bg_a10_tsa.brres", "m01b_s1_bg_a10_tpa.brres",
@@ -110,7 +110,7 @@ void cTaskBg::LoadDemoModel()
 	m->vScale() = m_vS;
 }
 
-// DOL 0x800c91a0: the model again (light set 0, fog 3 on stage 2 else 0), m01b_s%x_bg_a50_cha (the DOL's table names the cha clip five
+// DOL 0x800c91a0 [audited]: the model again (light set 0, fog 3 on stage 2 else 0), m01b_s%x_bg_a50_cha (the DOL's table names the cha clip five
 // times; only the first sets rate 1.0 and the length), the node's SRT
 void cTaskBg::LoadGoalModel()
 {
@@ -146,7 +146,7 @@ void cTaskBg::DemoFinish()
 	pModel(0)->vScale() = m_vS;
 }
 
-// DOL 0x800c8ddc
+// DOL 0x800c8ddc [audited]
 void cTaskBg::LoadModel()
 {
 	static const char* const A01[4] = {"m01b_s%x_bg_a01_cha.brres", "m01b_s%x_bg_a01_cla.brres", "m01b_s%x_bg_a01_tpa.brres",
@@ -161,7 +161,7 @@ void cTaskBg::LoadModel()
 	m_nState = 2;   // no demo object: state 2 just plays the model
 }
 
-// DOL 0x800c9388: states 0 / 1 run the demo object first; state 2 updates the clips (0x8009a478)
+// DOL 0x800c9388 [audited]: states 0 / 1 run the demo object first; state 2 updates the clips (0x8009a478)
 bool cTaskBg::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -211,7 +211,7 @@ bool cTaskBg::Execute(cJetTask* pParam)
 
 // ---- cTaskCourse --------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800dfd4c (the part after the animations, which copies the node's SRT like cTaskBg, is UNVERIFIED: read only up to the clip loop)
+// DOL 0x800dfd4c [audited: FUN_8001e16c(model) after the fog index not ported (unknown); copies SRT to +0x60/+0x70 too] (the part after the animations, which copies the node's SRT like cTaskBg, is UNVERIFIED: read only up to the clip loop)
 void cTaskCourse::Setup(const wii::Mdl0Node& node, int nStage)
 {
 	SetName("g01::cTaskCourse");
@@ -227,7 +227,7 @@ void cTaskCourse::Setup(const wii::Mdl0Node& node, int nStage)
 	PlaceFromNode(m, node);
 }
 
-// DOL 0x800e0128: (not paused) the clips (FUN_8001ded4) and the model task. Its Draw 0x800e0188 and cTaskBg's Draw
+// DOL 0x800e0128 [audited]: (not paused) the clips (FUN_8001ded4) and the model task. Its Draw 0x800e0188 and cTaskBg's Draw
 // 0x800c9450 are the plain model draw (no override natively).
 bool cTaskCourse::Execute(cJetTask* pParam)
 {
@@ -238,7 +238,7 @@ bool cTaskCourse::Execute(cJetTask* pParam)
 
 // ---- cTaskStage ---------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800f9484
+// DOL 0x800f9484 [audited]
 cTaskStage::cTaskStage()
 {
 	SetName("g01::cTaskStage");
@@ -247,7 +247,7 @@ cTaskStage::cTaskStage()
 	m_nStep = 0;
 }
 
-// DOL 0x800fa80c. The DOL keeps the skeleton (+0x21c, m01b_s%x_bg_s.brres) and the lens model (+0x220, m01e_s%x_lens_s.brres) as its own models,
+// DOL 0x800fa80c [audited: Setup compared by structure only (children, effects, shadow, goal, gimmick setups); the effects emitters 0x800f94ec not line-compared]. The DOL keeps the skeleton (+0x21c, m01b_s%x_bg_s.brres) and the lens model (+0x220, m01e_s%x_lens_s.brres) as its own models,
 // makes a cTaskBg per "m01b_s%x_bg_" node and a cTaskCourse per "m01b_s%x_cou_" node, then the effects (0x800f94ec: star / ginga / mist / water
 // emitters), the shadow (+0x224, 0x800fb0e4), the goal (+0x228, cTaskGoal / cTaskGoalBoss for stage 9), the gimmick setups (0x800f9e8c ...
 // 0x800fa578), cTaskSS 0x800f8f74 for stages < 7 and the lens flare (+0x230).
@@ -326,7 +326,7 @@ void cTaskStage::Setup(int nStage)
 	flare->SetSize(16.0f);
 }
 
-// DOL 0x800f9e8c: for every name of the table (0x803759ac, in order), every skeleton node containing it gets a cTaskGimmick of that
+// DOL 0x800f9e8c [audited]: for every name of the table (0x803759ac, in order), every skeleton node containing it gets a cTaskGimmick of that
 // index; fog 0 before stage 7, else 3; world 3 sets fog 3 afterwards (0x8001e400)
 void cTaskStage::SetupGimmick(const wii::Mdl0& skel, int nStage)
 {
@@ -341,7 +341,7 @@ void cTaskStage::SetupGimmick(const wii::Mdl0& skel, int nStage)
 		}
 }
 
-// DOL 0x800f97a4: the middle comets (table 0x80375548), fog 3, registered with the collision manager (0x800d41c8)
+// DOL 0x800f97a4 [audited]: the middle comets (table 0x80375548), fog 3, registered with the collision manager (0x800d41c8)
 void cTaskStage::SetupMComet(const wii::Mdl0& skel)
 {
 	for (int idx = 0; idx < 12; idx++)
@@ -355,7 +355,7 @@ void cTaskStage::SetupMComet(const wii::Mdl0& skel)
 		}
 }
 
-// DOL 0x800f99fc: GimmickParam_s%x.csv BLUE_SCORE / RED_SCORE / GREEN_SCORE, then a break comet per CometGimmick_s%x.csv row (not empty, not
+// DOL 0x800f99fc [audited]: GimmickParam_s%x.csv BLUE_SCORE / RED_SCORE / GREEN_SCORE, then a break comet per CometGimmick_s%x.csv row (not empty, not
 // a ';' comment): type, clip rate, scale xyz, rotation xyz (degrees * FLOAT_8047b738), position xyz; fog 3; registered for collision
 void cTaskStage::SetupBreakComet(int nStage)
 {
@@ -392,7 +392,7 @@ void cTaskStage::SetupBreakComet(int nStage)
 	}
 }
 
-// DOL 0x800fa0a4: an enemy gate at the first node containing m01m_g10_%03d for n = 1, 2 ... (every node is scanned for each n; n
+// DOL 0x800fa0a4 [audited]: an enemy gate at the first node containing m01m_g10_%03d for n = 1, 2 ... (every node is scanned for each n; n
 // counts up per gate found), registered with the collision manager
 void cTaskStage::SetupGate(const wii::Mdl0& skel, int nStage)
 {
@@ -410,7 +410,7 @@ void cTaskStage::SetupGate(const wii::Mdl0& skel, int nStage)
 	}
 }
 
-// DOL 0x800fa578: a spike master at the first node containing m01m_g12_%03d for n = 1, 2 ... (stops at the first n without a node), set
+// DOL 0x800fa578 [audited]: a spike master at the first node containing m01m_g12_%03d for n = 1, 2 ... (stops at the first n without a node), set
 // up with row n - 1 (+0xd0), registered for collision (0x800d41c8)
 void cTaskStage::SetupSpikeMaster(const wii::Mdl0& skel, int nStage)
 {
@@ -429,7 +429,7 @@ void cTaskStage::SetupSpikeMaster(const wii::Mdl0& skel, int nStage)
 	}
 }
 
-// DOL 0x800fa2fc: a spike at the first node containing m01m_g11_%03d for n = 1, 2 ... (stops at the first n without a node), registered
+// DOL 0x800fa2fc [audited]: a spike at the first node containing m01m_g11_%03d for n = 1, 2 ... (stops at the first n without a node), registered
 // with the collision manager; its CSV row is n - 1
 void cTaskStage::SetupSpike(const wii::Mdl0& skel, int nStage)
 {
@@ -448,7 +448,7 @@ void cTaskStage::SetupSpike(const wii::Mdl0& skel, int nStage)
 	}
 }
 
-// DOL 0x800f94ec: node name part -> effect slot (tables 0x80375418 / 0x80375438): STAR01, GALAXY01, GALAXY02, MIST01, WATER04, WATER01,
+// DOL 0x800f94ec [audited]: node name part -> effect slot (tables 0x80375418 / 0x80375438): STAR01, GALAXY01, GALAXY02, MIST01, WATER04, WATER01,
 // WATER02. Generate(slot, loop, not dependent, clipped) at the node's translate / rotate / scale (0x8001de14 / 0x8001dc94 / 0x8001db14;
 // UNVERIFIED: read here from the node's local SRT, the rotation converted to radians).
 void cTaskStage::SetupEffect(const wii::Mdl0Node& node)
@@ -468,7 +468,7 @@ void cTaskStage::SetupEffect(const wii::Mdl0Node& node)
 	}
 }
 
-// DOL 0x800fad60: state 0 / 1 start the +0x22c object's demo / game animation (vtable +0xa8 / +0xac) once. +0x22c is dead in the DOL: only the
+// DOL 0x800fad60 [audited]: state 0 / 1 start the +0x22c object's demo / game animation (vtable +0xa8 / +0xac) once. +0x22c is dead in the DOL: only the
 // ctor (0x800f94cc) stores it (0), Setup 0x800fa80c never fills it (a scan of every "stw rX, 0x22c(rY)" in the g01 code), so only the step advances.
 // (This is not the missing Pac-Man shadow on the goal platform.)
 bool cTaskStage::Execute(cJetTask* pParam)

@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskBgGimmickGondola.hpp"
 
 #include <iterator>
@@ -10,7 +11,6 @@
 #include "ResNode.hpp"
 #include <Constants.hpp>
 #include <ESEKind.hpp>
-#include <Extentions.hpp>
 #include <SoundManager.hpp>
 #include <SoundSe.hpp>
 #include <SoundSeObject.hpp>
@@ -25,6 +25,7 @@ cTaskBgGimmickGondola::cTaskBgGimmickGondola(ResNode* const& node0, ResNode* con
 	Init();
 }
 
+// DOL 0x80150888 [audited: per AUDIT_G03_G07 row]
 void cTaskBgGimmickGondola::Init()
 {
 	m_bBoot = false;
@@ -38,9 +39,13 @@ void cTaskBgGimmickGondola::Init()
 	}
 	Constants::PACN_APP();
 	ResMdl* resMdl = pFaceList()->pResMdl();
-	for (uint num = 0u; (long)num < (long)resMdl->GetResNodeNumEntries(); num++)
+	// DOL 0x80150888: every node of the hit model by its index (nw4r ResMdl::GetResNode(i), i < GetResNodeNumEntries; the port's
+	// ResMdl::GetResNode(int) counts root children, so the node table is read like cTaskBgGimmickPillar::Init)
+	const int nodeNum = resMdl->Mdl != nullptr ? (int)resMdl->Mdl->nodes.size() : 0;
+	for (int num = 0; num < nodeNum; num++)
 	{
-		ResNode* firstChildResNode = resMdl->GetFirstChildResNode((int)num);
+		ResNode node(resMdl->Mdl, resMdl->Mdl->nodes[num].id);
+		ResNode* firstChildResNode = &node;
 		if (!firstChildResNode->IsValid())
 		{
 			continue;
@@ -72,21 +77,22 @@ void cTaskBgGimmickGondola::Init()
 			}
 		}
 	}
-	std::vector<SkinnedMeshRenderer*> componentsInChildren; // TODO(unity): componentsInChildren = base.Model.pScnMdl().GetComponentsInChildren<SkinnedMeshRenderer>()
-	for (SkinnedMeshRenderer* obj : componentsInChildren)
-	{
-		Bounds localBounds = Bounds(); // TODO(unity): localBounds = obj.localBounds
-		localBounds.Expand(1000.0f); // the converter dropped the argument (C#: Expand(1000f))
-		// TODO(unity): obj.localBounds = localBounds;
-	}
+	m_pSndActor = new kingdom::cKingdomSndActor();   // +0x53c
 }
 
+// DOL 0x80150c58 [audited: per AUDIT_G03_G07 row] (called from the dtor 0x801507c0): stops the loop sound at once and deletes the actor
 void cTaskBgGimmickGondola::Term()
 {
-	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE041_KUUTYUU);
+	SoundManager::get_SE()->Stop(m_SndHnd);
+	if (m_pSndActor != nullptr)
+	{
+		delete m_pSndActor;
+		m_pSndActor = nullptr;
+	}
 	cTaskBgGimmick::Term();
 }
 
+// DOL 0x80150cc4 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGimmickGondola::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -144,14 +150,14 @@ bool cTaskBgGimmickGondola::Execute(cJetTask* pParam)
 						}
 						cAppG03PacnRollGame2->SetEffect(kind, m_PtkHnd[num]->vTransL(), Vector4(), m_PtkHnd[num]);
 					}
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE041_KUUTYUU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+					if (cPacnRollLoopSndMan::CanPlay()) m_SndHnd = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlayActor(ESEKind::PACN_ROLL_SND_SE041_KUUTYUU, m_pSndActor, Vector3(pMtx()[0][3], pMtx()[1][3], pMtx()[2][3])));   // DOL: the cue "m03se_041_Kuutyuu" on the actor (+0x53c)
 					goto _switch2_1u;
 				}
 			case 1u:
 			_switch2_1u:
 				if (m_bBoot && (frameAnmChr >= frameMaxAnmChr || frameAnmChr < m_fAnmFrameOld))
 				{
-					this->Model->SetFrameAnmChr(0u, 0.0f);
+					this->Model->SetFrameAnmChr(0u, 0.0f);   // not in the DOL (nw4r keeps the clip running / wrapping); the native clip clamps at its end, so the next boot would end at once
 					m_bBoot = false;
 					m_nSleepTime = 120u;
 					for (uint num2 = 0u; num2 < m_nEff; num2++)
@@ -172,7 +178,7 @@ bool cTaskBgGimmickGondola::Execute(cJetTask* pParam)
 			case 2u:
 			_switch2_2u:
 				nModeStep(n) = 0u;
-				SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE041_KUUTYUU);
+				SoundManager::get_SE()->Stop(m_SndHnd);   // handle stop with no fade (vtable +0x10, 0)
 				break;
 			}
 		}
@@ -186,12 +192,13 @@ bool cTaskBgGimmickGondola::Execute(cJetTask* pParam)
 	UpdateMatrix();
 	Vector4 v = Vector4::zero;
 	::Constants::jetGeoVecSet(v, pMtx()[0][3], pMtx()[1][3], pMtx()[2][3], 1.0f);
+	m_pSndActor->SetPosition(v);   // DOL 0x80026620 [audited: described by the 43rd-session pass] with the matrix translation (+0x2bc / 0x2cc / 0x2dc)
 	return BaseExecute(pParam);
 }
 
+// DOL 0x80151098 [audited: per AUDIT_G03_G07 row]
 void cTaskBgGimmickGondola::Draw(int nStatus, cJetTask* pParam)
 {
-	Matrix4x4 m = Extentions::ConvertCoordinateSystem(pMtx());
 	for (uint num = 0u; num < m_nEff; num++)
 	{
 		if (m_PtkHnd[num]->IsValid() && m_PtkHnd[num]->IsActive())
@@ -201,7 +208,7 @@ void cTaskBgGimmickGondola::Draw(int nStatus, cJetTask* pParam)
 				Vector4 v = Vector4::zero;
 				::Constants::jetGeoVecSet(v, 0.0f, ::Constants::JET_DEG2RAD(180.0f), 0.0f, 1.0f);
 				m_PtkHnd[num]->vSetRotate(v);
-				m_PtkHnd[num]->UpdateMatrix(m);
+				m_PtkHnd[num]->UpdateMatrix(pMtx());   // DOL 0x8008a324 [audited: described by the 43rd-session pass] with the gimmick matrix (+0x2b0) as is (the C# converted the coordinate system for Unity)
 			}
 			else
 			{

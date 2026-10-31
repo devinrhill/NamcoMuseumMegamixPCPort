@@ -53,6 +53,7 @@ bool& cTaskConsMenuBar::bTimeNew()
 	return m_bTimeNew;
 }
 
+// DOL 0x801c6254 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 cTaskConsMenuBar::cTaskConsMenuBar(cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -116,6 +117,7 @@ cTaskConsMenuBar::~cTaskConsMenuBar()
 {
 }
 
+// DOL 0x801c6678 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 void cTaskConsMenuBar::SetAnmScore(int nType)
 {
 	for (uint num = 3u; num <= 8; num++)
@@ -143,6 +145,7 @@ void cTaskConsMenuBar::SetAnmScore(int nType)
 	pAnita(1u)->SetState(1u, bScoreNew());
 }
 
+// DOL 0x801c6828 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 void cTaskConsMenuBar::SetAnmTime(int nType)
 {
 	uint num = nTime() / 60000;
@@ -190,6 +193,7 @@ void cTaskConsMenuBar::SetAnmTime(int nType)
 	pAnita(16u)->SetAnimNo(ANM_CONMA_LIST[nType]);
 }
 
+// DOL 0x801c6b64 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 void cTaskConsMenuBar::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(ANM_BAR_LIST[1]);
@@ -197,6 +201,7 @@ void cTaskConsMenuBar::WaitExec()
 	SetAnmScore(1);
 }
 
+// DOL 0x801c6bc0 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 bool cTaskConsMenuBar::AppearExec()
 {
 	if (nStep() == 0)
@@ -237,6 +242,7 @@ bool cTaskConsMenuBar::AppearExec()
 	return false;
 }
 
+// DOL 0x801c6d04 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 bool cTaskConsMenuBar::DeleteExec()
 {
 	if (nStep() == 0)
@@ -264,6 +270,7 @@ bool cTaskConsMenuBar::DeleteExec()
 	return false;
 }
 
+// DOL 0x801c6da8 [audited: bar / motos / number clip ids vs the DOL tables, step logic vs decomp; digit layout loops not re-read line by line]
 void cTaskConsMenuBar::LoadRecord(uint nWorld, uint nStage)
 {
 	if (nWorldNo() != nWorld || nStageNo() != nStage)

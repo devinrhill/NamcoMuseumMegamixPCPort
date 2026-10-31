@@ -24,6 +24,7 @@ uint& cTaskCharGear1::nFlag()
 	return m_nFlag;
 }
 
+// DOL 0x8011ce68 [audited: per AUDIT_G03_G07 row]
 cTaskCharGear1::cTaskCharGear1(cTaskKingdom* pParent)
 {
 	cKingdomCSV* obj = new cKingdomCSV();
@@ -57,18 +58,18 @@ cTaskCharGear1::cTaskCharGear1(cTaskKingdom* pParent)
 	}
 }
 
+// DOL 0x8011d1bc [audited: per AUDIT_G03_G07 row]
 cTaskCharGear1::~cTaskCharGear1()
 {
 	m_nGearKind.clear();
 	m_nGearSpeedNow.clear();
 }
 
+// DOL 0x8011d268 [audited: per AUDIT_G03_G07 row] (gear speeds step by 5E-05 / 0.0002 = FLOAT_8047bee0 / bedc; pause test = 0x8011d2a8..0x8011d330)
 bool cTaskCharGear1::Execute(cJetTask* pParam)
 {
-	float num = 1.0f;
-	Constants::PACN_APP()->pTaskBoss()->GetAIMode();
-	(void)(13);
-	if ((!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE()) || (!Constants::IS_PAC_PAUSE() && (static_cast<cTaskCharGolvis04*>(pParent()))->GetDeathProc() >= 2))
+	float num = 1.0f;   // FLOAT_8047beb4
+	if ((!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE(this)) || (!Constants::IS_PAC_PAUSE() && (static_cast<cTaskCharGolvis04*>(pParent()))->GetDeathProc() >= 2))
 	{
 		for (uint num2 = 2u; num2 < m_nGearNum; num2++)
 		{
@@ -101,32 +102,12 @@ bool cTaskCharGear1::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8011d4b4 [audited: blr] (blr)
 void cTaskCharGear1::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
-bool cTaskCharGear1::s_CheckLimit(const Vector4& vPos)
-{
-	Vector4 v;
-	::Constants::jetGeoVecCopy(v, Constants::PACN_APP()->pTaskBgGimmick(2u)->Model->vTrans());
-	Vector4 v2;
-	::Constants::jetGeoVecCopy(v2, Constants::PACN_APP()->pTaskBgGimmick(3u)->Model->vTrans());
-	bool result = false;
-	if (vPos[0] > v[0] - 10.0f && vPos[0] < v[0] + 10.0f && vPos[2] > v[2] - 10.0f && vPos[2] < v[2] + 10.0f)
-	{
-		result = true;
-	}
-	if (vPos[0] > v2[0] - 10.0f && vPos[0] < v2[0] + 10.0f)
-	{
-		result = true;
-	}
-	if (vPos[2] > v2[2] - 10.0f && vPos[2] < v2[2] + 10.0f)
-	{
-		result = true;
-	}
-	return result;
-}
-
+// DOL 0x8011d4b8 [audited: per AUDIT_G03_G07 row] (squared XZ distance < 100 for gears 2..3, < 25 for 4..7, centre box +-4 around CENTER_GEAR_POS)
 int cTaskCharGear1::GetGear(const Vector4& vPos)
 {
 	for (int i = 2; i <= 3; i++)
@@ -148,18 +129,6 @@ int cTaskCharGear1::GetGear(const Vector4& vPos)
 		return 2;
 	}
 	return -1;
-}
-
-bool cTaskCharGear1::LimitLargeArea(Vector4& vOut, const Vector4& vPos, const Vector4& vVec)
-{
-	Vector4 v;
-	::Constants::jetGeoVecAdd(v, vPos, vVec);
-	if ((!cTaskCharGear1::s_CheckLimit(vPos) && cTaskCharGear1::s_CheckLimit(v)) || (cTaskCharGear1::s_CheckLimit(vPos) && cTaskCharGear1::s_CheckLimit(v)))
-	{
-		::Constants::jetGeoVecCopy(vOut, v);
-		return true;
-	}
-	return false;
 }
 
 }

@@ -43,7 +43,7 @@ bool cTaskCursor::GetPointer(float& x, float& y) const
 	return false;
 }
 
-// DOL 0x80095be4
+// DOL 0x80095be4 [audited]
 bool cTaskCursor::Execute(cJetTask* pParam)
 {
 	const GamePad::State& pad = GamePad::Get(m_nPadNo);
@@ -76,7 +76,7 @@ bool cTaskCursor::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80095e0c: only while enabled (+0x1e1)
+// DOL 0x80095e0c [audited]: only while enabled (+0x1e1)
 void cTaskCursor::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_bEnable) AnitaVector->Draw();

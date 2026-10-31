@@ -29,7 +29,7 @@ constexpr int DIGIT_ANM = 0x24;                // table 0x8036b9a0: digit d = 0x
 
 // ---- cTaskConsPBView ----------------------------------------------------------------------------------------------------------------------
 
-// the cTaskPBAnita ctor (DOL 0x80064afc ff.: priority 0x8000000, hidden flag 0x6d = 0)
+// the cTaskPBAnita ctor (DOL 0x80064afc [audited] ff.: priority 0x8000000, hidden flag 0x6d = 0)
 cTaskConsPBView::cTaskConsPBView(cTaskConsole* pConsole, int nCamera) : m_pConsole(pConsole), m_nCamera(nCamera)
 {
 	SetName("kingdom::cTaskPBAnita");
@@ -47,7 +47,7 @@ kingdom::cKingdomAnita* cTaskConsPBView::Regist(uint idx, const char* name, int 
 	return a;
 }
 
-// DOL 0x80123320 (PBMultiNO) / 0x80066cdc (BG): unless HOME is held, the layout steps while the app is not paused / not at the stage end
+// DOL 0x80123320 [audited] (PBMultiNO) / 0x80066cdc (BG): unless HOME is held, the layout steps while the app is not paused / not at the stage end
 bool cTaskConsPBView::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -55,7 +55,7 @@ bool cTaskConsPBView::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801235cc
+// DOL 0x801235cc [audited]
 void cTaskConsPBView::Draw(int nStatus, cJetTask* pParam)
 {
 	ScopedPBView view(m_nCamera);
@@ -74,7 +74,7 @@ cTaskConsPBMultiNO::cTaskConsPBMultiNO(cTaskConsole* pConsole, int nPlayer) : cT
 	pAnita(0)->SetState(2u, false);
 }
 
-// DOL 0x80066b5c: the plate starts to play in the start signal (app state 2) and hides when it has played
+// DOL 0x80066b5c [audited]: the plate starts to play in the start signal (app state 2) and hides when it has played
 bool cTaskConsPBMultiNO::Execute(cJetTask* pParam)
 {
 	if (m_pConsole->nState() == 2) pAnita(0)->SetState(2u, true);
@@ -82,7 +82,7 @@ bool cTaskConsPBMultiNO::Execute(cJetTask* pParam)
 	return cTaskConsPBView::Execute(pParam);
 }
 
-// DOL 0x80065b24: ANITA_CAR01 anim 0x117 in camera nCamera (3)
+// DOL 0x80065b24 [audited]: ANITA_CAR01 anim 0x117 in camera nCamera (3)
 cTaskConsPBMultiBG::cTaskConsPBMultiBG(cTaskConsole* pConsole, int nCamera) : cTaskConsPBView(pConsole, nCamera)
 {
 	SetName("g02::cTaskConsPBMultiBG");
@@ -113,7 +113,7 @@ const int PAT_NITRO[5][4] = {{}, {}, {0x4e, 0x4e}, {0x4f, 0x4f, 0x4f}, {0x4f, 0x
 const int FRAME_ANM[5] = {0, 0x92, 0x108, 0x10b, 0x10e};                                                  // 0x8036b9c8 [players]
 }
 
-// DOL 0x80064d68 (the cTaskRallyAnitaBase part first): ANITA_CAR01, every anita hidden
+// DOL 0x80064d68 [audited] (the cTaskRallyAnitaBase part first): ANITA_CAR01, every anita hidden
 cTaskConsInfoMulti::cTaskConsInfoMulti(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsInfoMulti");
@@ -137,7 +137,7 @@ cTaskConsInfoMulti::cTaskConsInfoMulti(cTaskConsole* pConsole) : cTaskRallyAnita
 	}
 }
 
-// DOL 0x800666e8: the hit mark of a player shows the player's nitro state clip {0x121, 0x124, 0x11e}[state]
+// DOL 0x800666e8 [audited]: the hit mark of a player shows the player's nitro state clip {0x121, 0x124, 0x11e}[state]
 void cTaskConsInfoMulti::ShowHit(int nPlayer)
 {
 	if ((uint)nPlayer >= 4u) return;
@@ -147,7 +147,7 @@ void cTaskConsInfoMulti::ShowHit(int nPlayer)
 	pAnita(a)->SetState(1u, true);
 }
 
-// DOL 0x80069fa8. Only the pause byte gates it (the DOL tests KingSys app +0x1b4 == 1).
+// DOL 0x80069fa8 [audited]. Only the pause byte gates it (the DOL tests KingSys app +0x1b4 == 1).
 bool cTaskConsInfoMulti::Execute(cJetTask* pParam)
 {
 	if (m_pConsole->IsPaused()) return true;
@@ -196,6 +196,7 @@ bool cTaskConsInfoMulti::Execute(cJetTask* pParam)
 				Show(ANITA_PLATE[i], true);
 				Show(ANITA_TENS[i], true);
 				Show(ANITA_ONES[i], true);
+				Show(ANITA_NITRO[i], true);
 			}
 			m_nMode++;
 		}
@@ -319,7 +320,7 @@ void DrawNames(const std::vector<T>& v)
 }
 }
 
-// DOL 0x8006546c: ANITA_RESULT anitas 0..4, hidden
+// DOL 0x8006546c [audited]: ANITA_RESULT anitas 0..4, hidden
 cTaskConsWinner::cTaskConsWinner(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsWinner");
@@ -333,7 +334,7 @@ cTaskConsWinner::cTaskConsWinner(cTaskConsole* pConsole) : cTaskRallyAnitaBase(p
 	}
 }
 
-// DOL 0x800679e8
+// DOL 0x800679e8 [audited]
 void cTaskConsWinner::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskRallyAnitaBase::Draw(nStatus, pParam);
@@ -341,7 +342,7 @@ void cTaskConsWinner::Draw(int nStatus, cJetTask* pParam)
 	m_Texts.clear();   // 0x800172c0 empties the queue
 }
 
-// DOL 0x80067a24 (the freeze test is skipped in mode 4: it comes after the names are queued)
+// DOL 0x80067a24 [audited] (the freeze test is skipped in mode 4: it comes after the names are queued)
 bool cTaskConsWinner::Execute(cJetTask* pParam)
 {
 	if (m_nMode != 4 && Frozen(m_pConsole)) return true;
@@ -418,7 +419,7 @@ bool cTaskConsWinner::Execute(cJetTask* pParam)
 	return cTaskRallyAnitaBase::Execute(pParam);
 }
 
-// DOL 0x8006579c: ANITA_RESULT anitas 0..6, hidden
+// DOL 0x8006579c [audited]: ANITA_RESULT anitas 0..6, hidden
 cTaskConsDraw::cTaskConsDraw(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsDraw");
@@ -432,7 +433,7 @@ cTaskConsDraw::cTaskConsDraw(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	}
 }
 
-// DOL 0x80067190
+// DOL 0x80067190 [audited]
 void cTaskConsDraw::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskRallyAnitaBase::Draw(nStatus, pParam);
@@ -440,7 +441,7 @@ void cTaskConsDraw::Draw(int nStatus, cJetTask* pParam)
 	m_Texts.clear();
 }
 
-// DOL 0x800671cc
+// DOL 0x800671cc [audited]
 bool cTaskConsDraw::Execute(cJetTask* pParam)
 {
 	if (m_nMode != 4 && Frozen(m_pConsole)) return true;

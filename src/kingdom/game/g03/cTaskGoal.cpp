@@ -18,12 +18,14 @@ bool cTaskGoal::IsGoal()
 	return m_bGoal;
 }
 
+// DOL 0x801815b4 [audited: described by the 43rd-session pass] (the task is its own push-back model: Execute / Draw / dtor are reached through the +0xd8 sub-vtable 0x80447f04)
 cTaskGoal::cTaskGoal()
 {
 	SetName("cTaskGoal");
 	Init();
 }
 
+// DOL 0x801816c4 [audited: init, hit test (6.76, kinds 3/6, not hanging), update checked vs decomp]
 void cTaskGoal::Init()
 {
 	m_bGoal = false;
@@ -54,6 +56,7 @@ void cTaskGoal::Term()
 	cTaskPBModel::Term();
 }
 
+// DOL 0x801817c4 [audited: init, hit test (6.76, kinds 3/6, not hanging), update checked vs decomp]
 bool cTaskGoal::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -74,6 +77,7 @@ bool cTaskGoal::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8018194c [audited: init, hit test (6.76, kinds 3/6, not hanging), update checked vs decomp]
 void cTaskGoal::Draw(int nStatus, cJetTask* pParam)
 {
 	if (nullptr != this->Model->pScnMdl())
@@ -82,6 +86,7 @@ void cTaskGoal::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// inlined in Execute 0x801817c4: goal position + Pac-Man's radius, a floor face of kind 3 (NORM) or 6 (GRAS), not hanging (state 0x10), squared distance <= 6.76
 bool cTaskGoal::HitCheck()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();

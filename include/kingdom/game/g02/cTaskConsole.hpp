@@ -134,7 +134,7 @@ public:
 	static void PlaySE(const char* cue);                       // cRallyXSndHnd + 0x80129d78: play (volume 0.2 in game state 6) and detach
 	int nPlayer() const { return m_nPlayer; }                  // +0x1c4
 	int nFlagTotal() const { return m_nFlagTotal; }            // +0x1c0 (flags registered, at most 20)
-	u32 Rand() { return (u32)m_Rand(); }                       // +0x1b8 cKingdomRand genrand (0x8014146c; UNVERIFIED: = std::mt19937)
+	u32 Rand() { return (u32)m_Rand(); }                       // +0x1b8 cKingdomRand genrand (0x8014146c, standard MT19937)
 	cTaskConsWarning* pWarning() const { return m_pWarning; }
 
 	static bool CarState(kingdom::cTaskModel* car, sConsCar& out);   // Hooks.CarState or zeros

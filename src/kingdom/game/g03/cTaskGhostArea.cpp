@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g03/cTaskGhostArea.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 
@@ -55,6 +56,7 @@ cTaskGhostArea::cTaskGhostArea(sEnemyAreaData& data)
 	RegistData(data);
 }
 
+// DOL 0x8017cd10 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskGhostArea::Init()
 {
 	m_pEnemyAreaData = sEnemyAreaData();
@@ -76,18 +78,13 @@ void cTaskGhostArea::Init()
 	m_bBottomCheck = false;
 }
 
+// DOL 0x8017cdc0 [audited: blr]
 void cTaskGhostArea::Term()
 {
-	auto& pTaskCharGhost = m_pTaskCharGhost;
-	for (int i = 0; i < (int)std::size(pTaskCharGhost); i++)
-	{
-		if (pTaskCharGhost[i] != nullptr)
-		{
-			pTaskCharGhost[i]->TermOnce();
-		}
-	}
+	// DOL: blr. The ghosts are child tasks and run their own Term when the tree is released.
 }
 
+// DOL 0x8017cdc4 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskGhostArea::Execute(cJetTask* pParam)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -132,7 +129,7 @@ bool cTaskGhostArea::Execute(cJetTask* pParam)
 				m_pTaskCharGhost[j]->nTargetPointID();
 				do
 				{
-					num4 = Random::Range(0, m_pEnemyAreaData.nPointNum);
+					num4 = MslRand() % m_pEnemyAreaData.nPointNum;   // DOL rand() % nPointNum (was Unity Random.Range)
 				}
 				while (m_pTaskCharGhost[j]->nTargetPointID() == num4);
 				m_pTaskCharGhost[j]->nTargetPointID() = num4;
@@ -367,6 +364,7 @@ bool cTaskGhostArea::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8017d7b0 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskGhostArea::RegistData(sEnemyAreaData& data)
 {
 	m_pEnemyAreaData = data;
@@ -476,9 +474,12 @@ bool cTaskGhostArea::RegistData(sEnemyAreaData& data)
 	return true;
 }
 
+// DOL 0x8017df2c [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskGhostArea::ChangeAreaData(sEnemyAreaData& data)
 {
-	std::fill(std::begin(m_nAreaToAreaFlag), std::end(m_nAreaToAreaFlag), 0u);
+	// DOL clears +0x1d8 (area -> points), +0x298 (point -> point), +0x498 (area -> area); the C# cleared area -> area twice and
+	// kept the old area -> point bits (43rd session fix)
+	std::fill(std::begin(m_nAreaPointFlag), std::end(m_nAreaPointFlag), 0u);
 	std::fill(std::begin(m_nPointToPointFlag), std::end(m_nPointToPointFlag), 0u);
 	std::fill(std::begin(m_nAreaToAreaFlag), std::end(m_nAreaToAreaFlag), 0u);
 	m_pEnemyAreaData = data;
@@ -611,6 +612,7 @@ void cTaskGhostArea::DeadAreaGhost(uint id)
 	}
 }
 
+// DOL 0x8017e348 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskGhostArea::IsIntoAreaPos(Vector4 pos)
 {
 	for (int i = 0; i < m_pEnemyAreaData.nAreaNum; i++)
@@ -623,6 +625,7 @@ bool cTaskGhostArea::IsIntoAreaPos(Vector4 pos)
 	return false;
 }
 
+// DOL 0x8017e3c4 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskGhostArea::IsIntoArea(Vector4 pos, int area_id)
 {
 	if (m_pEnemyAreaData.Area[area_id].kind == 0)
@@ -697,6 +700,7 @@ int cTaskGhostArea::PointLineSide(Vector2 pos, Vector2 seg1, Vector2 seg2)
 	return 0;
 }
 
+// DOL 0x8017e650 [audited: class row done in the 43rd session; function not individually re-read]
 int cTaskGhostArea::SearchRoute(int result, int& next_area_id, int area_id, ulong target_id_flag, ulong through, int count)
 {
 	int num = 100;

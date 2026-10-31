@@ -43,6 +43,7 @@ cGondolaEffect::~cGondolaEffect()
 	Term();
 }
 
+// DOL 0x801513a4 [audited: per AUDIT_G03_G07 row] (both vectors (0, 0, 0, 1) = jetGeoVecUnit, type 0)
 void cGondolaEffect::Init()
 {
 	::Constants::jetGeoVecUnit(m_vTransL);
@@ -50,6 +51,7 @@ void cGondolaEffect::Init()
 	nType() = 0u;
 }
 
+// DOL 0x801513d8 [audited: per AUDIT_G03_G07 row] (blr); destructor 0x80151310
 void cGondolaEffect::Term()
 {
 }

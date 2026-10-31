@@ -11,7 +11,7 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x801a86d0
+// DOL 0x801a86d0 [audited]
 cTaskEffect::cTaskEffect()
 {
 	SetName("g04::cTaskEffect");
@@ -25,7 +25,7 @@ cTaskEffect::cTaskEffect()
 	for (unsigned i = 0; i < 27; i++) get_KingdomPtkMan()->RegistData(i, SLOT[i]);
 }
 
-// DOL 0x801a8784
+// DOL 0x801a8784 [audited: pause/HOME gate; DOL calls the ptk manager update with 1.0]
 bool cTaskEffect::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -33,7 +33,7 @@ bool cTaskEffect::Execute(cJetTask* pParam)
 	return cTaskPBPtkMan::Execute(pParam);
 }
 
-// DOL 0x801a8b50 + 0x801a8d1c
+// DOL 0x801a8b50 [audited] + 0x801a8d1c
 cTaskEffectBird::cTaskEffectBird(const Vector4& pos) : m_vPos(pos)
 {
 	SetName("g04::cTaskEffectBird");
@@ -45,7 +45,7 @@ cTaskEffectBird::cTaskEffectBird(const Vector4& pos) : m_vPos(pos)
 	}
 }
 
-// DOL 0x801a8be0
+// DOL 0x801a8be0 [audited]
 bool cTaskEffectBird::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -61,7 +61,7 @@ bool cTaskEffectBird::Execute(cJetTask* pParam)
 	return cTaskKingdom::Execute(pParam);
 }
 
-// DOL 0x801a8e04 + 0x801a90cc
+// DOL 0x801a8e04 [audited] + 0x801a90cc
 cTaskEffectRensFlear::cTaskEffectRensFlear(const Vector4& pos) : m_vPos(pos)
 {
 	SetName("g04::cTaskEffectRensFlear");
@@ -75,7 +75,7 @@ cTaskEffectRensFlear::cTaskEffectRensFlear(const Vector4& pos) : m_vPos(pos)
 	}
 }
 
-// DOL 0x801a9064
+// DOL 0x801a9064 [audited]
 void cTaskEffectRensFlear::Start()
 {
 	const uint r = (uint)m_Rand();
@@ -83,7 +83,7 @@ void cTaskEffectRensFlear::Start()
 	m_nWait = (int)((r % 20u + 10u) * 60u);
 }
 
-// DOL 0x801a8ee0
+// DOL 0x801a8ee0 [audited]
 bool cTaskEffectRensFlear::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();

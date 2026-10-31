@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "gfx/PtkSim.hpp"
 
 #include <algorithm>
@@ -79,7 +80,7 @@ float Curve(int kind, float st, float ed, float rate)
 }
 }
 
-PtkSim::PtkSim(wii::PtkFile file, unsigned seed) : m_file(std::move(file)), m_next(seed)
+PtkSim::PtkSim(wii::PtkFile file) : m_file(std::move(file))
 {
 	// cJetPtkEmiAccess::fGetLifeTime
 	float num = 0;
@@ -97,20 +98,19 @@ PtkSim::PtkSim(wii::PtkFile file, unsigned seed) : m_file(std::move(file)), m_ne
 	m_life = done ? num : num;
 }
 
-// DOL 0x80211048: next = next * 0x41c64e6d + 0x3039; return (next >> 16) & 0x7fff
+// DOL 0x80211048 [audited]: next = next * 0x41c64e6d + 0x3039; return (next >> 16) & 0x7fff
 unsigned PtkSim::Rand15()
 {
-	m_next = m_next * 0x41c64e6du + 0x3039u;
-	return (m_next >> 16) & 0x7fff;
+	return (unsigned)kingdom::MslRand();   // one global state, shared with the game code like the DOL's
 }
-// DOL 0x8008fd04: equal bounds -> lo; swapped if lo > hi; rand / 32767 * (hi - lo) + lo (hi is reachable)
+// DOL 0x8008fd04 [audited]: equal bounds -> lo; swapped if lo > hi; rand / 32767 * (hi - lo) + lo (hi is reachable)
 float PtkSim::Rand(float lo, float hi)
 {
 	if (lo == hi) return lo;
 	if (lo > hi) std::swap(lo, hi);
 	return (float)Rand15() / 32767.0f * (hi - lo) + lo;
 }
-// DOL 0x8008fc98: lo + rand % (hi - lo + 1)
+// DOL 0x8008fc98 [audited]: lo + rand % (hi - lo + 1)
 int PtkSim::RandUint(int lo, int hi)
 {
 	if (lo == hi) return lo;
@@ -517,7 +517,7 @@ void PtkSim::Draw()
 			if (Texture* t = FindTexture(wii::PtkTextureName(d.tex))) st.tex = t->gfxId;
 		const int blend = (d.ptcFlag & 0x100) ? d.blendStyle : 0;
 		st.blended = blend != 0;
-		// DOL 0x8008c1c4: style 0 none, 1 (BLEND, SRCALPHA, INVSRCALPHA), 2 (BLEND, SRCALPHA, ONE), 3 GX_BM_SUBTRACT
+		// DOL 0x8008c1c4 [audited: blend style/alpha test mapping taken from the DOL's GX calls; quad/UV flip rules not re-diffed]: style 0 none, 1 (BLEND, SRCALPHA, INVSRCALPHA), 2 (BLEND, SRCALPHA, ONE), 3 GX_BM_SUBTRACT
 		st.blend = blend == 2 ? BLEND_ADD : blend == 3 ? BLEND_SUBTRACT : BLEND_ALPHA;
 		st.depthTest = (d.ptcFlag & 8) != 0;
 		st.depthWrite = (d.ptcFlag & 4) != 0;

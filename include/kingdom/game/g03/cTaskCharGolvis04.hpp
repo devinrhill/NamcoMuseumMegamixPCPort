@@ -7,6 +7,7 @@
 #include "kingdom/cKingdomPtkHnd.hpp"
 #include "kingdom/game/g03/cTaskChar.hpp"
 #include "kingdom/game/g03/cTaskCharGear1.hpp"
+#include "kingdom/game/g03/cDemoSceneCamera.hpp"
 
 namespace kingdom::game::g03
 {
@@ -27,23 +28,6 @@ public:
 		eProc_DemoInit = 1,
 		eProc_Main = 2,
 		eProc_End = 3
-	};
-
-private:
-	enum EDemoStep
-	{
-		Entry = 0,
-		AttackBefore = 1,
-		Attack = 2,
-		Escape = 3,
-		Jump1 = 4,
-		Jump2 = 5,
-		Jump3 = 6,
-		Jump4 = 7,
-		Dash = 8,
-		FadeOut = 9,
-		End = 10,
-		MAX = 11
 	};
 
 protected:
@@ -71,17 +55,8 @@ private:
 
 	cKingdomPtkHnd* m_hDemoPtk{};
 
-	GameObject* m_dummyDemoCamObj{};
-
-	Animation* m_dummyDemoCamAnim{};
-
-	GameObject* m_dummyDemoCamAimObj{};
-
-	Animation* m_dummyDemoCamAimAnim{};
-
-	static const int scDemoFrameCnts[11];
-
-	cTaskCharGolvis04::EDemoStep m_demoStep{};
+	// the death demo's cTaskSceneCamera (the DOL keeps it in the app's camera slot +0x2b0 and connects it to this task)
+	cDemoSceneCamera* m_pDemoCamera{};
 
 protected:
 	cTaskCharGolvis04::gmEMonsterStateGolvisGear1 m_iState{};
@@ -133,14 +108,11 @@ public:
 	Constants::gmSGolvisAttack* GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum) override;
 
 private:
-	void CreateDummyDemoCamera();
-
-	void UpdateDummyDemoCamera();
-
-	float GetDemoCurrentFrameCnt();
+	void DemoUpdateFrame();
 
 protected:
-	void ReleaseTerm() override { cTaskCharGolvis04::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
+	// DOL dtor 0x8011d5e0: Term (blr), the +0xa10 effect handle's dtor, then ~cTaskCharGolvis (its Term)
+	void ReleaseTerm() override;
 };
 
 }

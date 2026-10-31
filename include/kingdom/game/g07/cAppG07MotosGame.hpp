@@ -98,6 +98,8 @@ private:
 
 	Matrix4x4 m_mSlopeMatrix{};
 
+	Matrix4x4 m_mSlopeMatrix2{};   // DOL +0xc90: the slope's rotation only
+
 	bool m_bGimmick{};
 
 	uint m_nPlayerNo{};

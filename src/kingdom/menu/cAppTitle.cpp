@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/menu/cAppTitle.hpp"
 
 #include <cstdio>
@@ -5,6 +6,7 @@
 
 #include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
+#include "WiiSystem.hpp"
 #include "kingdom/KingdomJob.hpp"
 #include "kingdom/cKingdomSys.hpp"
 
@@ -20,7 +22,7 @@ constexpr const char* SND_DECIDE = "m00se_02Kettei";
 constexpr const char* SND_START_VOICE_ODD = "m03se_107_Goal_1";   // rand() odd,  r13-0x5e1c
 constexpr const char* SND_START_VOICE_EVEN = "m03se_109_Goal_3";  // rand() even, r13-0x5e18
 
-constexpr uint FADE_IN_A = 1;          // Fade(1, 500) / Fade(2, 500), picked by cKingdomSys + 0xa44
+constexpr uint FADE_IN_A = 1;          // Fade(1, 500) when cKingdomSys + 0xa44 (language) == 1 (JA), else Fade(2, 500)
 constexpr uint FADE_IN_B = 2;
 constexpr uint FADE_OUT = 0x10001;     // eFADE_TYPE_OUT_WHITE
 constexpr int FADE_MSEC = 500;
@@ -34,12 +36,14 @@ cAppTitle::cAppTitle()
 	AutoRelease(true); // 0x80203038: vtable slot 12 with 0x80000001
 }
 
-// DOL 0x80202f48
+// DOL 0x80202f48 [audited: 3D scene setup = TitleScene]
 void cAppTitle::Init()
 {
 	KingdomGlobal::KingSys->AttachArcData("g10_menu/g10title.lzs", true);
-	// FUN_80137648(pKingSys->0xa54, ...) and OSGetTime()->srand: sound heap setup and RNG seeding.
-	std::srand(1);
+	// FUN_80137648(pKingSys->0xa54, GROUP_pacn_SE): sound group load (native sounds need none).
+	// 0x80202f90: srand(low word of OSGetTime()). --seed N fixes it so scripted runs repeat.
+	const std::uint32_t seed = kingdom::RandSeedOverride(WiiSystem::OSGetTime());
+	kingdom::MslSrand(seed); // DOL rand() 0x80211048
 	m_bAttract = false;
 
 	// Layers 2 and 3 both load MAINTITLE_ANITA (crc32 0x706a47ba, FUN_8000bca0 + FUN_80141708).
@@ -75,7 +79,7 @@ void cAppTitle::Init()
 	child("cTaskCamera");
 }
 
-// DOL 0x80203fb8: which clip each of the two layers plays; both get state bit 2 set
+// DOL 0x80203fb8 [audited]: which clip each of the two layers plays; both get state bit 2 set
 void cAppTitle::SetTitleAnim(int mode)
 {
 	static const int kLayer2[5] = {0, 3, 1, 4, 2};
@@ -87,7 +91,7 @@ void cAppTitle::SetTitleAnim(int mode)
 	m_Anita.pAnita(3)->SetState(2);
 }
 
-// DOL 0x802039b4. Standard cTaskKingdom mode/step flow: state S, previous state O (+0x3c), step P (+0x40).
+// DOL 0x802039b4 [audited+dolphin]. Standard cTaskKingdom mode/step flow: state S, previous state O (+0x3c), step P (+0x40).
 // Each state has steps 0 (enter), 1 (run) and 2 (leave); leaving always ends back at step 0.
 bool cAppTitle::Execute(cJetTask* pParam)
 {
@@ -161,7 +165,7 @@ bool cAppTitle::Execute(cJetTask* pParam)
 			{
 				WiiSnd::Handle se;                   // 0x80203c54: FUN_80025b6c(se, 0, "m00se_02Kettei", 0)
 				WiiSnd::PlayRemote(se, 0, SND_DECIDE);
-				WiiSnd::Play(se, (std::rand() % 2 == 0) ? SND_START_VOICE_EVEN : SND_START_VOICE_ODD);
+				WiiSnd::Play(se, (kingdom::MslRand() % 2 == 0) ? SND_START_VOICE_EVEN : SND_START_VOICE_ODD);
 				S = 2;
 				clearProc();
 			}
@@ -226,7 +230,7 @@ bool cAppTitle::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80203ee4: 2D projection (width/height of the render mode) then the layout vector
+// DOL 0x80203ee4 [audited]: 2D projection (width/height of the render mode) then the layout vector
 void cAppTitle::Draw(int nStatus, cJetTask* pParam)
 {
 	m_Scene.Draw(); // 3D scene first, the layouts go on top

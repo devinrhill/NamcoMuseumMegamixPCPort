@@ -8,7 +8,7 @@
 namespace kingdom::game::menu
 {
 
-// DOL 0x80143aec: next job unset, a camera work task (+0x1b8, unused by the card: not ported) and the fade (+0x298, priority 0x8fffffff)
+// DOL 0x80143aec [audited: scene root (+0x1b8) unused by the card, not ported]: next job unset, a camera work task (+0x1b8, unused by the card: not ported) and the fade (+0x298, priority 0x8fffffff)
 cAppGameBaseNunchuk::cAppGameBaseNunchuk()
 {
 	m_pAnita = new cTaskAnita();
@@ -19,10 +19,10 @@ cAppGameBaseNunchuk::cAppGameBaseNunchuk()
 	ConnectChild(m_pFade);
 }
 
-// DOL 0x80144130
+// DOL 0x80144130 [audited]
 bool cAppGameBaseNunchuk::IsSkip() { return true; }
 
-// DOL 0x8014420c: load the layout into Anita 0 and clear its visible bit
+// DOL 0x8014420c [audited]: load the layout into Anita 0 and clear its visible bit
 void cAppGameBaseNunchuk::RegistLayout(const string& name)
 {
 	m_pAnita->pAnita(0u)->RegistData(ResourceDatabase::GetPath(name));

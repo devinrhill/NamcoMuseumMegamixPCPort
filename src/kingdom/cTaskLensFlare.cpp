@@ -19,14 +19,14 @@ namespace
 constexpr float PI = 3.1415927f;   // FLOAT_8047ac00
 }
 
-// DOL 0x80096d40 + Init 0x80096e58: draw priority 0x7ffffffd (after the 3D scene, before the HUD), light (0, 0, 0), size 0
+// DOL 0x80096d40 [audited] + Init 0x80096e58: draw priority 0x7ffffffd (after the 3D scene, before the HUD), light (0, 0, 0), size 0
 cTaskLensFlare::cTaskLensFlare()
 {
 	SetName("cTaskLensFlare");
 	nDrawPriority(0x7ffffffdu);
 }
 
-// DOL 0x80097f54: the anita file (natively by name; the DOL finds it by its CRC 0x08a27694 = ANT_LENSFLARE) and, for every texture of it,
+// DOL 0x80097f54 [audited]: the anita file (natively by name; the DOL finds it by its CRC 0x08a27694 = ANT_LENSFLARE) and, for every texture of it,
 // "<name>.brres" (s__s_brres_8036d6b7) from the attached archives (0x80096fb0: a texture object, CI ones with their palette)
 void cTaskLensFlare::Load(const std::string& anitaName)
 {
@@ -44,7 +44,7 @@ void cTaskLensFlare::Load(const std::string& anitaName)
 	}
 }
 
-// DOL 0x8009805c
+// DOL 0x8009805c [audited: occlusion test native (VisibleShare); GX state setup is the native DrawQuad ADD]
 void cTaskLensFlare::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus;

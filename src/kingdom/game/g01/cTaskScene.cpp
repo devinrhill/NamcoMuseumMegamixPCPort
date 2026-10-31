@@ -51,7 +51,7 @@ bool cScnData::SetData(const u8* be, std::size_t size)
 	return !records.empty();
 }
 
-// DOL 0x800f6200. The DOL also creates the light manager (+0x1d0) and the animation controller (+0x1d4 / +0x1d8) on the g3d ScnRoot,
+// DOL 0x800f6200 [audited: the light manager, animation controller and the ScnRoot's AnmScn are the native scene's]. The DOL also creates the light manager (+0x1d0) and the animation controller (+0x1d4 / +0x1d8) on the g3d ScnRoot,
 // loads the scn data (0x800f618c: "scn_s%xp%d.scn", stage, number of players) and builds the demo object (vtable +0x70 = 0x800f6354:
 // cDemoSceneW1S1 / W1S3 / W2S3 / W3S3 for stages 1 / 3 / 6 / 9: their logic runs in the scene's states 0 / 1).
 cTaskScene::cTaskScene(int nStage, void* pEnemyMan, float fSpeed)
@@ -67,7 +67,7 @@ cTaskScene::cTaskScene(int nStage, void* pEnemyMan, float fSpeed)
 	const u8* d = wii::ArchiveStore::Find(name, size);
 	devtools::G01EditOverride(name, d, size);   // devtools: the dev window's Galaga editor swaps in its applied scn (not 1:1)
 	if (!m_Scn.SetData(d, size)) std::fprintf(stderr, "g01::cTaskScene: %s not found\n", name);
-	// DOL 0x800f6b40 (scene reset): need masks 0, cleared mask word 0 = 1 (group 0 counts as cleared from the start). Group 1 is the
+	// DOL 0x800f6b40 [audited: field reset; native members] (scene reset): need masks 0, cleared mask word 0 = 1 (group 0 counts as cleared from the start). Group 1 is the
 	// enemy gate's (GateGalaga_s%xp%d.csv column 3, cTaskEnemyGate 0x800e4814): it clears when the gate leaves (shot down or its clip ran out).
 	m_nClearGroups[0] = 0x1;
 	LoadLights();
@@ -94,11 +94,16 @@ cTaskScene::cTaskScene(int nStage, float fSpeed, NoSetup)
 
 cTaskScene::~cTaskScene() = default;
 
-// DOL 0x800f653c (vtable +0x74)
+// DOL 0x800f653c [audited] (vtable +0x74)
 void cTaskScene::GameStep()
 {
 	CourseStep();
 	UpdateFrame();
+	if (m_bEnd)   // the course ended (+0x1f8): state 2, the scene stands still
+	{
+		m_nState = 2;
+		m_nStep = 0;
+	}
 }
 
 bool cTaskScene::LoadScn0(const std::string& name)
@@ -114,7 +119,7 @@ bool cTaskScene::LoadScn0(const std::string& name)
 	return true;
 }
 
-// DOL 0x800f6fbc
+// DOL 0x800f6fbc [audited]
 void cTaskScene::LoadCourse()
 {
 	LoadCourse(m_nStage);
@@ -132,7 +137,7 @@ void cTaskScene::LoadCourse(int nCode)
 		if (m_fLength < (float)a.numFrame) m_fLength = (float)a.numFrame;
 }
 
-// DOL 0x800f7490
+// DOL 0x800f7490 [audited: fog SCN0 bound natively with the light]
 void cTaskScene::LoadLights()
 {
 	const char* fmt[2] = {"m01s_s%x_lig_01_sca.brres", "m01s_s%x_lig_c01_sca.brres"};
@@ -187,7 +192,7 @@ void cTaskScene::ApplyLights()
 	}
 }
 
-// DOL 0x800f663c
+// DOL 0x800f663c [audited]
 void cTaskScene::SetStartCamera()
 {
 	m_Anm.clear();
@@ -203,7 +208,7 @@ void cTaskScene::SetStartCamera()
 		if (m_fLength < (float)a.numFrame) m_fLength = (float)a.numFrame;
 }
 
-// DOL 0x800f671c (the light SCN0 is bound to the scene like the camera; natively its first light at frame 0 goes to light set 0, UNVERIFIED)
+// DOL 0x800f671c [audited: light SCN0 sampled to light set 0 natively] (the light SCN0 is bound to the scene like the camera; natively its first light at frame 0 goes to light set 0, UNVERIFIED)
 void cTaskScene::SetDemoCamera()
 {
 	m_Anm.clear();
@@ -235,7 +240,7 @@ void cTaskScene::DemoFinish()
 	if (m_nStage == 1) SetStartCamera();   // cDemoSceneW1S1::Term 0x801c067c; the goal demos' Term (0x800c961c) does nothing
 }
 
-// DOL 0x800f67a0 (vtable +0x88): the goal camera m01s_s%x_cam_%x0_sca (20 / 30 / 40 for stages 3 / 6 / 9) and its light SCN0s
+// DOL 0x800f67a0 [audited] (vtable +0x88): the goal camera m01s_s%x_cam_%x0_sca (20 / 30 / 40 for stages 3 / 6 / 9) and its light SCN0s
 // m01s_s%x_lig_%x0_sca / m01s_s%x_lig_c%x0_sca when they exist; frame 0, rate 1. Stage 10 (cTaskBossScene's +0x88 = 0x800d1b2c, called
 // by cDemoSceneBoss::Start 0x801c08f0): cam_50 / lig_50 / lig_c50, and the fog SCN0 again (0x800f7524: m01s_s%x_fog_01_sca; natively the fog
 // stays as LoadLights set it)
@@ -263,7 +268,7 @@ void cTaskScene::SetGoalCamera()
 		if (m_fLength < (float)a.numFrame) m_fLength = (float)a.numFrame;
 }
 
-// DOL 0x800f66d0
+// DOL 0x800f66d0 [audited]
 void cTaskScene::SetCourseCamera()
 {
 	LoadCourse();
@@ -271,7 +276,7 @@ void cTaskScene::SetCourseCamera()
 	ResetCourse();
 }
 
-// DOL 0x800f6bc4
+// DOL 0x800f6bc4 [audited]
 void cTaskScene::ResetCourse()
 {
 	m_nCmdNo = 0;
@@ -288,10 +293,14 @@ void cTaskScene::ResetCourse()
 	{
 		m_fRate = m_pCur->fCourseSpeed * m_fSpeed;
 		m_fPacmanSpeed = m_pCur->fPacmanSpeed * m_fSpeed;
+		// 0x800f6bc4: the first command's need mask (groups 0..param1 must be gone before a gate opens) and the jump flag
+		for (u32& g : m_nNeedGroups) g = 0;
+		for (u32 i = 0; i < m_pCur->nParam1 + 1u && i < 128u; i++) m_nNeedGroups[i >> 5] |= 1u << (i & 31);
+		m_b240 = (m_pCur->nParam2 & 4) != 0;
 	}
 }
 
-// DOL 0x800f7784: the next command record (class 0) after the last one returned, nullptr when there is none
+// DOL 0x800f7784 [audited]: the next command record (class 0) after the last one returned, nullptr when there is none
 const sScnRecord* cTaskScene::NextCommand()
 {
 	const u32 n = (u32)m_Scn.records.size();
@@ -312,7 +321,7 @@ const sScnRecord* cTaskScene::NextCommand()
 	return nullptr;
 }
 
-// DOL 0x800f7e3c
+// DOL 0x800f7e3c [audited: the null cur / next guard is the port's (the DOL reads low memory); the course end flag matches in the data (last command time 720.2 > length 720)]
 void cTaskScene::CourseStep()
 {
 	if (m_pCur == nullptr || m_pNext == nullptr)
@@ -404,7 +413,7 @@ void cTaskScene::CourseStep()
 	m_bEnd = m_bEnd || m_fLength < m_fFrame;   // vtable +0x48 = 0x800f7e14
 }
 
-// DOL 0x800f7e28 (the frame controller's UpdateFrame). UNVERIFIED: not clamped at the length. The course end test (vtable +0x48 =
+// DOL 0x800f7e28 [audited: frame controller update; not clamped (UNVERIFIED)] (the frame controller's UpdateFrame). UNVERIFIED: not clamped at the length. The course end test (vtable +0x48 =
 // 0x800f7e14) is length < frame, which a frame clamped to the length never passes; the SCN0 samples clamp by themselves.
 void cTaskScene::UpdateFrame()
 {
@@ -424,7 +433,7 @@ void cTaskScene::ApplyCamera()
 	}
 }
 
-// DOL 0x800f6900. Nothing while the game is paused (DAT_80479118).
+// DOL 0x800f6900 [audited: state 0 / 1 / 3 / 5 / 6 / 7 compared; the demo objects' ticks 0x801bce00 / 0x801bce94 are inlined]. Nothing while the game is paused (DAT_80479118).
 bool cTaskScene::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -492,7 +501,7 @@ bool cTaskScene::Execute(cJetTask* pParam)
 }
 
 
-// DOL 0x800f6598: step 0 the animations cleared (FUN_800f6f38), the stage lights (0x800f7490), m01s_s%x_cam_03_sca.brres (s_m01s_s_x_cam_03_sca_brres_8037510c)
+// DOL 0x800f6598 [audited: port also recomputes the length]: step 0 the animations cleared (FUN_800f6f38), the stage lights (0x800f7490), m01s_s%x_cam_03_sca.brres (s_m01s_s_x_cam_03_sca_brres_8037510c)
 // at frame 0 (FLOAT_8047b6d0), rate 1 (FLOAT_8047b6d4); every frame the scene's frame advances
 void cTaskScene::GoalCameraStep()
 {

@@ -25,14 +25,14 @@ bool Exists(const char* name)
 }
 }
 
-// DOL 0x800ee050: state 2 (no demo running)
+// DOL 0x800ee050 [audited]: state 2 (no demo running)
 cTaskGoal::cTaskGoal()
 {
 	SetName("g01::cTaskGoal");
 	m_nState = 2;
 }
 
-// DOL 0x800eeedc / 0x800ee1e4
+// DOL 0x800eeedc [audited] / 0x800ee1e4
 void cTaskGoal::Setup(int nStage, const wii::Mdl0& skel)
 {
 	m_nStage = nStage;
@@ -71,7 +71,7 @@ void cTaskGoal::Setup(int nStage, const wii::Mdl0& skel)
 	LoadGame();   // vtable +0x78 in both paths
 }
 
-// DOL 0x800ee9fc: model slot i = m01g_s%x_g%02d.brres at its SRT, light set 0, fog 3
+// DOL 0x800ee9fc [audited]: model slot i = m01g_s%x_g%02d.brres at its SRT, light set 0, fog 3
 void cTaskGoal::LoadModels()
 {
 	for (std::size_t i = 0; i < m_Place.size(); i++)
@@ -88,7 +88,7 @@ void cTaskGoal::LoadModels()
 	}
 }
 
-// DOL 0x800eeb30: the a01 clips {cha, cla, tsa, tpa, via}
+// DOL 0x800eeb30 [audited]: the a01 clips {cha, cla, tsa, tpa, via}
 void cTaskGoal::LoadGame()
 {
 	static const char* const A01[5] = {"m01g_s%x_g%02d_a01_cha.brres", "m01g_s%x_g%02d_a01_cla.brres", "m01g_s%x_g%02d_a01_tsa.brres",
@@ -116,7 +116,7 @@ void cTaskGoal::LoadGame()
 	}
 }
 
-// DOL 0x800eecf0: the a20 clips {cha, cla, tsa, tpa, via} at 1.0; the longest one is the demo's (cAnmCheck)
+// DOL 0x800eecf0 [audited]: the a20 clips {cha, cla, tsa, tpa, via} at 1.0; the longest one is the demo's (cAnmCheck)
 void cTaskGoal::LoadDemo()
 {
 	static const char* const A20[5] = {"m01g_s%x_g%02d_a20_cha.brres", "m01g_s%x_g%02d_a20_cla.brres", "m01g_s%x_g%02d_a20_tsa.brres",
@@ -220,7 +220,7 @@ bool cTaskGoal::GoalCheck()
 	return true;
 }
 
-// DOL 0x800eefa4: the demo object's state 1 path (0x801bce94: Init, then while the check holds), then the clips
+// DOL 0x800eefa4 [audited: the demo object's ticks 0x801bce00 / 0x801bce94 live in GoalInit / GoalCheck and were not compared]: the demo object's state 1 path (0x801bce94: Init, then while the check holds), then the clips
 bool cTaskGoal::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused

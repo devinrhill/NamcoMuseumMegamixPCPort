@@ -105,9 +105,7 @@ private:
 	bool m_bManagerVisible{};
 
 public:
-	MotosUIRollStageName* UnityUIStageName{};
 
-	MotosUIRollCaution* UnityUICaution{};
 
 	cTaskConsoleMan();
 

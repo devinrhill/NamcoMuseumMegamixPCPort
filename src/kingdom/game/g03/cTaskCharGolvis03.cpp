@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskCharGolvis03.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 #include "kingdom/game/g03/cTaskCharPacman.hpp"
@@ -29,17 +30,20 @@ cTaskCharGolvis03::cTaskCharGolvis03(cJetTask* pParent)
 	Init();
 }
 
+// DOL 0x8011b5e0 [audited]
 void cTaskCharGolvis03::Init()
 {
 	::Constants::jetGeoVecSet(vTrans(), 0.0f, 0.0f, -16.0f, 1.0f);
 	Setting(false);
 }
 
+// DOL 0x8011b610 [audited]
 void cTaskCharGolvis03::Term()
 {
-	cTaskCharGolvis::Term();
+	// DOL blr: the base Term runs from the dtor chain (cTaskCharGolvis::ReleaseTerm)
 }
 
+// DOL 0x8011b614 [audited]
 bool cTaskCharGolvis03::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -50,11 +54,13 @@ bool cTaskCharGolvis03::Execute(cJetTask* pParam)
 	return cTaskCharGolvis::Execute(pParam);
 }
 
+// DOL 0x8011b6bc [audited]
 void cTaskCharGolvis03::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskCharGolvis::Draw(nStatus, pParam);
 }
 
+// DOL 0x8011b6c0 [audited: motion table 0/9/10/11, push-out level 2 vs disassembly]
 void cTaskCharGolvis03::Setting(bool bRelocate)
 {
 	cTaskCharGolvis::Setting(bRelocate);
@@ -64,19 +70,21 @@ void cTaskCharGolvis03::Setting(bool bRelocate)
 	uiPlayMotionTable[3] = 11u;
 	nPushOutLevel() = 2u;
 	m_iState = Constants::gmEMonsterStateGolvisLand::STATE_GOLVISLAND_PLAY;
-	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU);
+	if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU, false, pPBModel(nType())->pScnMdl()));
 	AttackLandRegist(Constants::PACN_APP()->pTaskBgGimmick());
 	pAttackLand()->SetAttackTBL(s_aaAttackTBL);
 	m_iPlayMotion = Constants::gmEMonsterPlayMotionGolvisLand::PLAYMOTION_GOLVISLAND_NONE;
 	InitStateFirst();
 }
 
+// DOL 0x8011b7a8 [audited]
 void cTaskCharGolvis03::InitStateFirst()
 {
 	ChangeToAppear();
 	m_bDisp = true;
 }
 
+// DOL 0x8011b7e8 [audited]
 void cTaskCharGolvis03::InitStateStart()
 {
 	m_iAIMode = 2;
@@ -84,6 +92,7 @@ void cTaskCharGolvis03::InitStateStart()
 	m_iPlayMotion = Constants::gmEMonsterPlayMotionGolvisLand::PLAYMOTION_GOLVISLAND_NONE;
 }
 
+// DOL 0x8011b800 [audited]
 void cTaskCharGolvis03::MonsterFrameMove_PreProcess()
 {
 	uint pMes = 0u;
@@ -93,6 +102,7 @@ void cTaskCharGolvis03::MonsterFrameMove_PreProcess()
 	}
 }
 
+// DOL 0x8011b84c [audited: area bounds -4/4/-21/-14, 9 degrees, vtable slots (+0xc0 = ChangeToAttack) vs decomp]
 void cTaskCharGolvis03::MonsterFrameMove_Free()
 {
 	uint anmState = GetAnmState();
@@ -184,7 +194,7 @@ void cTaskCharGolvis03::MonsterFrameMove_Free()
 	{
 		if (!SoundManager::get_SE()->IsPlayinSEKind(ESEKind::PACN_ROLL_SND_SE075_ENSOU))
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU);
+			if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU, false, pPBModel(nType())->pScnMdl()));
 		}
 	}
 	else
@@ -193,11 +203,13 @@ void cTaskCharGolvis03::MonsterFrameMove_Free()
 	}
 }
 
+// DOL 0x8011bb94 [audited]
 void cTaskCharGolvis03::MonsterFrameMove_Escape()
 {
 	MonsterFrameMove_Free();
 }
 
+// DOL 0x8011bba4 [audited]
 Constants::gmSGolvisAttack* cTaskCharGolvis03::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	return cTaskCharGolvis::GetAttackKind(nEatNum, nIjikeLevel, nNum);

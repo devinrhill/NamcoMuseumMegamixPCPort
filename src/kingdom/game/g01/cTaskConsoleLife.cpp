@@ -8,11 +8,11 @@ namespace kingdom::game::g01
 
 namespace
 {
-const int LIFE_ANM[7] = {1, 8, 0xf, 0x16, 0x1d, 0x24, 0x2b};   // DOL 0x80371eb0
+const int LIFE_ANM[7] = {1, 8, 0xf, 0x16, 0x1d, 0x24, 0x2b};   // DOL 0x80371eb0 [audited]
 bool AnimDone(cKingdomAnita* a) { return !a->IsState(1u) || a->IsState(cJetAnita::JET_ANITA_STATE_ANIM_END); }
 }
 
-// DOL 0x800d4b5c (life 6, priority 0x80000007), 0x800d4c34 (ANT_LIFE, wait anim, hidden), 0x800d4d38 (the life of the stage / multi work)
+// DOL 0x800d4b5c [audited] (life 6, priority 0x80000007), 0x800d4c34 (ANT_LIFE, wait anim, hidden), 0x800d4d38 (the life of the stage / multi work)
 cTaskConsoleLife::cTaskConsoleLife()
 {
 	SetName("g01::cTaskConsoleLife");
@@ -27,14 +27,14 @@ cTaskConsoleLife::cTaskConsoleLife()
 	pAnita(0)->SetState(1u, false);
 }
 
-// DOL 0x800d4b8c
+// DOL 0x800d4b8c [audited]
 int cTaskConsoleLife::Anm(int kind) const
 {
 	static const int OFS[5] = {0, -1, 1, 2, 3};
 	return LIFE_ANM[m_nLife] + OFS[(unsigned)kind < 5 ? kind : 0];
 }
 
-// DOL 0x800d4d9c
+// DOL 0x800d4d9c [audited]
 void cTaskConsoleLife::AppearExec()
 {
 	if (m_nAppearStep == 0)
@@ -50,25 +50,24 @@ void cTaskConsoleLife::AppearExec()
 	}
 }
 
-// DOL 0x800eb6b0 (true when the gauge is idle) + the caller's write of state 2
+// DOL 0x800eb6b0 [audited] (the console is in its game state 3) + the caller's write of state 2 (cTaskPacman::HitCallback 0x800f4f20): +0x21c
+// only, the step stays as it is (a running heal / damage anim is taken over)
 bool cTaskConsoleLife::Damage()
 {
-	if (m_nState2 != 0) return false;
+	if (!m_bGameState) return false;
 	m_nState2 = 2;
-	m_nStep2 = 0;
 	return true;
 }
 
 // DOL 0x800eb6b0 + the caller's write of state 1 (cTaskPacman::HitCallback 0x800f4f20, kind 4)
 bool cTaskConsoleLife::Heal()
 {
-	if (m_nState2 != 0) return false;
+	if (!m_bGameState) return false;
 	m_nState2 = 1;
-	m_nStep2 = 0;
 	return true;
 }
 
-// DOL 0x800d4ea8
+// DOL 0x800d4ea8 [audited]
 void cTaskConsoleLife::StateExec()
 {
 	cKingdomAnita* a = pAnita(0);
@@ -128,11 +127,13 @@ void cTaskConsoleLife::StateExec()
 	}
 }
 
-// DOL 0x800d54a4 -> 0x800d54e4: the life bonus +0x228 = (life + 1) * 1000; then console state 4
+// DOL 0x800d54a4 [audited] -> 0x800d54e4: the life bonus +0x228 = (life + 1) * 1000; then console state 4
 void cTaskConsoleLife::StartResult()
 {
 	m_nBonus = (m_nLife + 1) * 1000;
 	m_bResult = true;
+	m_bGameState = false;
+	m_nState2 = m_nStep2 = 0;   // 0x800eb6c4: state 4, step 0, the gauge's state / step 0 (a running damage anim is dropped)
 }
 
 bool cTaskConsoleLife::Execute(cJetTask* pParam)

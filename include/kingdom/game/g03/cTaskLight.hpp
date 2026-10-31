@@ -22,7 +22,14 @@ private:
 
 	Vector4 m_vOffset{};
 
+	int m_nSet{};                   // natively the light is (light set, rig index): +0x1b8 LightObj
+	int m_nRig{};
+
+	const Vector4* m_pTarget{};     // +0x1bc
+
 public:
+	cTaskLight(int set, int rig, const Vector4* target);
+
 	virtual ~cTaskLight();
 
 private:

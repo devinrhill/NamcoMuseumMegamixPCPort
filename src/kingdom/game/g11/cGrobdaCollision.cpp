@@ -41,7 +41,7 @@ void RotY(float* v, float a)
 namespace grobda_geom
 {
 
-// DOL 0x80033c50: squared distance on the XZ plane <= (r1 + r2)^2
+// DOL 0x80033c50 [audited]: squared distance on the XZ plane <= (r1 + r2)^2
 bool Overlap(float r1, float r2, const float* p1, const float* p2)
 {
 	float d[3];
@@ -50,7 +50,7 @@ bool Overlap(float r1, float r2, const float* p1, const float* p2)
 	return Dot3(d, d) <= (r1 + r2) * (r1 + r2);
 }
 
-// DOL 0x80194808: the signed areas of the triangles (p, v_i, v_i+1) must not have both signs
+// DOL 0x80194808 [audited]: the signed areas of the triangles (p, v_i, v_i+1) must not have both signs
 bool PointInPolygon(const float* p, const float (*v)[4], uint n)
 {
 	if (n < 3) return false;
@@ -68,7 +68,7 @@ bool PointInPolygon(const float* p, const float (*v)[4], uint n)
 	return true;
 }
 
-// DOL 0x801942dc: do the segments a-b and c-d cross (XZ)
+// DOL 0x801942dc [audited]: do the segments a-b and c-d cross (XZ)
 bool SegIntersect(const float* a, const float* b, const float* c, const float* d)
 {
 	float ab[3], ac[3], ad[3], cd[3], ca[3], cb[3];
@@ -81,7 +81,7 @@ bool SegIntersect(const float* a, const float* b, const float* c, const float* d
 	return Cross(ab, ac) * Cross(ab, ad) < TINY && Cross(cd, ca) * Cross(cd, cb) < TINY;
 }
 
-// DOL 0x8019443c: the crossing point of a-b with c-d (not for parallel segments)
+// DOL 0x8019443c [audited]: the crossing point of a-b with c-d (not for parallel segments)
 bool SegHit(const float* a, const float* b, const float* c, const float* d, float out[4])
 {
 	float d1[3], d2[3];
@@ -103,7 +103,7 @@ bool SegHit(const float* a, const float* b, const float* c, const float* d, floa
 	return true;
 }
 
-// DOL 0x80194224: distance of p from the line a-b (XZ), 0 for a degenerate line
+// DOL 0x80194224 [audited]: distance of p from the line a-b (XZ), 0 for a degenerate line
 float PointLineDist(const float* a, const float* b, const float* p)
 {
 	float u[3], w[3];
@@ -114,7 +114,7 @@ float PointLineDist(const float* a, const float* b, const float* p)
 	return 0.0f;
 }
 
-// DOL 0x80033b28: two polygons overlap: a centre inside the other polygon or a vertex inside the other polygon
+// DOL 0x80033b28 [audited]: two polygons overlap: a centre inside the other polygon or a vertex inside the other polygon
 bool PolyOverlap(cGrobdaCollisionObject* a, cGrobdaCollisionObject* b)
 {
 	if (PointInPolygon(a->GetPos(), b->m_vWorld, b->m_nWorld)) return true;
@@ -126,7 +126,7 @@ bool PolyOverlap(cGrobdaCollisionObject* a, cGrobdaCollisionObject* b)
 	return false;
 }
 
-// DOL 0x80033904: the circle of c (radius +0x24) against the polygon of `poly`: a vertex inside the circle, an edge crossing the segment from the centre
+// DOL 0x80033904 [audited]: the circle of c (radius +0x24) against the polygon of `poly`: a vertex inside the circle, an edge crossing the segment from the centre
 // along the inward normal, or the centre inside
 bool CirclePoly(cGrobdaCollisionObject* c, cGrobdaCollisionObject* poly)
 {
@@ -155,7 +155,7 @@ bool CirclePoly(cGrobdaCollisionObject* c, cGrobdaCollisionObject* poly)
 
 // ---- cGrobdaCollisionObject -----------------------------------------------------------------------------------------------------------
 
-// DOL 0x80192b08 / 0x80192f24: the local polygon, its outward edge normals (-ez, 0, ex), the bounding radius, then the world polygon
+// DOL 0x80192b08 [audited] / 0x80192f24: the local polygon, its outward edge normals (-ez, 0, ex), the bounding radius, then the world polygon
 void cGrobdaCollisionObject::SetShape(const float (*v)[4], uint n, bool reversed)
 {
 	if (n > 64) n = 64;
@@ -183,7 +183,7 @@ void cGrobdaCollisionObject::SetShape(const float (*v)[4], uint n, bool reversed
 	m_fBroad = maxDot < TINY ? 0.5f : std::sqrt(maxDot);   // FLOAT_8047c9b8
 }
 
-// DOL 0x801933dc
+// DOL 0x801933dc [audited]
 void cGrobdaCollisionObject::UpdateShape()
 {
 	const float* rot = GetRot();
@@ -209,7 +209,7 @@ void cGrobdaCollisionObject::UpdateShape()
 
 // ---- cGrobdaObject --------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80193b34: the timers count while the game runs; on the first paused frame their enable flags are saved and cleared, on resume they are
+// DOL 0x80193b34 [audited]: the timers count while the game runs; on the first paused frame their enable flags are saved and cleared, on resume they are
 // restored (a timer that was started meanwhile restarts from 0)
 void cGrobdaObject::UpdateTimers(bool paused)
 {
@@ -247,20 +247,20 @@ bool cTaskGrobdaCollision::Running()
 	return !(app != nullptr && app->IsPause()) && (GamePad::Get(0).hold & 0x400u) == 0;
 }
 
-// DOL 0x80030484
+// DOL 0x80030484 [audited]
 cTaskGrobdaCollision::cTaskGrobdaCollision()
 {
 	SetName("cTaskGrobdaCollision");
 	s_pInstance = this;
 }
 
-// DOL 0x800307a0
+// DOL 0x800307a0 [audited]
 void cTaskGrobdaCollision::Register(int layer, cGrobdaCollisionObject* obj, void* tag)
 {
 	m_vList[layer].push_back({obj, tag});
 }
 
-// DOL 0x800306d4
+// DOL 0x800306d4 [audited]
 bool cTaskGrobdaCollision::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -272,7 +272,7 @@ bool cTaskGrobdaCollision::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80033854
+// DOL 0x80033854 [audited]
 bool cTaskGrobdaCollision::SweepAny(cGrobdaCollisionObject* obj, const float* vec, int layer)
 {
 	for (const sEntry& e : m_vList[layer])
@@ -280,7 +280,7 @@ bool cTaskGrobdaCollision::SweepAny(cGrobdaCollisionObject* obj, const float* ve
 	return false;
 }
 
-// DOL 0x800333fc. The circle of `a` (radius +0x24) moves from p along d; each edge of b's polygon (skipped by the mask on four-edge polygons) is widened
+// DOL 0x800333fc [audited]. The circle of `a` (radius +0x24) moves from p along d; each edge of b's polygon (skipped by the mask on four-edge polygons) is widened
 // by the radius at both ends, the leading point is p - r * normal, started 1.5 r behind along the move; a crossing gives a hit. cull: edges the move
 // leaves are ignored; record: a wall record goes to a (OnWall); the nearest crossing point / squared distance are returned.
 bool cTaskGrobdaCollision::Sweep(cGrobdaCollisionObject* a, const float* p, const float* d, cGrobdaCollisionObject* b, bool cull, bool record, float* outPt, float* outDist)
@@ -356,7 +356,7 @@ bool cTaskGrobdaCollision::Sweep(cGrobdaCollisionObject* a, const float* p, cons
 	return count != 0;
 }
 
-// DOL 0x80033ce8: the wall records of a combine into one push-out; false when walls and mover contacts are mixed, the pushes pull apart or the pushed
+// DOL 0x80033ce8 [audited]: the wall records of a combine into one push-out; false when walls and mover contacts are mixed, the pushes pull apart or the pushed
 // position is occupied
 bool cTaskGrobdaCollision::ResolveWalls(cGrobdaCollisionObject* a, float out[4])
 {
@@ -419,7 +419,7 @@ bool cTaskGrobdaCollision::ResolveWalls(cGrobdaCollisionObject* a, float out[4])
 	return true;
 }
 
-// DOL 0x80030b98: the passes, in the DOL's order
+// DOL 0x80030b98 [audited]: the passes, in the DOL's order
 void cTaskGrobdaCollision::Resolve()
 {
 	using namespace grobda_geom;
@@ -573,14 +573,14 @@ void cTaskGrobdaCollision::Resolve()
 				Copy4(h1.point, pt);
 				s->OnHit(h1);
 				sGrobdaHit h2;
-				h2.pObj = s;
+				h2.pObj = shotList == 6 ? t : s;   // kind 6: the DOL records the target itself
 				h2.kind = kindOnTarget;
 				h2.dist = dist;
 				t->OnHit(h2);
 			}
 	};
 	shot(5, 1, false, 1, 5);
-	shot(6, 0, false, 0, 6);   // UNVERIFIED: the DOL names the receiving object of the second record piVar13 twice
+	shot(6, 0, false, 0, 6);
 	shot(5, 0, true, 0, 5);
 
 	// bombs: circles against polygons

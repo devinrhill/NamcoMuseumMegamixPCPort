@@ -1,3 +1,4 @@
+#include "GamePad.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include "kingdom/game/g03/cTaskBgBox.hpp"
@@ -44,6 +45,7 @@ cTaskBgBox::cTaskBgBox()
 	Init();
 }
 
+// DOL 0x80156510 [audited: per AUDIT_G03_G07 row] (+0x4f4 kind, +0x4f8 treasure, +0x4fc broken = 0)
 void cTaskBgBox::Init()
 {
 	m_nKind = 0u;
@@ -57,6 +59,7 @@ void cTaskBgBox::Term()
 	cTaskBgHit::Term();
 }
 
+// DOL 0x80156528 [audited: per AUDIT_G03_G07 row] (clip update while broken, UpdateMatrix, collision entry unless broken)
 bool cTaskBgBox::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -84,6 +87,7 @@ bool cTaskBgBox::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x801565ec [audited: per AUDIT_G03_G07 row] (scene matrix = rotation * translation, scale, then cTaskBgHit::Draw)
 void cTaskBgBox::Draw(int nStatus, cJetTask* pParam)
 {
 	Matrix4x4 matrix = pMtxRotTrans();
@@ -92,6 +96,7 @@ void cTaskBgBox::Draw(int nStatus, cJetTask* pParam)
 	cTaskBgHit::Draw(nStatus, pParam);
 }
 
+// DOL 0x80156674 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgBox::RegistData(const uint& kind, const uint& treasure, const Vector4& trans, const Vector4& rotate, const bool& isBreak)
 {
 	CustomKingdomUtil::Assert(4 > kind, "error");
@@ -183,6 +188,7 @@ bool cTaskBgBox::RegistData(sSaveDataBox& box)
 	return RegistData(box.kind, box.treasure, box.trans, v, false);
 }
 
+// DOL 0x80156830 [audited: per AUDIT_G03_G07 row] (Pac-Man in state 1 (dash/attack): wooden boxes always break, iron boxes only for type 2 (SE 037 + rumble 500 ms, not ported), otherwise the metal SE 035 unless it is still playing)
 void cTaskBgBox::HitCallbackWall(Constants::sFace* face, Vector4 hitPosL, Vector4 hitPosW)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -192,11 +198,13 @@ void cTaskBgBox::HitCallbackWall(Constants::sFace* face, Vector4 hitPosL, Vector
 		{
 			m_bBreak = true;
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE037_BOX_HAKAI);
+			GamePad::Rumble(0, 500);   // DOL 0x801568a4 [audited: class row done in the 43rd session; function not individually re-read] / 0x80156918
 		}
 		else if (cTaskCharPacman2->nType() == 2)
 		{
 			m_bBreak = true;
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE037_BOX_HAKAI);
+			GamePad::Rumble(0, 500);   // DOL 0x801568a4 / 0x80156918
 		}
 		else
 		{

@@ -19,10 +19,6 @@ private:
 
 	ResMdl* m_ResMdl{};
 
-	bool m_isReuse{};
-
-	AABB m_calcedAABB{};
-
 public:
 	bool IsAABB();
 
@@ -37,10 +33,6 @@ public:
 	Constants::sFace* pFace(int n, int i);
 
 	std::vector<Constants::sFace*>* pAllFace();
-
-	bool& IsReuse();
-
-	AABB& CalcedAABB();
 
 	cFaceList(ResMdl* data);
 	// devtools: --g03-bg-collision (not 1:1): a list of faces built elsewhere (from a visual model); `data` = the hit model gimmicks read nodes from (may be nullptr)

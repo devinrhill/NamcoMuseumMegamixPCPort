@@ -1,4 +1,5 @@
 #include "kingdom/game/g03/cTaskConsClear.hpp"
+#include "kingdom/MslRand.hpp"
 
 #include "cJetTask.hpp"
 #include "kingdom/game/g03/Constants.hpp"
@@ -60,6 +61,7 @@ void cTaskConsClear::End()
 	SetAnim(0u, ano);
 }
 
+// DOL 0x8018b258 [audited: per AUDIT_G03_G07 row] (the DOL starts the jingle only while its handle is not playing)
 bool cTaskConsClear::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -90,7 +92,7 @@ bool cTaskConsClear::Execute(cJetTask* pParam)
 			{
 				m_nWait = 0u;
 				SetStep(1u);
-				uint num = (uint)Random::Range(0, 3);
+				uint num = (uint)kingdom::MslRandRange(0, 3);   // DOL 0x8018b258: rand() % 3
 				ESEKind array[3] = {ESEKind::PACN_ROLL_SND_SE107_GOAL_1, ESEKind::PACN_ROLL_SND_SE108_GOAL_2, ESEKind::PACN_ROLL_SND_SE109_GOAL_3};
 				SoundManager::get_SE()->PlaySE(array[num]);
 				goto _switch2_1u;

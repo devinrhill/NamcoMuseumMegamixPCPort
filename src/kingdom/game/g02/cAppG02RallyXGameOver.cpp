@@ -9,13 +9,13 @@
 namespace kingdom::game::g02
 {
 
-// DOL 0x800c68c4 (job 198)
+// DOL 0x800c68c4 [audited] (job 198)
 void cAppG02RallyXGameOver::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG02RallyXGameOver());
 }
 
-// DOL 0x800b329c
+// DOL 0x800b329c [audited]
 cAppG02RallyXGameOver::cAppG02RallyXGameOver()
 {
 	SetName("cAppG02RallyXGameOver");

@@ -13,6 +13,21 @@
 namespace kingdom::game::g03
 {
 
+float cTaskBgGimmick::ModelHalfDiagonal()
+{
+	ResMdl resMdl(this->Model->pScnMdl());
+	if (resMdl.Mdl == nullptr)
+	{
+		return 0.0f;
+	}
+	Vector4 v = Vector4();
+	v[0] = (resMdl.Mdl->volumeMax[0] - resMdl.Mdl->volumeMin[0]) * 0.5f;
+	v[1] = (resMdl.Mdl->volumeMax[1] - resMdl.Mdl->volumeMin[1]) * 0.5f;
+	v[2] = (resMdl.Mdl->volumeMax[2] - resMdl.Mdl->volumeMin[2]) * 0.5f;
+	v[3] = 1.0f;
+	return ::Constants::jetGeoVecLength(v);
+}
+
 uint& cTaskBgGimmick::nActFlag()
 {
 	return m_nActFlag;
@@ -23,6 +38,7 @@ uint cTaskBgGimmick::GetRotFrameMax()
 	return m_nRotFrameMax;
 }
 
+// DOL 0x8014cc94 [audited: per AUDIT_G03_G07 row] (suffix tokens at 0x8037a0d3: _hu shadow depth; _me _ma _ou _bs _ws _wm _wl = moment 0.06; _lr _ba _je _bu _ou _ws _wm _wl = state 0x10, else _pi = 0x200; _je _yu _mj = 0x100; hit model "<name>_h.brres")
 cTaskBgGimmick::cTaskBgGimmick(ResNode* const& node0, ResNode* const& node1)
 	: cTaskBgHit(node0, node1)
 {
@@ -86,6 +102,7 @@ void cTaskBgGimmick::Term()
 	cTaskBgHit::Term();
 }
 
+// DOL 0x8014d794 [audited: per AUDIT_G03_G07 row] (rotating gimmicks (act flag 2 / 3 with rot_l / rot_r user data): rotation.y = default + 360 / frames * frame, reversed for 3; then UpdateFrame, UpdateMatrix, BgHit::Execute)
 bool cTaskBgGimmick::Execute(cJetTask* pParam)
 {
 	bool flag = (CustomKingdomUtil::IF(nActFlag() & 0xC0000000u) ? true : false);
@@ -115,6 +132,7 @@ bool cTaskBgGimmick::BaseExecute(cJetTask* pParam)
 	return cTaskBgHit::Execute(pParam);
 }
 
+// DOL 0x8014d90c [audited: per AUDIT_G03_G07 row]
 void cTaskBgGimmick::Draw(int nStatus, cJetTask* pParam)
 {
 	Matrix4x4 matrix = pMtxRotTrans();
@@ -123,6 +141,7 @@ void cTaskBgGimmick::Draw(int nStatus, cJetTask* pParam)
 	cTaskBgHit::Draw(nStatus, pParam);
 }
 
+// DOL 0x8014d994 [audited: per AUDIT_G03_G07 row] (user data "rot_l" -> act flag 2, "rot_r" -> 3, state 8, frame count = the item value)
 void cTaskBgGimmick::GetUserData(ResNode* const& node)
 {
 	ResUserData* resUserData = node->GetResUserData();

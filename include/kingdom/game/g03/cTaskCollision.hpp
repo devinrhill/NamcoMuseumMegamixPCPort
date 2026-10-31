@@ -92,17 +92,7 @@ public:
 
 	static bool CollisionSphereAABB(cTaskChar* taskChar, cTaskBgHit* obj);
 
-	static bool CollisionSphereAABB(const Vector3& sphereMin, const Vector3& sphereMax, cTaskBgHit* obj);
-
-	static bool CollisionSphereFaceAABB(const Vector3& sphereMin, const Vector3& sphereMax, cTaskBgHit* obj, Constants::sFace* face);
-
-	static SPHERE GetCharSphere(cTaskChar* const& taskChar);
-
-	static bool CollisionRayAABB(const Vector4& pos, const Vector4& move, cTaskBgHit* obj, float maxDist = 30.0f);
-
-	static bool CollisionRayFaceAABB(const RAY3& ray, cTaskBgHit* obj, Constants::sFace* face, float maxDist = 30.0f);
-
-	static RAY3 GetRay(const Vector4& pos, const Vector4& move);
+	static bool CollisionRayAABB(const Vector4& pos, const Vector4& move, cTaskBgHit* obj);
 
 	static bool CollisionLinePlane(const Vector4& vPos, const Vector4& vLine, const Vector4& vrt, const Vector4& vNorm, Vector4& vOutCross);
 

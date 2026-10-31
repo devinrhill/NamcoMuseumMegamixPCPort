@@ -166,10 +166,15 @@ struct LightResult
 	// the scene's first fog (GX fog type: 2 linear, 4 exp, 5 exp2, 6 revexp, 7 revexp2; 0 = none), eye space distances
 	int fogType{0};
 	float fogStart{}, fogEnd{}, fogColor[3]{};
+	// every fog of the scene file (nw4r ScnRoot fog slots: a material / model fog index picks one)
+	static constexpr int MAX_FOGS = 8;
+	struct FogSlot { int type{0}; float start{}, end{}, color[3]{}; };
+	int numFogs{0};
+	FogSlot fogs[MAX_FOGS]{};
 	// the whole light set (ScnAnim::SampleLightSet; numRig 0 = only the single light above): g3d LoadResMatChan / LightObj
 	// dir: surface -> light, world space (the specular direction; the diffuse one of a point / spot light comes from pos)
 	// type: g3d LightAnmResult 0 point, 1 directional, 2 spot; attnA / attnK: GX cos / distance attenuation (GXInitLightSpot / GXInitLightDistAttn)
-	struct RigLight { float dir[3]; float color[3]; float spec[3]; float shininess; bool hasSpec; int type{1}; float pos[3]{}, spotDir[3]{}, attnA[3]{1, 0, 0}, attnK[3]{1, 0, 0}; };
+	struct RigLight { bool follow{}; float dir[3]; float color[3]; float spec[3]; float shininess; bool hasSpec; int type{1}; float pos[3]{}, spotDir[3]{}, attnA[3]{1, 0, 0}, attnK[3]{1, 0, 0}; };
 	int numRig{0};
 	RigLight rig[4]{};
 	float ambient[3]{1, 1, 1};   // the light set's ambient light (multiplies the materials' ambient colours)
@@ -182,6 +187,9 @@ public:
 	bool SampleLight(float frame, LightResult& out) const;
 	// fills the fog fields of `out` from the first fog (false if there is none)
 	bool SampleFog(LightResult& out) const;
+	int FogCount() const { return (int)m_fogs.size(); }
+	// fog slot `idx` (the scene's fog list order = nw4r ScnRoot fog index); false if the scene has fewer
+	bool FogAt(int idx, int& type, float& start, float& end, float color[3]) const;
 	// the first light set at `frame`: its ambient light and up to 4 enabled lights (also fills the single light fields with the first)
 	bool SampleLightSet(float frame, LightResult& out) const;
 	bool Load(const Brres& brres);
@@ -209,6 +217,7 @@ private:
 		std::string name;
 		std::uint32_t flags{}; Slot pos[3], aim[3], shininess, refDist, refBright, cutoff; std::uint32_t color{}, specColor{};
 		int distFunc{}, spotFunc{};
+		bool follow{};   // the light's user data has an entry "follow" (g03: cTaskLight, DOL 0x800b5864)
 		std::vector<std::uint32_t> colorFrames, specFrames;   // per-frame colours (empty = constant)
 	};
 	std::vector<Light> m_lights;

@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCamera.hpp"
 
 #include "cJetTask.hpp"
@@ -102,6 +103,7 @@ void cTaskCamera::Term()
 {
 }
 
+// DOL 0x801e23fc [audited: described by the 43rd-session pass] (cParamCamera::LoadValue inlined; also scene root +0x1d8 = 0: see UpdateMatrix)
 void cTaskCamera::Setup(cTaskScnRoot* pTaskScnRoot, string key)
 {
 	cParamCamera* cParamCamera2 = new cParamCamera(key);
@@ -114,11 +116,13 @@ void cTaskCamera::Setup(cTaskScnRoot* pTaskScnRoot, string key)
 	m_fAspect = cParamCamera2->fGetAspect();
 }
 
+// DOL 0x801e27d4 [audited: constant getter vs disassembly]
 bool cTaskCamera::Execute(cJetTask* pParam)
 {
 	return true;
 }
 
+// DOL 0x801e27dc [audited: described by the 43rd-session pass] (audited 44th: quake sign = rand() & 1; position / target / fov / near / far -> NativeScene camera)
 void cTaskCamera::Draw(int nStatus, cJetTask* pParam)
 {
 	UpdateMatrix();
@@ -140,13 +144,17 @@ void cTaskCamera::UpdateMatrix()
 	::Constants::jetGeoVecCopy(v2, m_vTarget);
 	if (m_nTimer != 0 && !Constants::SYSTEM_IS_PAUSE())
 	{
-		v2[1] += ((Random::Range(0, 1) != 0) ? ((0.0f - m_fRange) / 2.0f) : (m_fRange / 2.0f));
+		// DOL 0x801e27dc: rand() & 1 picks the sign (the C#'s Random.Range(0, 1) was always 0, so it never alternated); y += +-range * 0.5
+		v2[1] += (((kingdom::MslRand() & 1) == 0) ? m_fRange : -m_fRange) * 0.5f;
 		m_nTimer--;
 	}
 	// native: the 3D pass camera (kingdom::NativeScene). Unity: position = v, LookAt(v2), fieldOfView = RAD2DEG(fovy), near, far
 	{
 		const float eye[3] = {v[0], v[1], v[2]}, target[3] = {v2[0], v2[1], v2[2]};
 		kingdom::NativeScene::SetCamera(eye, target, ::Constants::JET_RAD2DEG(m_fFovy), m_fNear, m_fFar);
+		// DOL 0x801e29e0 [audited: described by the 43rd-session pass]: camera +0xb0 = the CSV aspect (1.242 on the disc), and Setup 0x801e23fc cleared the scene root's flag +0x1d8, so
+		// cTaskScnRoot::Draw 0x8009bc4c keeps it instead of the viewport's 4:3 (the 3D view is about 7 % wider than at 4:3)
+		kingdom::NativeScene::SetFixedAspect(m_fAspect);
 	}
 	// TODO(unity): m_gazePoint.transform.position = m_vTarget;
 }

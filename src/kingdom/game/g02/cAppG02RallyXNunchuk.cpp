@@ -10,13 +10,13 @@
 namespace kingdom::game::g02
 {
 
-// DOL 0x800c6ccc (job 201)
+// DOL 0x800c6ccc [audited] (job 201)
 void cAppG02RallyXNunchuk::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG02RallyXNunchuk());
 }
 
-// DOL 0x80122ab0: the menu archive (COMMON_ANITA_NUNCHUK 0xf44c4825), next job the stage. The asynchronous load of the stage archive
+// DOL 0x80122ab0 [audited]: the menu archive (COMMON_ANITA_NUNCHUK 0xf44c4825), next job the stage. The asynchronous load of the stage archive
 // (sys 0x800c5acc(0) -> cKingdomSys::RegistArcDataAS of table 0x803710e0) is left out: the native stage job attaches its archives itself
 // (as the Galaga Nunchuk card).
 cAppG02RallyXNunchuk::cAppG02RallyXNunchuk()
@@ -27,13 +27,13 @@ cAppG02RallyXNunchuk::cAppG02RallyXNunchuk()
 	SetName("cAppG02RallyXNunchuk");
 }
 
-// DOL 0x80122bec
+// DOL 0x80122bec [audited]
 cAppG02RallyXNunchuk::~cAppG02RallyXNunchuk()
 {
 	cG02RallyXSysExt::DetachMenuArc();
 }
 
-// DOL 0x80122b10. Single player (sys 0x800c5ca0 = not the multiplayer world): skip when player 0's control type (0x800c5b88) is 1 (remote
+// DOL 0x80122b10 [audited]. Single player (sys 0x800c5ca0 = not the multiplayer world): skip when player 0's control type (0x800c5b88) is 1 (remote
 // only) or pad 0 has a Nunchuk (KPAD extension +0xb0 -> +0x5c == 1). Multiplayer: skip when every player (pad = sys 0x800c5b98(i)) has
 // type 1 or a Nunchuk.
 bool cAppG02RallyXNunchuk::IsSkip()

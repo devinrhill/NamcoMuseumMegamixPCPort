@@ -12,7 +12,7 @@
 namespace kingdom
 {
 
-// DOL 0x800c2414
+// DOL 0x800c2414 [audited: cursor follows the PHYSICAL arrows (documented deliberate deviation)]
 bool cAppBaseDebugMenu::Execute(cJetTask* pParam)
 {
 	const GamePad::State& pad = GamePad::Get(0); // FUN_801411d8(0): the raw pad block
@@ -37,7 +37,7 @@ bool cAppBaseDebugMenu::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800c24f8: title at (8, 24), entries at x = 32, y = 48 + 20 * i, the cursor ">" at x = 16 on the current row (default colour)
+// DOL 0x800c24f8 [audited]: title at (8, 24), entries at x = 32, y = 48 + 20 * i, the cursor ">" at x = 16 on the current row (default colour)
 void cAppBaseDebugMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_title == nullptr) return;
@@ -46,7 +46,7 @@ void cAppBaseDebugMenu::Draw(int nStatus, cJetTask* pParam)
 	dbgtext::Print(0x10, 0x30 + 0x14 * m_cursor, dbgtext::DEFAULT_COLOR, ">");
 }
 
-// DOL 0x8000e1f8: FUN_800c2404(menu, "Kingdom Final Sep 30 2010 21:51:51" (0x80368718), 17, table 0x80389868)
+// DOL 0x8000e1f8 [audited: menu rows/jobs from table 0x80389868]: FUN_800c2404(menu, "Kingdom Final Sep 30 2010 21:51:51" (0x80368718), 17, table 0x80389868)
 cAppDebugTopMenu::cAppDebugTopMenu()
 {
 	SetName("Kingdom Debug Menu");
@@ -72,7 +72,7 @@ cAppDebugTopMenu::cAppDebugTopMenu()
 	});
 }
 
-// DOL 0x800c25c0: new 0x4c, FUN_800c23e0 (cursor 0, selected / chosen -1), FUN_800c2404(menu, "Kingdom Final Sep 30 2010 21:51:53" (0x80370a70),
+// DOL 0x800c25c0 [audited: rows from table 0x80438418]: new 0x4c, FUN_800c23e0 (cursor 0, selected / chosen -1), FUN_800c2404(menu, "Kingdom Final Sep 30 2010 21:51:53" (0x80370a70),
 // 7, table 0x80438418)
 cAppRootDebugMenu::cAppRootDebugMenu()
 {

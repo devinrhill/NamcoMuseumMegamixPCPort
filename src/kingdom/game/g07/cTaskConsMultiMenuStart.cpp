@@ -16,6 +16,7 @@ cTaskConsMultiMenuStart::~cTaskConsMultiMenuStart()
 {
 }
 
+// DOL 0x801ced60 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuStart::SetData()
 {
 	nDrawPriority(2147483654u);
@@ -25,6 +26,7 @@ void cTaskConsMultiMenuStart::SetData()
 	pAnita(0u)->SetState(1u, false);
 }
 
+// DOL 0x801cee44 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuStart::nGetAnmNo(int nAnmState)
 {
 	int obj[4] = {118, 119, 120, 121};

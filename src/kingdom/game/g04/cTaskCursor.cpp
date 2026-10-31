@@ -8,7 +8,7 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x801a7dd8
+// DOL 0x801a7dd8 [audited]
 cTaskCursor::cTaskCursor(uint nPlayer) : m_nPlayer(nPlayer)
 {
 	SetName("g04::cTaskCursor");
@@ -37,7 +37,7 @@ cTaskCursor::cTaskCursor(uint nPlayer) : m_nPlayer(nPlayer)
 	nDrawPriority(0x80000007u);
 }
 
-// DOL 0x801a820c
+// DOL 0x801a820c [audited]
 bool cTaskCursor::Execute(cJetTask* pParam)
 {
 	if ((uint)(m_nState - 1) < 2u)
@@ -63,7 +63,7 @@ bool cTaskCursor::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);   // 0x80014d58: the anitas advance
 }
 
-// DOL 0x801a843c
+// DOL 0x801a843c [audited]
 void cTaskCursor::Show()
 {
 	cKingdomAnita* a = pAnita(0u);
@@ -72,7 +72,7 @@ void cTaskCursor::Show()
 	a->SetState(3u, true);
 }
 
-// DOL 0x801a84cc
+// DOL 0x801a84cc [audited]
 void cTaskCursor::SetPlace(int place)
 {
 	if (m_nPlace == place) return;
@@ -81,14 +81,14 @@ void cTaskCursor::SetPlace(int place)
 	m_nPlace = place;
 }
 
-// DOL 0x801a84ec
+// DOL 0x801a84ec [audited]
 void cTaskCursor::Hide()
 {
 	m_nState = 0;
 	pAnita(0u)->SetState(3u, false);
 }
 
-// DOL 0x801a8550
+// DOL 0x801a8550 [audited]
 void cTaskCursor::Lunge()
 {
 	if (m_nState != 2) pAnita(0u)->SetAnimNo((int)(m_nPlayer * 2u + 1u), true);   // DAT_8037cdcc

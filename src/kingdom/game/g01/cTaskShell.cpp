@@ -39,7 +39,7 @@ bool RayAABB(const float org[3], const float dir[3], const float mn[3], const fl
 }
 }
 
-// DOL 0x800c9e04: kind 0xb, index, state 0, the shoot marker child, the model (+0x64 = 0x800ca35c: CHAR_ENEMY_SHELL_MDL, light set 1,
+// DOL 0x800c9e04 [audited]: kind 0xb, index, state 0, the shoot marker child, the model (+0x64 = 0x800ca35c: CHAR_ENEMY_SHELL_MDL, light set 1,
 // fog 0, expanded onto the boss model at the node, CalcAABB), active, ShellParam_%dp.csv HP, the sound actor (natively none: the hit cues go through FUN_801c15ac, unpositioned), +0x5c
 cTaskShell::cTaskShell(int nIndex, cTaskBoss* pBoss, cKingdomModel* pBossModel, const char* node) : m_nIndex(nIndex), m_pBoss(pBoss)
 {
@@ -74,7 +74,7 @@ cTaskShell::cTaskShell(int nIndex, cTaskBoss* pBoss, cKingdomModel* pBossModel, 
 	UpdatePos();
 }
 
-// DOL 0x800ca208
+// DOL 0x800ca208 [audited: the position is the boss model's node matrix (natively BossNodeWorld) = the expanded shell's world matrix]
 void cTaskShell::UpdatePos()
 {
 	char node[16];
@@ -83,7 +83,7 @@ void cTaskShell::UpdatePos()
 	if (m_bMtx) m_v20 = Vector4(m_mWorld[12], m_mWorld[13], m_mWorld[14], 1.0f);
 }
 
-// DOL 0x800ca464 (active, not paused): +0x5c, the clips (0x8009a478: the boss model advances them too, as in the DOL), the model, the
+// DOL 0x800ca464 [audited] (active, not paused): +0x5c, the clips (0x8009a478: the boss model advances them too, as in the DOL), the model, the
 // world box by +0x270
 bool cTaskShell::Execute(cJetTask* pParam)
 {
@@ -96,7 +96,7 @@ bool cTaskShell::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800ca4f4: drawn only while active and visible (+9); natively the boss model draws the expanded shell
+// DOL 0x800ca4f4 [audited]: drawn only while active and visible (+9); natively the boss model draws the expanded shell
 void cTaskShell::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus;
@@ -108,14 +108,14 @@ void cTaskShell::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
-// DOL 0x800ca518
+// DOL 0x800ca518 [audited]
 bool cTaskShell::RayHit(const float org[3], const float dir[3], float& t) const
 {
 	if (!m_b14) return false;
 	return RayAABB(org, dir, m_vMin0, m_vMax0, t);
 }
 
-// DOL 0x800ca548: a player's shot: HP - 1 (m01se_04hit2); broken at 0 (+0x7c, m01se_06bak2)
+// DOL 0x800ca548 [audited]: a player's shot: HP - 1 (m01se_04hit2); broken at 0 (+0x7c, m01se_06bak2)
 void cTaskShell::HitCallback(cObject* other)
 {
 	if (other->nKind() != 1) return;
@@ -128,7 +128,7 @@ void cTaskShell::HitCallback(cObject* other)
 	}
 }
 
-// DOL 0x800ca6ac
+// DOL 0x800ca6ac [audited]
 void cTaskShell::Open()
 {
 	if (cKingdomModel* m = pModel(0))
@@ -142,7 +142,7 @@ void cTaskShell::Open()
 	m_nAnm |= 3u;
 }
 
-// DOL 0x800ca664: collidable, the marker shows, HP again
+// DOL 0x800ca664 [audited]: collidable, the marker shows, HP again
 void cTaskShell::Activate()
 {
 	m_b14 = true;
@@ -150,14 +150,14 @@ void cTaskShell::Activate()
 	m_n18 = m_nHp;
 }
 
-// DOL 0x800ca690
+// DOL 0x800ca690 [audited]
 void cTaskShell::Hide()
 {
 	m_b14 = false;
 	if (m_pMarker != nullptr) m_pMarker->Hide();
 }
 
-// DOL 0x800ca7e8
+// DOL 0x800ca7e8 [audited]
 void cTaskShell::Close()
 {
 	cKingdomModel* m = pModel(0);
@@ -175,7 +175,7 @@ void cTaskShell::Close()
 	Hide();
 }
 
-// DOL 0x800ca760
+// DOL 0x800ca760 [audited]
 void cTaskShell::Break()
 {
 	cKingdomModel* m = pModel(0);

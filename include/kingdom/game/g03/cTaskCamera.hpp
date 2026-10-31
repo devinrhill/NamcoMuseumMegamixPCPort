@@ -177,6 +177,9 @@ private:
 	Vector4 m_vClipVecOut{};
 
 	float m_fClipValue{};
+	float m_fFovy{40.0f};   // the SCN0 camera (Setup); these defaults only if BIN_CAMERA_SCA cannot be read
+	float m_fNear{0.1f};
+	float m_fFar{32768.0f};
 
 	float m_fMenuZoom{};
 

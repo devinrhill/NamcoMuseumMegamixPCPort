@@ -17,7 +17,7 @@ namespace kingdom::game::g02
 
 cTaskConsole::sHooks cTaskConsole::Hooks{};
 
-// DOL 0x80124468 (the inlined constructor: cTaskKingdom, priority 0x10000) + Init 0x8006093c (single-player branch; the multiplayer branch
+// DOL 0x80124468 [audited] (the inlined constructor: cTaskKingdom, priority 0x10000) + Init 0x8006093c (single-player branch; the multiplayer branch
 // (console +0x1bc = 1) is NOT PORTED, see the header)
 cTaskConsole::cTaskConsole(kingdom::cAppKingdom* pApp) : m_pApp(pApp)
 {
@@ -30,7 +30,7 @@ cTaskConsole::cTaskConsole(kingdom::cAppKingdom* pApp) : m_pApp(pApp)
 	ConnectChild(m_pRadar);
 	if (m_bMulti)
 	{
-		// the multiplayer set (DOL 0x8006093c, console +0x1bc == 1): per player the fuel gauge, the mud and the number plate, then the
+		// the multiplayer set (DOL 0x8006093c [audited], console +0x1bc == 1): per player the fuel gauge, the mud and the number plate, then the
 		// multiplayer info, the start lamp, the time, the winner, the draw and (3 players) the filler of the fourth viewport
 		for (int i = 0; i < m_nPlayer && i < 4; i++)
 		{
@@ -82,7 +82,7 @@ cTaskConsole::cTaskConsole(kingdom::cAppKingdom* pApp) : m_pApp(pApp)
 	ConnectChild(m_pWarning);
 }
 
-// DOL 0x801275e4: 0x80065d04 deletes the cKingdomRand (+0x1b8); the parts are child tasks
+// DOL 0x801275e4 [audited]: 0x80065d04 deletes the cKingdomRand (+0x1b8); the parts are child tasks
 cTaskConsole::~cTaskConsole()
 {
 }
@@ -100,7 +100,7 @@ bool cTaskConsole::IsFrozen() const
 	return (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;
 }
 
-// DOL 0x80065db0 (single player). Called by the app ctor 0x801236bc for every car: the players first (colour 6, 5 on the boss stage,
+// DOL 0x80065db0 [audited] (single player). Called by the app ctor 0x801236bc for every car: the players first (colour 6, 5 on the boss stage,
 // bPlayer = 1), then the enemies (colour 5, 6 on the boss stage, bPlayer = 0).
 //   the radar gets every car (anita count + 0x17 starts with anim = the colour, reset; Execute sets the real icon);
 //   a player car (kind & 0x10): the fuel gauge (and its layer positions for the player count), the info and the mud follow it;
@@ -134,65 +134,65 @@ void cTaskConsole::Regist(kingdom::cTaskModel* pCar, int nColour, bool bPlayer)
 	}
 }
 
-// DOL 0x800662c8 (callers: the flag placement of cTaskMap 0x80077e48 / 0x800780f4): the radar shows the flag; +0x1c0 counts the flags (max 20)
+// DOL 0x800662c8 [audited] (callers: the flag placement of cTaskMap 0x80077e48 / 0x800780f4): the radar shows the flag; +0x1c0 counts the flags (max 20)
 void cTaskConsole::RegistFlag(kingdom::cTaskModel* pGimmick, int nType)
 {
 	if (m_pRadar != nullptr) m_pRadar->AddFlag(pGimmick, nType);
 	if (m_nFlagTotal < 0x14) m_nFlagTotal++;
 }
 
-// DOL 0x80066554: no signal task -> true; else signal mode > 1 (the compiler's (m ^ 1) >> 1 - ((m ^ 1) & m) sign trick)
+// DOL 0x80066554 [audited]: no signal task -> true; else signal mode > 1 (the compiler's (m ^ 1) >> 1 - ((m ^ 1) & m) sign trick)
 bool cTaskConsole::IsSignalGo() const
 {
 	if (m_pSignal == nullptr) return true;
 	return m_pSignal->m_nMode > 1;
 }
 
-// DOL 0x80066584
+// DOL 0x80066584 [audited]
 bool cTaskConsole::IsResultEnd() const
 {
 	return m_pResult != nullptr && m_pResult->m_nMode == 3;
 }
 
-// DOL 0x8006659c / 0x800665b4 / 0x800665cc / 0x800665e4
+// DOL 0x8006659c [audited] / 0x800665b4 / 0x800665cc / 0x800665e4
 bool cTaskConsole::IsWinShown() const { return m_pWinner != nullptr && m_pWinner->m_nMode == 2; }
 bool cTaskConsole::IsWinEnd() const { return m_pWinner != nullptr && m_pWinner->m_nMode == 4; }
 bool cTaskConsole::IsDrawShown() const { return m_pDraw != nullptr && m_pDraw->m_nMode == 2; }
 bool cTaskConsole::IsDrawEnd() const { return m_pDraw != nullptr && m_pDraw->m_nMode == 4; }
 
-// DOL 0x800666e8
+// DOL 0x800666e8 [audited]
 void cTaskConsole::HitMark(int nPlayer)
 {
 	if (m_pInfoMulti != nullptr) m_pInfoMulti->ShowHit(nPlayer);
 }
 
-// DOL 0x800665fc
+// DOL 0x800665fc [audited]
 bool cTaskConsole::IsLoseShown() const
 {
 	return m_pLose != nullptr && m_pLose->m_nMode == 2;
 }
 
-// DOL 0x80066614
+// DOL 0x80066614 [audited]
 bool cTaskConsole::IsLoseEnd() const
 {
 	return m_pLose != nullptr && m_pLose->m_nMode == 7;
 }
 
-// DOL 0x8006662c (app Execute 0x80125b1c, the crash state)
+// DOL 0x8006662c [audited] (app Execute 0x80125b1c, the crash state)
 bool cTaskConsole::ShowBang()
 {
 	if (m_pBang != nullptr) m_pBang->Show();
 	return m_pBang != nullptr;
 }
 
-// DOL 0x8006669c
+// DOL 0x8006669c [audited]
 bool cTaskConsole::HideBang()
 {
 	if (m_pBang != nullptr) m_pBang->Hide();
 	return m_pBang != nullptr;
 }
 
-// DOL 0x800667c4
+// DOL 0x800667c4 [audited]
 void cTaskConsole::HideBang2()
 {
 	if (m_pBang != nullptr) m_pBang->Hide();

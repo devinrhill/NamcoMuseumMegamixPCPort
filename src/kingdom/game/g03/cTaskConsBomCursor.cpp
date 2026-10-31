@@ -117,33 +117,10 @@ bool cTaskConsBomCursor::Execute(cJetTask* pParam)
 	return cTaskConsoleBase::Execute(pParam);
 }
 
+// DOL 0x8018a200 [audited: per AUDIT_G03_G07 row] (shared by both cursors): the target through the camera and viewport; the cursor is hidden when it is off screen
 bool cTaskConsBomCursor::IsInScreen()
 {
-	float num = 0.0f;
-	float num2 = 0.0f; // TODO(unity): num2 = Screen.width
-	float num3 = 0.0f; // TODO(unity): num3 = Screen.height
-	Camera* mainCam = Constants::PACN_APP()->pTaskCamera()->get_MainCam();
-	// TODO(unity): m_vTrans = mainCam.WorldToScreenPoint(m_vTargetTrans.GetUnityPos());
-	if (m_vTrans[3] == 0.0f)
-	{
-		m_vTrans[3] = 1.0f;
-	}
-	(void)(m_vTrans);
-	float num4 = 1.0f / m_vTrans[3];
-	Vector4 v = Vector4(num4, num4, num4, 1.0f);
-	::Constants::jetGeoVecMult(m_vTrans, m_vTrans, v);
-	m_vTrans.z *= -1.0f;
-	if (0.0f <= m_vTrans[0] && m_vTrans[0] <= num2 && num <= m_vTrans[1] && m_vTrans[1] <= num3 && 0.0f >= m_vTrans[2])
-	{
-		m_vTrans[1] *= -1.0f;
-		Vector4 v2 = Vector4(0.0f - num2 / 2.0f, num3 / 2.0f, 0.0f, 0.0f);
-		::Constants::jetGeoVecAdd(m_vTrans, m_vTrans, v2);
-		int num5 = 960;
-		::Constants::jetGeoVecMult(m_vTrans, m_vTrans, (Vector4)Vector3((float)num5 / num2, (float)num5 / num2, 0.0f));
-		m_vTrans.y *= -1.0f;
-		return true;
-	}
-	return false;
+	return WorldToHud(m_vTargetTrans, m_vTrans);
 }
 
 void cTaskConsBomCursor::UpdatePosition()

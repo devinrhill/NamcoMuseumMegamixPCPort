@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g04/cTaskEnemyManager.hpp"
 
 #include <bitset>
@@ -15,7 +16,7 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x8019be50 (PATTERN blocks) + 0x8019c3a8 (the commands after START)
+// DOL 0x8019be50 [audited: PATTERN fields are read with S32 in the DOL (port F32; integer cells equal)] (PATTERN blocks) + 0x8019c3a8 (the commands after START)
 bool cParamEnemyPattern::Load(const char* key)
 {
 	kingdom::cKingdomCSV csv;
@@ -97,7 +98,7 @@ bool cParamEnemyPattern::Load(const char* key)
 	return true;
 }
 
-// DOL 0x801ae84c
+// DOL 0x801ae84c [audited: enemy construction and level CSV compared; seed from the clock]
 cTaskEnemyManager::cTaskEnemyManager(cTaskBG* pBG) : m_pBG(pBG), m_Rand((u32)std::time(nullptr))
 {
 	SetName("g04::cTaskEnemyManager");
@@ -152,7 +153,7 @@ void cTaskEnemyManager::PlaceEnemies()
 	}
 }
 
-// DOL 0x801af97c: CSV_ENEMY00..20 (0x8037d0e8), CSV_MULTI2_ENEMYnn (0x8037d13c), _MULTI3_ (0x8037d190), _MULTI4_ (0x8037d1e4)
+// DOL 0x801af97c [audited: CSV names by player count]: CSV_ENEMY00..20 (0x8037d0e8), CSV_MULTI2_ENEMYnn (0x8037d13c), _MULTI3_ (0x8037d190), _MULTI4_ (0x8037d1e4)
 void cTaskEnemyManager::LoadPatterns(int nPlayer)
 {
 	for (int i = 0; i < 21; i++)
@@ -165,7 +166,7 @@ void cTaskEnemyManager::LoadPatterns(int nPlayer)
 	}
 }
 
-// DOL 0x801af470
+// DOL 0x801af470 [audited]
 void cTaskEnemyManager::LoadPattern(int idx)
 {
 	for (cTaskEnemy* e : m_pEnemy) e->ClearCommands();
@@ -185,11 +186,11 @@ void cTaskEnemyManager::LoadPattern(int idx)
 	m_RandGroup.clear();
 }
 
-// DOL 0x801af250
+// DOL 0x801af250 [audited]
 void cTaskEnemyManager::SelectLevel(uint score)
 {
-	auto rnd = [](int lo, int hi) { return (int)((uint)std::rand() % (uint)(hi - lo)) + lo; };   // libc rand 0x80211048
-	if (score <= (uint)m_nLevelScore[0]) LoadPattern((int)((uint)std::rand() % (uint)m_nLevelPattern[0]));
+	auto rnd = [](int lo, int hi) { return (int)((uint)kingdom::MslRand() % (uint)(hi - lo)) + lo; };   // libc rand 0x80211048
+	if (score <= (uint)m_nLevelScore[0]) LoadPattern((int)((uint)kingdom::MslRand() % (uint)m_nLevelPattern[0]));
 	else if (score <= (uint)m_nLevelScore[1]) LoadPattern(rnd(m_nLevelPattern[0], m_nLevelPattern[1]));
 	else if (!m_bAngry && score <= (uint)m_nLevelScore[2]) LoadPattern(rnd(m_nLevelPattern[1], m_nLevelPattern[2]));
 	else if (!m_bAngry || m_bAfterEvent)
@@ -209,13 +210,13 @@ void cTaskEnemyManager::SelectLevel(uint score)
 	}
 }
 
-// DOL 0x801af5d8
+// DOL 0x801af5d8 [audited]
 void cTaskEnemyManager::SetAllState(int state)
 {
 	for (cTaskEnemy* e : m_pEnemy) e->SetState(state);
 }
 
-// DOL 0x801af8d4
+// DOL 0x801af8d4 [audited]
 void cTaskEnemyManager::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -228,7 +229,7 @@ void cTaskEnemyManager::SetMode(int mode)
 	}
 }
 
-// DOL 0x801afed8
+// DOL 0x801afed8 [audited]
 void cTaskEnemyManager::EndAngry()
 {
 	m_bAngry = true;
@@ -236,7 +237,7 @@ void cTaskEnemyManager::EndAngry()
 	m_nMode = 1;
 }
 
-// DOL 0x801aec9c
+// DOL 0x801aec9c [audited]
 void cTaskEnemyManager::Reset()
 {
 	m_nFrame = 0;
@@ -249,7 +250,7 @@ void cTaskEnemyManager::Reset()
 	LoadPattern(0);
 }
 
-// DOL 0x801afdec: single = kind table 0x8037d238 by the result rank, multiplayer = the winner's colour
+// DOL 0x801afdec [audited: port clamps an out-of-range rank]: single = kind table 0x8037d238 by the result rank, multiplayer = the winner's colour
 void cTaskEnemyManager::SetResultLook(int idx)
 {
 	static const s32 KIND[5] = {3, 0, 4, 2, 1};   // DAT_8037d238
@@ -257,7 +258,7 @@ void cTaskEnemyManager::SetResultLook(int idx)
 	for (cTaskEnemy* e : m_pEnemy) e->SetResultLook(k);
 }
 
-// DOL 0x801af7dc
+// DOL 0x801af7dc [audited]
 void cTaskEnemyManager::AddRandGroup(u32 mask)
 {
 	for (u32 m : m_RandGroup)
@@ -265,7 +266,7 @@ void cTaskEnemyManager::AddRandGroup(u32 mask)
 	m_RandGroup.push_back(mask);
 }
 
-// DOL 0x801af634: a SET_RAND group starts when all its gators wait (state 0xe): one of them, MT() % count, comes out (2), the others skip (4).
+// DOL 0x801af634 [audited]: a SET_RAND group starts when all its gators wait (state 0xe): one of them, MT() % count, comes out (2), the others skip (4).
 // The DOL's list walk after an erase goes on from next->next (the group after an erased one is skipped this frame; erasing the last group
 // wraps to the first through the sentinel), and a mask without gators 0..3 still draws an MT number and is erased: both kept.
 void cTaskEnemyManager::RandGroups()
@@ -300,7 +301,7 @@ void cTaskEnemyManager::RandGroups()
 	}
 }
 
-// DOL 0x801af048
+// DOL 0x801af048 [audited]
 bool cTaskEnemyManager::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();

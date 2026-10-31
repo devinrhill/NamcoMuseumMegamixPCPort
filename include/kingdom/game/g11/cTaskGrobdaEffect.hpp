@@ -28,6 +28,7 @@ public:
 		eSLOT_MAX = 0x25
 	};
 	cTaskGrobdaEffect();            // DOL 0x80035b0c
+	bool Execute(cJetTask* pParam) override;   // DOL 0x80035e4c
 	// FUN_8009ff60(app, slot, pos, rot, 0, 0): a one-shot effect at a place (the DOL's effect task keeps the handle; natively a ring of handles)
 	static void Spawn(uint slot, const float pos[3], const float rot[3] = nullptr);
 	static const char* const SLOT_NAME[eSLOT_MAX];

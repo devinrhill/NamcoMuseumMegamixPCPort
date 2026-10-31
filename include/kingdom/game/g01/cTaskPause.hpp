@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kingdom/game/cTaskGameBasePause.hpp"
+#include "kingdom/sMatchingData.hpp"
 
 // Galaga Remix (g01) the pause menu: kingdom::game::g01::cTaskPause (vtable 0x8044a9c0; ctor 0x801b92cc), the shared cTaskGameBasePause
 // (Execute 0x80147cb0, Draw 0x80148b88) with Init 0x800f6060: ANT_PAUSE (0xdf5903f3) and ANT_MENU_POINTER (0xf63671cb) with the matching data,
@@ -13,5 +14,9 @@ class cTaskPause : public kingdom::game::cTaskGameBasePause
 public:
 	cTaskPause();                // DOL 0x801b92cc + 0x800f6060
 	~cTaskPause() override;      // DOL 0x801bafec
+
+private:
+	kingdom::sMatchingData m_Matching;
+	kingdom::sMatchingData::InfoData m_Info[4];
 };
 }

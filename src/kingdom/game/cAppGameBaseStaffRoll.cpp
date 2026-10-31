@@ -31,7 +31,7 @@ void cAppGameBaseStaffRoll::Init()
 	m_nStep = 0;
 	m_nNextJobNo = std::numeric_limits<uint>::max();
 	m_pBgmName = EBGMKind::BGM_001;
-	KingdomGlobal::KingSys->AttachArcData("staffroll.lzs");   // DOL 0x801442a8 (museum/en/staffroll.lzs; the subclass Init attaches it again)
+	KingdomGlobal::KingSys->AttachArcData("staffroll.lzs");   // DOL 0x801442a8 [audited: Unity render settings dropped] (museum/en/staffroll.lzs; the subclass Init attaches it again)
 	// TODO(unity): m_prevAmbientMode = RenderSettings.ambientMode;
 	// TODO(unity): m_prevLightColor = RenderSettings.ambientLight;
 	// TODO(unity): m_prevSkyColor = RenderSettings.ambientSkyColor;
@@ -82,6 +82,7 @@ void cAppGameBaseStaffRoll::Term()
 	{
 		m_pTaskCookieMdl->TermOnce();
 	}
+	KingdomGlobal::KingSys->DetachArcData("staffroll.lzs");   // DOL 0x801442ec (base dtor body): the port never detached it
 }
 
 void cAppGameBaseStaffRoll::Free()
@@ -130,10 +131,10 @@ void cAppGameBaseStaffRoll::RegistData()
 	RegistPacMdl("PACMAN_MDL", "PACMAN_ANM_CHA_01", "PACMAN_ANM_TPA_01");
 	RegistGhostMdl("GHOST_MDL", "GHOST_ANM_CHA_01", "GHOST_ANM_TSA_01");
 	RegistCookieMdl("COOKIE_MDL", "COOKIE_ANM_CHA_01", "COOKIE_ANM_CLA_01");
-	// DOL 0x80144348 end: the far plane is set once more (62 instead of 60)
-	m_camFar = 62.0f;
-	// native: the 3D pass and the scene's light (the DOL binds SCN_ANM_CAM_01 to the ScnRoot with SetAnmScn: its light set; frame 0, UNVERIFIED
-	// whether it animates)
+	// DOL 0x80144348 end: the light's far plane is set once more (62 instead of 60)
+	kingdom::NativeScene::Shadow().SetOrtho(40.0f, 40.0f, 20.0f, 62.0f);
+	// DOL: ScnRoot::SetAnmScn(SCN_ANM_CAM_01). nw4r CalcAnmScn then loads the view camera (camera 0), light set and fogs from it. Nothing calls
+	// ScnRoot::UpdateFrame in this app (its only callers: the title, Gator Panic), so the scene stays at frame 0: a fixed camera. Dolphin: same view.
 	{
 		std::size_t size = 0;
 		const std::uint8_t* d = wii::ArchiveStore::Find("SCN_ANM_CAM_01", size);
@@ -145,6 +146,14 @@ void cAppGameBaseStaffRoll::RegistData()
 			sa.SampleFog(light);
 			for (int i = 0; i < 4; i++) kingdom::NativeScene::SetLight(i, light);
 		}
+		wii::CameraResult cam;
+		if (d != nullptr && sa.SampleCamera("", 0.0f, cam))
+		{
+			float target[3];
+			cam.LookAt(target);
+			if (cam.projType == 0) kingdom::NativeScene::SetCamera(cam.pos, target, cam.fovy, cam.nearZ, cam.farZ);
+			else kingdom::NativeScene::SetOrthoCamera(cam.pos, target, cam.fovy * 0.5f, cam.fovy * -0.5f, cam.fovy * -0.5f * cam.aspect, cam.fovy * 0.5f * cam.aspect, cam.nearZ, cam.farZ);
+		}
 		d = wii::ArchiveStore::Find("PACMAN_MDL", size);
 		wii::Brres pb;
 		wii::Mdl0 mdl;
@@ -152,39 +161,20 @@ void cAppGameBaseStaffRoll::RegistData()
 			m_pacRootNode = mdl.nodes[1].name;   // node 1 ("pacman"; 0 is the model root)
 	}
 	ConnectChild(new kingdom::cTaskNativeScene());
-	UpdateNativeCamera();
 }
 
-// DOL 0x800244dc (camera work type 0): eye = target + dist * (sin ry cos rx, sin rx, cos ry cos rx), aim posture; projection from 0x80024308:
-// SetOrtho(top 40 * 0.5, bottom -20, left -20, right 20, near 20, far 62)
-void cAppGameBaseStaffRoll::UpdateNativeCamera()
-{
-	const float rx = m_camRot[0], ry = m_camRot[1], d = m_camDist;
-	const float eye[3] = {m_camTarget[0] + std::sin(ry) * d * std::cos(rx), m_camTarget[1] + d * std::sin(rx), m_camTarget[2] + std::cos(ry) * d * std::cos(rx)};
-	// sin(90 deg) in float leaves x / z at ~1e-6: nw4r tests == 0 for its straight-down case, snap like it would on the Wii's exact values
-	float e[3] = {eye[0], eye[1], eye[2]};
-	if (std::fabs(e[0] - m_camTarget[0]) < 1e-4f) e[0] = m_camTarget[0];
-	if (std::fabs(e[2] - m_camTarget[2]) < 1e-4f) e[2] = m_camTarget[2];
-	kingdom::NativeScene::SetOrthoCamera(e, m_camTarget, 20.0f, -20.0f, -20.0f, 20.0f, 20.0f, m_camFar);
-}
-
-// DOL 0x80144348 (RegistData head): camera work at +0x1b8: target (0, 0, 0), rotation (pi/2, 0, 0), distance 40, ortho 40 x 40, near 20, far 60.
-// The Unity port used its own perspective camera (fov 28 at (0, 4.8, 20)); not used.
+// DOL 0x80144348 [audited: the texture / model setup is the port's Regist* functions] (RegistData head): the scene root's cKingdomShadow (+0x1fc, camera 4, the DEPTH SHADOW LIGHT, not
+// the view: the port used to draw the scene through it, straight from above): mode 0, target (0, 0, 0), rotation (pi/2, 0, 0), radius 40, ortho 40 x 40, near 20, far 60.
+// The view camera is SCN_ANM_CAM_01 (RegistData).
 void cAppGameBaseStaffRoll::RegistCamera(string DataKey)
 {
-	m_camTarget[0] = m_camTarget[1] = m_camTarget[2] = 0.0f;
-	m_camRot[0] = 1.5707964f; m_camRot[1] = 0.0f; m_camRot[2] = 0.0f;
-	m_camDist = 40.0f;
-	m_camFar = 60.0f;
-	GameObject* gameObject = nullptr; // TODO(unity): gameObject = GameObject.Find("Front3DCamera")
-	// TODO(unity): m_targetCam = gameObject.GetComponent<Camera>();
-	// TODO(unity): m_targetCam.enabled = true;
-	// TODO(unity): m_prevCamPos = m_targetCam.transform.position;
-	// TODO(unity): m_prevCamRot = m_targetCam.transform.rotation;
-	// TODO(unity): m_prevCamFOV = m_targetCam.fieldOfView;
-	// TODO(unity): m_targetCam.transform.position = new Vector3(0f, 4.8f, 20f);
-	// TODO(unity): m_targetCam.transform.LookAt(new Vector3(0f, 2.5f, -5f));
-	// TODO(unity): m_targetCam.fieldOfView = 28f;
+	kingdom::NativeScene::SetShadow(true);   // +0x1f8 = 1
+	kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
+	sh.SetMode(0);
+	sh.SetTarget(0.0f, 0.0f, 0.0f);
+	sh.SetAngles(1.5707964f, 0.0f, 0.0f);
+	sh.SetOrtho(40.0f, 40.0f, 20.0f, 60.0f);
+	sh.SetRadius(40.0f);
 }
 
 void cAppGameBaseStaffRoll::RegistPicAnt(string DataKey)
@@ -355,14 +345,13 @@ bool cAppGameBaseStaffRoll::Execute(cJetTask* pParam)
 			break;
 		}
 	}
-	// DOL 0x80144ec0 end: the camera looks at the translation of node 1 of Pac-Man's model (AnmObjChr::GetResult(result, 1)) every frame
+	// DOL 0x80144ec0 [audited+dolphin] end: the shadow light follows the translation of node 1 of Pac-Man's model (AnmObjChr::GetResult(result, 1)) every frame
 	if (m_pTaskPacMdl != nullptr && !m_pacRootNode.empty())
 	{
 		Vector4 v;
 		if (cKingdomModel* pac = m_pTaskPacMdl->pModel(0u)) pac->GetLocalNodeTrans(v, m_pacRootNode);
-		m_camTarget[0] = v.x; m_camTarget[1] = v.y; m_camTarget[2] = v.z;
+		kingdom::NativeScene::Shadow().SetTarget(v.x, v.y, v.z);
 	}
-	UpdateNativeCamera();
 	return true;
 }
 

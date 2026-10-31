@@ -11,8 +11,8 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x80113064 [audited: per AUDIT_G03_G07 row]
 cGolvisAIArea::cGolvisAIArea(cTaskCharGolvis* pParent, uint nStage)
-	
 {
 	m_nAreaStep = -1;
 	m_nAreaMax = -1;
@@ -21,11 +21,7 @@ cGolvisAIArea::cGolvisAIArea(cTaskCharGolvis* pParent, uint nStage)
 	m_nModeSub = 0;
 	::Constants::jetGeoVecSet(m_vPacPos, 0.0f, 0.0f, 0.0f, 1.0f);
 	::Constants::jetGeoVecSet(m_vTarget, 0.0f, 0.0f, 0.0f, 1.0f);
-	std::fill(std::begin(m_aAreas), std::end(m_aAreas), nullptr);
-	for (int i = 0; i < (int)std::size(m_aAreas); i++)
-	{
-		m_aAreas[i] = new AREA_POINT();
-	}
+	std::fill(std::begin(m_aAreas), std::end(m_aAreas), nullptr);   // memset(+8, 0, 0x40): the entries point into the stage's area table once a search ran
 	m_nPacArea = -1;
 	m_nPrevPacArea = -1;
 	m_nEscapeArea = -1;
@@ -39,10 +35,12 @@ cGolvisAIArea::cGolvisAIArea(cTaskCharGolvis* pParent, uint nStage)
 	m_nGiveUpCounter = 0;
 }
 
+// DOL 0x80113138 [audited: class row done in the 43rd session; function not individually re-read]
 cGolvisAIArea::~cGolvisAIArea()
 {
 }
 
+// inlined in Think 0x80113188: AreaStep = 0, AreaMax = areaSearch (0x80112ef0) with the 64-bit block mask (hi 0, lo nParam)
 bool cGolvisAIArea::SearchRoute(int nSrc, int nDst, uint nParam)
 {
 	m_nAreaStep = 0;
@@ -54,13 +52,7 @@ bool cGolvisAIArea::SearchRoute(int nSrc, int nDst, uint nParam)
 	return false;
 }
 
-bool cGolvisAIArea::SearchRoute(const Vector4& vPos, uint nParam)
-{
-	int nSrc = Constants::areaGetNo(m_nStage, m_pGolvis->vTrans());
-	int nDst = Constants::areaGetNo(m_nStage, vPos);
-	return SearchRoute(nSrc, nDst, nParam);
-}
-
+// inlined in Think 0x80113188 (areaGetInfo 0x80112bbc, then a scan of the route)
 bool cGolvisAIArea::IsOnRoute(int nPos)
 {
 	AREA_POINT* aREA_POINT = Constants::areaGetInfo(m_nStage, nPos);
@@ -74,6 +66,7 @@ bool cGolvisAIArea::IsOnRoute(int nPos)
 	return false;
 }
 
+// DOL 0x80113178 [audited: per AUDIT_G03_G07 row]
 void cGolvisAIArea::SetKind(int nMode, int nRefTime, int nGiveUpTime)
 {
 	m_nMode = nMode;
@@ -81,6 +74,7 @@ void cGolvisAIArea::SetKind(int nMode, int nRefTime, int nGiveUpTime)
 	m_nGiveUpTime = nGiveUpTime;
 }
 
+// DOL 0x80113188 [audited: per AUDIT_G03_G07 row] (equal, every branch + the four areaSearch mask arguments checked; 3D-squared distances 0x800a3c28, XZ-squared 0x800a3c74; y window FLOAT_8047bb60 = 1.3)
 void cGolvisAIArea::Think(const Vector4& vPos, uint nParam)
 {
 	bool flag = false;
@@ -205,6 +199,7 @@ void cGolvisAIArea::Think(const Vector4& vPos, uint nParam)
 	}
 }
 
+// DOL 0x801137cc [audited: per AUDIT_G03_G07 row] (returns &m_vTarget)
 Vector4 cGolvisAIArea::vGoalPos()
 {
 	return m_vTarget;

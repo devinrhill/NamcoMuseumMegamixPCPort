@@ -12,7 +12,7 @@
 namespace kingdom::game::g07
 {
 
-// DOL 0x800a29bc: FUN_800c2404(menu, "Motos", 7, table 0x80394d08)
+// DOL 0x800a29bc [audited: described by the 43rd-session pass]: FUN_800c2404(menu, "Motos", 7, table 0x80394d08)
 cAppMotosDebugMenu::cAppMotosDebugMenu()
 {
 	SetName("Motos Debug Menu");
@@ -30,7 +30,7 @@ cAppMotosDebugMenu::cAppMotosDebugMenu()
 		if (m_entries[i].job == job::MOTOS_DEBUG_SELECT) { m_stageRow = (int)i; break; }
 }
 
-// DOL 0x800a36c4
+// DOL 0x800a36c4 [audited: per AUDIT_G03_G07 row]
 bool cAppMotosDebugMenu::Execute(cJetTask* pParam)
 {
 	auto* sys = KingdomGlobal::MotosSys;
@@ -44,7 +44,7 @@ bool cAppMotosDebugMenu::Execute(cJetTask* pParam)
 	return kingdom::cAppBaseDebugMenu::Execute(pParam);
 }
 
-// DOL 0x800a35a4
+// DOL 0x800a35a4 [audited: per AUDIT_G03_G07 row]
 void cAppMotosDebugMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	if (auto* sys = KingdomGlobal::MotosSys; sys && m_stageRow < (int)m_entries.size())

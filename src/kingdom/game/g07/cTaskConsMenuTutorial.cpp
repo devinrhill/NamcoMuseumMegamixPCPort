@@ -11,6 +11,7 @@
 namespace kingdom::game::g07
 {
 
+// DOL 0x801ca654 [audited: 4 pages, text rows, layout key compared with the DOL data 0x8037f228]
 cTaskConsMenuTutorial::cTaskConsMenuTutorial()
 	: TUTORIAL_DATA([&]() { kingdom::game::menu::sTutorialData* _o5 = new kingdom::game::menu::sTutorialData(); _o5->nPageMax = 4u; _o5->TextDataName = "TEXT_MENU_TUTORIAL"; _o5->pPage = {[&]() { kingdom::game::menu::sTutorialPage* _o6 = new kingdom::game::menu::sTutorialPage(); _o6->nAnmNo = 0; _o6->nTextRow = 1; _o6->Key = "ANT_MENU_TUTORIAL"; return _o6; }(), [&]() { kingdom::game::menu::sTutorialPage* _o7 = new kingdom::game::menu::sTutorialPage(); _o7->nAnmNo = 1; _o7->nTextRow = 2; _o7->Key = "ANT_MENU_TUTORIAL"; return _o7; }(), [&]() { kingdom::game::menu::sTutorialPage* _o8 = new kingdom::game::menu::sTutorialPage(); _o8->nAnmNo = -1; _o8->nTextRow = 3; _o8->Key = "ANT_MENU_TUTORIAL"; return _o8; }(), [&]() { kingdom::game::menu::sTutorialPage* _o9 = new kingdom::game::menu::sTutorialPage(); _o9->nAnmNo = 2; _o9->nTextRow = 4; _o9->Key = "ANT_MENU_TUTORIAL"; return _o9; }()}; return _o5; }())
 {

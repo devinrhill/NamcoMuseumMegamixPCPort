@@ -9,13 +9,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800b150c (job 183)
+// DOL 0x800b150c [audited] (job 183)
 void cAppG01GalagaStaffRoll::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG01GalagaStaffRoll());
 }
 
-// DOL 0x800b3490 (staffroll.lzs is attached by the base 0x801442a8 too). +0x288 = 0x0b500000 is set as the next job (UNVERIFIED: that it
+// DOL 0x800b3490 [audited] (staffroll.lzs is attached by the base 0x801442a8 too). +0x288 = 0x0b500000 is set as the next job (UNVERIFIED: that it
 // is the field nSetNextJobNo writes; the Pac-Motos staff roll sets its own end job the same way)
 cAppG01GalagaStaffRoll::cAppG01GalagaStaffRoll()
 {

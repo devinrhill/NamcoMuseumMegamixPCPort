@@ -97,6 +97,7 @@ cTaskGimmickHatch::cTaskGimmickHatch()
 	Init();
 }
 
+// DOL 0x8012c7e0 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 void cTaskGimmickHatch::Init()
 {
 	m_nMode = 2u;
@@ -108,6 +109,7 @@ void cTaskGimmickHatch::Term()
 	cTaskGimmickBase::Term();
 }
 
+// DOL 0x8012c7f8 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskGimmickHatch::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -125,6 +127,7 @@ bool cTaskGimmickHatch::Create(uint no)
 	return true;
 }
 
+// DOL 0x8012c8c4 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskGimmickHatch::Execute(cJetTask* pParam)
 {
 	Exec();
@@ -132,6 +135,7 @@ bool cTaskGimmickHatch::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8012c918 [audited: per AUDIT_G03_G07 row] (audited 44th: matches; defaults 180 / 40 / 40, open start offset, SE 27)
 bool cTaskGimmickHatch::Exec()
 {
 	if (!CustomKingdomUtil::IF(m_nFlag & 8))
@@ -180,6 +184,7 @@ bool cTaskGimmickHatch::Exec()
 	return true;
 }
 
+// DOL 0x8012cbe4 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickHatch::IsStepOnCntW(Vector4 pWTrans)
 {
 	float num = KingdomGlobal::g_pMotosGame->pMap()->fPanelSize() * 2.0f;
@@ -190,6 +195,7 @@ bool cTaskGimmickHatch::IsStepOnCntW(Vector4 pWTrans)
 	return true;
 }
 
+// DOL 0x8012ccb8 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickHatch::IsFall(Vector4 pMTrans)
 {
 	Vector4 v;

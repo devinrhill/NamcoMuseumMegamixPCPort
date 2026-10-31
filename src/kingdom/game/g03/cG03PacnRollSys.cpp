@@ -77,7 +77,7 @@ void cG03PacnRollSys::AddGetItemCnt(int add)
 
 void cG03PacnRollSys::Init()
 {
-	// DOL 0x80129dc8 (cG03PacnRollSys ctor): AttachArcData("g03_pacnroll/g03resident.lzs"), then the sound group GROUP_pacn_SE (the PC
+	// DOL 0x80129dc8 [audited: sound group load not needed natively] (cG03PacnRollSys ctor): AttachArcData("g03_pacnroll/g03resident.lzs"), then the sound group GROUP_pacn_SE (the PC
 	// mixer needs no group load), the save manager and the retry data
 	wii::ArchiveStore::Attach("g03_pacnroll/g03resident.lzs");
 	m_nRound = 0u;

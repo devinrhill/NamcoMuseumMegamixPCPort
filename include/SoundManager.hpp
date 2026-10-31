@@ -62,6 +62,8 @@ public:
 	// placed at the actor's position and follows it (SetActorPosition, DOL 0x80026620); a forgotten actor's sounds stay where it was last.
 	// Returns the mixer voice (-1 = nothing plays).
 	int PlayActor(const char* cue, const void* actor, const Vector3& pos);
+	// the same by SE kind; returns a handle for IsPlaying / Stop (voice id + 1, null when nothing plays)
+	GameObject* PlayActor(ESEKind kind, const void* actor, const Vector3& pos);
 	void SetActorPosition(const void* actor, const Vector3& pos);
 	void ForgetActor(const void* actor);
 	// the object is going away (cKingdomModel::Term): its 3D sounds stay where it was last

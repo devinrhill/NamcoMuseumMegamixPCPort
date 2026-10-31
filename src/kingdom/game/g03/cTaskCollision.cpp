@@ -41,6 +41,7 @@ cTaskCollision::~cTaskCollision()
 	Term();
 }
 
+// DOL 0x80170260 [audited: described by the 43rd-session pass] (reserve 8 characters / 32 objects)
 void cTaskCollision::Init()
 {
 	m_vecChar.reserve(8);
@@ -51,6 +52,7 @@ void cTaskCollision::Term()
 {
 }
 
+// DOL 0x80170454 [audited: described by the 43rd-session pass] (pause / HOME / Nakajima pause skip; 0x80170b34 then 0x801704e8)
 bool cTaskCollision::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -67,6 +69,7 @@ void cTaskCollision::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x801704e8 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCollision::CollisionChars2Chars()
 {
 	pl_atk.clear();
@@ -163,6 +166,7 @@ void cTaskCollision::CollisionChars2Chars()
 	}
 }
 
+// DOL 0x80170b34 [audited: described by the 43rd-session pass] (the DOL tests every face of an overlapping object; the port's per-face AABB prefilter only removes faces outside the sphere box, so it cannot drop a hit)
 void cTaskCollision::CollisionPacman2BG()
 {
 	Vector4 v = Vector4::zero;
@@ -189,10 +193,6 @@ void cTaskCollision::CollisionPacman2BG()
 		::Constants::jetGeoVecAdd(cTaskCharPacman2->vTrans(), cTaskCharPacman2->vTrans(), cTaskCharPacman2->vMove());
 	}
 	cTaskCharPacman2->ClearHitParam();
-	cTaskChar* taskChar = cTaskCharPacman2;
-	SPHERE charSphere = cTaskCollision::GetCharSphere(taskChar);
-	Vector3 sphereMin = charSphere.Bound.min();
-	Vector3 sphereMax = charSphere.Bound.max();
 	Vector4 v3;
 	Vector4 vMoveL;
 	Vector4 vMoveLN;
@@ -200,7 +200,7 @@ void cTaskCollision::CollisionPacman2BG()
 	Vector4 vTransL;
 	for (cTaskBgHit* item : m_vecObj)
 	{
-		if (!cTaskCollision::CollisionSphereAABB(sphereMin, sphereMax, item))
+		if (!cTaskCollision::CollisionSphereAABB(cTaskCharPacman2, item))
 		{
 			continue;
 		}
@@ -219,7 +219,6 @@ void cTaskCollision::CollisionPacman2BG()
 		for (int i = 0; (long)i < (long)num; i++)
 		{
 			Constants::sFace* sFace = item->pFaceList()->pFace(0, i);
-			if (cTaskCollision::CollisionSphereFaceAABB(sphereMin, sphereMax, item, sFace))
 			{
 				::Constants::jetGeoVecScale(vMoveLN, sFace->vNorm, -1.0f);
 				::Constants::jetGeoVecScale(vMoveL, vMoveLN, cTaskCharPacman2->fRadius() * 2.0f);
@@ -237,7 +236,7 @@ void cTaskCollision::CollisionPacman2BG()
 	cTaskCharPacman2->PostCollisionWallFinish();
 	for (cTaskBgHit* item2 : m_vecObj)
 	{
-		if (!cTaskCollision::CollisionSphereAABB(sphereMin, sphereMax, item2))
+		if (!cTaskCollision::CollisionSphereAABB(cTaskCharPacman2, item2))
 		{
 			continue;
 		}
@@ -246,7 +245,7 @@ void cTaskCollision::CollisionPacman2BG()
 		for (int j = 0; (long)j < (long)num2; j++)
 		{
 			Constants::sFace* sFace = item2->pFaceList()->pFace(1, j);
-			if ((sFace->nKind != Constants::eFACE_KIND::eFACE_KIND_WATE || cTaskCharPacman2->nKind() != cTaskChar::eKIND::eKIND_PACMAN || cTaskCharPacman2->nType() != 2) && cTaskCollision::CollisionSphereFaceAABB(sphereMin, sphereMax, item2, sFace))
+			if ((sFace->nKind != Constants::eFACE_KIND::eFACE_KIND_WATE || cTaskCharPacman2->nKind() != cTaskChar::eKIND::eKIND_PACMAN || cTaskCharPacman2->nType() != 2))
 			{
 				::Constants::jetGeoVecScale(vMoveLN, sFace->vNorm, -1.0f);
 				::Constants::jetGeoVecScale(vMoveL, vMoveLN, cTaskCharPacman2->fRadius() * 2.0f);
@@ -264,19 +263,16 @@ void cTaskCollision::CollisionPacman2BG()
 	cTaskCharPacman2->PostCollisionFloorFinish();
 }
 
+// DOL 0x8017141c [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskCollision::HitProcessWall()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
 	Vector4 v = Vector4::zero;
 	Vector4 v2 = Vector4::zero;
-	cTaskChar* taskChar = cTaskCharPacman2;
-	SPHERE charSphere = cTaskCollision::GetCharSphere(taskChar);
-	Vector3 sphereMin = charSphere.Bound.min();
-	Vector3 sphereMax = charSphere.Bound.max();
 	bool result = false;
 	for (cTaskBgHit* item : m_vecObj)
 	{
-		if (!cTaskCollision::CollisionSphereAABB(sphereMin, sphereMax, item))
+		if (!cTaskCollision::CollisionSphereAABB(cTaskCharPacman2, item))
 		{
 			continue;
 		}
@@ -326,7 +322,6 @@ bool cTaskCollision::HitProcessWall()
 		for (int i = 0; (long)i < (long)num; i++)
 		{
 			Constants::sFace* sFace = item->pFaceList()->pFace(0, i);
-			if (cTaskCollision::CollisionSphereFaceAABB(sphereMin, sphereMax, item, sFace))
 			{
 				::Constants::jetGeoVecScale(v5, sFace->vNorm, 0.0f - cTaskCharPacman2->fRadius());
 				Vector4 v7;
@@ -349,16 +344,13 @@ bool cTaskCollision::HitProcessWall()
 	return result;
 }
 
+// DOL 0x80171d18 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskCollision::HitProcessFloor()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
-	cTaskChar* taskChar = cTaskCharPacman2;
-	SPHERE charSphere = cTaskCollision::GetCharSphere(taskChar);
-	Vector3 sphereMin = charSphere.Bound.min();
-	Vector3 sphereMax = charSphere.Bound.max();
 	for (cTaskBgHit* item : m_vecObj)
 	{
-		if (!cTaskCollision::CollisionSphereAABB(sphereMin, sphereMax, item))
+		if (!cTaskCollision::CollisionSphereAABB(cTaskCharPacman2, item))
 		{
 			continue;
 		}
@@ -383,7 +375,7 @@ bool cTaskCollision::HitProcessFloor()
 		for (int i = 0; (long)i < (long)num; i++)
 		{
 			Constants::sFace* sFace = item->pFaceList()->pFace(1, i);
-			if ((sFace->nKind != Constants::eFACE_KIND::eFACE_KIND_WATE || cTaskCharPacman2->nKind() != cTaskChar::eKIND::eKIND_PACMAN || cTaskCharPacman2->nType() != 2) && cTaskCollision::CollisionSphereFaceAABB(sphereMin, sphereMax, item, sFace))
+			if ((sFace->nKind != Constants::eFACE_KIND::eFACE_KIND_WATE || cTaskCharPacman2->nKind() != cTaskChar::eKIND::eKIND_PACMAN || cTaskCharPacman2->nType() != 2))
 			{
 				::Constants::jetGeoVecScale(v3, sFace->vNorm, 0.0f - cTaskCharPacman2->fRadius());
 				Vector4 v5;
@@ -404,6 +396,7 @@ bool cTaskCollision::HitProcessFloor()
 	return true;
 }
 
+// DOL 0x80172304 [audited: described by the 43rd-session pass] (inner triangle 0x801734a4 -> flag 1; edge test 0x8017362c with radius * 0.9 -> flag 2)
 bool cTaskCollision::CollisionFace(Constants::sHitParam*& hitParam, cTaskChar* chr, cTaskBgHit* obj, Constants::sFace* face, const Vector4& vTransL, const Vector4& vMoveL, const Vector4& vMoveLN, Nullable<Vector4> vOffsetL)
 {
 	hitParam = nullptr;
@@ -462,6 +455,7 @@ bool cTaskCollision::CollisionFace(Constants::sHitParam*& hitParam, cTaskChar* c
 	return true;
 }
 
+// DOL 0x8017267c [audited: described by the 43rd-session pass] (char and object counts = 0)
 void cTaskCollision::ClearEntry()
 {
 	m_vecChar.clear();
@@ -478,17 +472,15 @@ void cTaskCollision::PushBackCollisionObj(cTaskBgHit* obj)
 	m_vecObj.push_back(obj);
 }
 
+// DOL 0x80172c80 [audited: per AUDIT_G03_G07 row]
 Constants::sFace* cTaskCollision::CheckDashFloor(cTaskChar* chr, cTaskBgHit*& outDashObj)
 {
 	outDashObj = nullptr;
 	Constants::sFace* sFace = nullptr;
 	float num = 0.0f;
-	SPHERE charSphere = cTaskCollision::GetCharSphere(chr);
-	Vector3 sphereMin = charSphere.Bound.min();
-	Vector3 sphereMax = charSphere.Bound.max();
 	for (cTaskBgHit* item : m_vecObj)
 	{
-		if (!cTaskCollision::CollisionSphereAABB(sphereMin, sphereMax, item))
+		if (!cTaskCollision::CollisionSphereAABB(chr, item))
 		{
 			continue;
 		}
@@ -520,17 +512,13 @@ Constants::sFace* cTaskCollision::CheckDashFloor(cTaskChar* chr, cTaskBgHit*& ou
 	return sFace;
 }
 
+// DOL 0x80172f94 [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CollisionSphereAABB(cTaskChar* taskChar, cTaskBgHit* obj)
 {
 	if (obj->pFaceList()->IsAABB() && obj->pFaceList()->ReadOnlyAABB().IsSet)
 	{
-		AABB aabb = obj->pFaceList()->CalcedAABB();
-		if (obj->IsMove() || obj->pFaceList()->IsReuse() || !aabb.IsSet)
-		{
-			aabb = obj->pFaceList()->pAABB();
-			aabb.Set(aabb, obj->pMtx());
-			obj->pFaceList()->CalcedAABB() = aabb;
-		}
+		AABB aabb = obj->pFaceList()->pAABB();
+		aabb.Set(aabb, obj->pMtx());
 		float num = ::Constants::jetGeoVecLength(taskChar->vMove());
 		Vector4 v;
 		::Constants::jetGeoVecScale(v, taskChar->vMove(), 0.5f);
@@ -540,96 +528,20 @@ bool cTaskCollision::CollisionSphereAABB(cTaskChar* taskChar, cTaskBgHit* obj)
 	return false;
 }
 
-bool cTaskCollision::CollisionSphereAABB(const Vector3& sphereMin, const Vector3& sphereMax, cTaskBgHit* obj)
+// DOL 0x801730bc [audited: per AUDIT_G03_G07 row]
+bool cTaskCollision::CollisionRayAABB(const Vector4& pos, const Vector4& move, cTaskBgHit* obj)
 {
 	if (obj->pFaceList()->IsAABB() && obj->pFaceList()->ReadOnlyAABB().IsSet)
 	{
-		AABB target = obj->pFaceList()->CalcedAABB();
-		if (obj->IsMove() || obj->pFaceList()->IsReuse() || !target.IsSet)
-		{
-			target = obj->pFaceList()->pAABB();
-			target.Set(target, obj->pMtx());
-			obj->pFaceList()->CalcedAABB() = target;
-		}
-		return DummyNW4R::Intersection(sphereMin, sphereMax, target.This.max(), target.This);
-	}
-	return false;
-}
-
-bool cTaskCollision::CollisionSphereFaceAABB(const Vector3& sphereMin, const Vector3& sphereMax, cTaskBgHit* obj, Constants::sFace* face)
-{
-	if (face->aabb.IsSet)
-	{
-		AABB target = face->calcedAABB;
-		if (obj->IsMove() || obj->pFaceList()->IsReuse() || !target.IsSet)
-		{
-			target = face->aabb;
-			target.Set(target, obj->pMtx());
-			face->calcedAABB = target;
-		}
-		return DummyNW4R::Intersection(sphereMin, sphereMax, target.This.max(), target.This);
-	}
-	return false;
-}
-
-SPHERE cTaskCollision::GetCharSphere(cTaskChar* const& taskChar)
-{
-	float num = ::Constants::jetGeoVecLength(taskChar->vMove());
-	Vector4 v;
-	::Constants::jetGeoVecScale(v, taskChar->vMove(), 0.5f);
-	::Constants::jetGeoVecAdd(v, taskChar->vTrans(), v);
-	return SPHERE((Vector3)v, num + taskChar->fRadius() * 2.0f);
-}
-
-bool cTaskCollision::CollisionRayAABB(const Vector4& pos, const Vector4& move, cTaskBgHit* obj, float maxDist)
-{
-	if (obj->pFaceList()->IsAABB() && obj->pFaceList()->ReadOnlyAABB().IsSet)
-	{
-		AABB aabb = obj->pFaceList()->CalcedAABB();
-		if (obj->IsMove() || obj->pFaceList()->IsReuse() || !aabb.IsSet)
-		{
-			aabb = obj->pFaceList()->pAABB();
-			aabb.Set(aabb, obj->pMtx());
-			obj->pFaceList()->CalcedAABB() = aabb;
-		}
+		AABB aabb = obj->pFaceList()->pAABB();
+		aabb.Set(aabb, obj->pMtx());
 		float outLength;
-		bool result = DummyNW4R::IntersectionRay3AABB(RAY3(pos, move), aabb, outLength);
-		if (maxDist >= 0.0f && outLength > maxDist)
-		{
-			result = false;
-		}
-		return result;
+		return DummyNW4R::IntersectionRay3AABB(RAY3(pos, move), aabb, outLength);
 	}
 	return false;
 }
 
-bool cTaskCollision::CollisionRayFaceAABB(const RAY3& ray, cTaskBgHit* obj, Constants::sFace* face, float maxDist)
-{
-	if (face->aabb.IsSet)
-	{
-		AABB aabb = face->calcedAABB;
-		if (obj->IsMove() || obj->pFaceList()->IsReuse() || !aabb.IsSet)
-		{
-			aabb = face->aabb;
-			aabb.Set(aabb, obj->pMtx());
-			face->calcedAABB = aabb;
-		}
-		float outLength;
-		bool result = DummyNW4R::IntersectionRay3AABB(ray, aabb, outLength);
-		if (maxDist >= 0.0f && outLength > maxDist)
-		{
-			result = false;
-		}
-		return result;
-	}
-	return false;
-}
-
-RAY3 cTaskCollision::GetRay(const Vector4& pos, const Vector4& move)
-{
-	return RAY3(pos, move);
-}
-
+// DOL 0x801731cc [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CollisionLinePlane(const Vector4& vPos, const Vector4& vLine, const Vector4& vrt, const Vector4& vNorm, Vector4& vOutCross)
 {
 	vOutCross = Vector4();
@@ -646,6 +558,7 @@ bool cTaskCollision::CollisionLinePlane(const Vector4& vPos, const Vector4& vLin
 	return true;
 }
 
+// DOL 0x80173338 [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CollisionRayPlane(const Vector4& vPos, const Vector4& vRay, const Vector4& vrt, const Vector4& vNorm, Vector4& vOutCross)
 {
 	vOutCross = Vector4();
@@ -678,6 +591,7 @@ bool cTaskCollision::CollisionSegmentPlane(const Vector4& vPos0, const Vector4& 
 	return true;
 }
 
+// DOL 0x801734a4 [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CollisionInnerTriangle(const Vector4& vPos, const Vector4& vrt0, const Vector4& vrt1, const Vector4& vrt2, const Vector4& vNorm)
 {
 	::Constants::jetGeoVecCopy(vrt[0], vrt0);
@@ -701,6 +615,7 @@ bool cTaskCollision::CollisionInnerTriangle(const Vector4& vPos, const Vector4& 
 	return true;
 }
 
+// DOL 0x8017362c [audited: per AUDIT_G03_G07 row]
 int cTaskCollision::CollisionTriangleEdge(const Vector4& vPos, const Vector4& vrt0, const Vector4& vrt1, const Vector4& vrt2, const Vector4& vNorm, const float& length, Vector4& vOutEdgePos, Vector4& vOutEdgeVec)
 {
 	vOutEdgePos = Vector4();
@@ -778,6 +693,7 @@ bool cTaskCollision::CollisionCircleSegment(const Vector4& segSt, const Vector4&
 	return true;
 }
 
+// DOL 0x80173a04 [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CheckBottom(const Vector4& vPos, float& outDist, Vector4& outCross, Constants::sFace*& outFace, cTaskBgHit*& outObj)
 {
 	outDist = 0.0f;
@@ -806,7 +722,7 @@ bool cTaskCollision::CheckBottom(const Vector4& vPos, float& outDist, Vector4& o
 		{
 			Constants::sFace* sFace2 = item->pFaceList()->pFace(1, i);
 			Vector4 vOutCross;
-			if (cTaskCollision::CollisionRayFaceAABB(ray, item, sFace2) && 0.0f > ::Constants::jetGeoVecInnerProduct(v4, sFace2->vNorm) && cTaskCollision::CollisionRayPlane(v3, v4, sFace2->vVrt[0], sFace2->vNorm, vOutCross) && cTaskCollision::CollisionInnerTriangle(vOutCross, sFace2->vVrt[0], sFace2->vVrt[1], sFace2->vVrt[2], sFace2->vNorm))
+			if (0.0f > ::Constants::jetGeoVecInnerProduct(v4, sFace2->vNorm) && cTaskCollision::CollisionRayPlane(v3, v4, sFace2->vVrt[0], sFace2->vNorm, vOutCross) && cTaskCollision::CollisionInnerTriangle(vOutCross, sFace2->vVrt[0], sFace2->vVrt[1], sFace2->vVrt[2], sFace2->vNorm))
 			{
 				Vector4 v5;
 				::Constants::jetGeoVecSub(v5, vOutCross, v3);
@@ -832,6 +748,7 @@ bool cTaskCollision::CheckBottom(const Vector4& vPos, float& outDist, Vector4& o
 	return false;
 }
 
+// DOL 0x80174058 [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CheckVector(uint nKind, const Vector4& vPos, const Vector4& vVec, float& outDist, Vector4& outCross, Constants::sFace*& outFace, cTaskBgHit*& outObj)
 {
 	outDist = 0.0f;
@@ -885,6 +802,7 @@ bool cTaskCollision::CheckVector(uint nKind, const Vector4& vPos, const Vector4&
 	return false;
 }
 
+// DOL 0x801746bc [audited: per AUDIT_G03_G07 row]
 bool cTaskCollision::CheckVectorSimple(const uint& nKind, const Vector4& vPos, const Vector4& vVec, Vector4& outCross, Constants::sFace*& outFace, cTaskBgHit*& outObj)
 {
 	outCross = Vector4();

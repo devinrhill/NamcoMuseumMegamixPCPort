@@ -41,7 +41,7 @@ void Effect(int slot, const Vector4& pos)
 }
 }
 
-// DOL 0x800f01b0 (kind 8, the shoot marker child, the jet effect child (0x800e06dc, unbound); MISSILE_HP of Bullet_s%x.csv, loaded once per stage
+// DOL 0x800f01b0 [audited] (kind 8, the shoot marker child, the jet effect child (0x800e06dc, unbound); MISSILE_HP of Bullet_s%x.csv, loaded once per stage
 // in the DOL into DAT_80479054)
 cTaskMissile::cTaskMissile()
 {
@@ -72,7 +72,7 @@ cTaskMissile::cTaskMissile()
 	}
 }
 
-// DOL 0x800f03e0
+// DOL 0x800f03e0 [audited]
 void cTaskMissile::Setup(float fSpeed, const float vPos[3], const float vDir[3])
 {
 	m_nState = 1;
@@ -94,7 +94,7 @@ void cTaskMissile::Setup(float fSpeed, const float vPos[3], const float vDir[3])
 	m_pJet->Start(0x2cu, false, false, true);
 }
 
-// DOL 0x800f0358
+// DOL 0x800f0358 [audited]
 void cTaskMissile::Launch()
 {
 	m_nState = 1;   // 0x800d2838
@@ -102,7 +102,7 @@ void cTaskMissile::Launch()
 	if (m_pMarker != nullptr) m_pMarker->Show();
 }
 
-// DOL 0x800f04dc: turn toward Pac-Man by min(angle, +0x388) about dir x to-Pac-Man, face along dir, move, the turn limit grows
+// DOL 0x800f04dc [audited: the age counter +0x360 is not kept, a zero turn axis is skipped (the DOL would normalise a zero vector)]: turn toward Pac-Man by min(angle, +0x388) about dir x to-Pac-Man, face along dir, move, the turn limit grows
 void cTaskMissile::Step()
 {
 	Normalize(m_vDir);
@@ -132,7 +132,7 @@ void cTaskMissile::Step()
 	m_fTurn += TURN_ADD;
 }
 
-// DOL 0x800f0b3c (+ the marker's state 2 of vtable +0xd4 = 0x800f039c, which the hit callback and the out test reach first)
+// DOL 0x800f0b3c [audited: natively Die() runs at the hit, one frame before the DOL's state 2 step] (+ the marker's state 2 of vtable +0xd4 = 0x800f039c, which the hit callback and the out test reach first)
 void cTaskMissile::Die()
 {
 	if (m_pMarker != nullptr) m_pMarker->Hide();
@@ -151,7 +151,7 @@ void cTaskMissile::UpdateModel()
 	UpdateWorldAABB();
 }
 
-// DOL 0x800f0bdc (active, not paused): state 1 = step +0xa8 (0x800f04dc), +0xb4 (0x800f0ba4: previous position + 3D sound actor), out
+// DOL 0x800f0bdc [audited] (active, not paused): state 1 = step +0xa8 (0x800f04dc), +0xb4 (0x800f0ba4: previous position + 3D sound actor), out
 // test +0xb0 -> +0xd4; state 2 = +0xac (0x800f0b3c: inactive + jet effect detached; natively Die() runs at the hit, one frame early)
 bool cTaskMissile::Execute(cJetTask* pParam)
 {
@@ -178,17 +178,16 @@ void cTaskMissile::Draw(int nStatus, cJetTask* pParam)
 	cTaskModel::Draw(nStatus, pParam);
 }
 
-// DOL 0x800f07a0 (no jump test here, unlike the shots)
+// DOL 0x800f07a0 [audited] (no jump test here, unlike the shots)
 bool cTaskMissile::HitCheck(cObject* other)
 {
 	if (other->nKind() != 3) return false;
 	const float* p = other->vPos();
 	const float d[3] = {p[0] - m_v20.x, p[1] - m_v20.y, p[2] - m_v20.z};
-	const float r = HIT_RADIUS + HIT_RADIUS;
-	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
+	return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) < HIT_RADIUS + HIT_RADIUS;   // 0x801c1aa4: distance < r1 + r2
 }
 
-// DOL 0x800f07f8: shot by a player: HP - 1, flash, the player's beam spark (slot 0xc + player); at 0 HP the player's small explosion (slot
+// DOL 0x800f07f8 [audited]: shot by a player: HP - 1, flash, the player's beam spark (slot 0xc + player); at 0 HP the player's small explosion (slot
 // player) and gone. Hitting Pac-Man: gone with PTK_BOMB_SMALL01 (slot 0). Sounds DAT_8047b630 m01se_04hit2 / 634 m01se_05bak1, all on the missile's actor (+0x384).
 void cTaskMissile::HitCallback(cObject* other)
 {

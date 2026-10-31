@@ -41,6 +41,7 @@ public:
 	void ShowNumber(uint n);                       // DOL 0x801b72e4
 	void SetPos(uint digit, const Vector4& v);     // DOL 0x801b7458
 	void SetBlink(bool b, int which);              // DOL 0x801b74a0
+	void SetStateBits(uint mask, bool set);        // DOL 0x801b75e0: the state bits of the 3 digits, frame 0
 	uint nNumber() const { return m_nNum; }
 
 private:

@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskBgGimmickPistonMan.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 
@@ -14,6 +15,7 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x801523c4 [audited: per AUDIT_G03_G07 row]: the sound actor (+0x1c0, 0x800ba17c) and the synced gimmick index (+0x1d0) = -1
 cTaskBgGimmickPistonMan::cTaskBgGimmickPistonMan()
 {
 	SetName("cTaskBgGimmickPistonMan");
@@ -22,30 +24,32 @@ cTaskBgGimmickPistonMan::cTaskBgGimmickPistonMan()
 
 void cTaskBgGimmickPistonMan::Init()
 {
+	m_pSndActor = new kingdom::cKingdomSndActor();
 	m_nSyncSndNo = -1;
 }
 
+// DOL dtor 0x80152510: deletes the actor and the gimmick list storage (the gimmicks themselves belong to their own owners)
 void cTaskBgGimmickPistonMan::Term()
 {
+	if (m_pSndActor != nullptr)
+	{
+		delete m_pSndActor;
+		m_pSndActor = nullptr;
+	}
 	for (cTaskBgGimmickPistonMan::AreaGimmick* item : m_vecGimmick)
 	{
-		if (item->pTaskBgGimmick != nullptr)
-		{
-			item->pTaskBgGimmick->TermOnce();
-		}
+		delete item;
 	}
+	m_vecGimmick.clear();
 }
 
+// DOL 0x80152618 [audited: per AUDIT_G03_G07 row]: the first gimmick whose position is within its length of Pac-Man is the one the piston sound follows (+0x1d0 keeps the first
+// one found); the cue "m03se_115_Piston" starts when it is not playing and that gimmick's chr clip is at frame 0; out of range everything stops (1000 ms)
 bool cTaskBgGimmickPistonMan::Execute(cJetTask* pParam)
 {
-	if (Constants::PACN_APP()->pTaskCharPacman() == nullptr)
-	{
-		return true;
-	}
 	bool flag = false;
-	Vector4 v;
-	::Constants::jetGeoVecZero(v);
-	for (int i = 0; i < (int)m_vecGimmick.size(); i++)
+	Vector4 v = Vector4::zero;
+	for (uint i = 0u; i < m_vecGimmick.size(); i++)
 	{
 		cTaskBgGimmick* pTaskBgGimmick = m_vecGimmick[i]->pTaskBgGimmick;
 		Vector4 v2;
@@ -56,52 +60,39 @@ bool cTaskBgGimmickPistonMan::Execute(cJetTask* pParam)
 			flag = true;
 			if (m_nSyncSndNo == -1)
 			{
-				m_nSyncSndNo = i;
+				m_nSyncSndNo = (int)i;
 			}
 			break;
 		}
 	}
 	if (flag)
 	{
-		cTaskBgGimmick* pTaskBgGimmick2 = m_vecGimmick[m_nSyncSndNo]->pTaskBgGimmick;
-		float frameAnmChr = pTaskBgGimmick2->Model->GetFrameAnmChr(0u);
-		float frameMaxAnmChr = pTaskBgGimmick2->Model->GetFrameMaxAnmChr(0u);
-		if (std::fmod(frameAnmChr, frameMaxAnmChr) < Time::deltaTime * 2.0f && !m_isFirstSnd)
+		float frameAnmChr = m_vecGimmick[m_nSyncSndNo]->pTaskBgGimmick->Model->GetFrameAnmChr(0u);   // DOL 0x8001c2e0 [audited: class row done in the 43rd session; function not individually re-read]
+		if (!SoundManager::get_SE()->IsPlaying(m_SndHnd) && frameAnmChr == 0.0f)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE115_PISTON);
-			m_isFirstSnd = true;
-		}
-		else if (std::fmod(frameAnmChr, frameMaxAnmChr) > frameMaxAnmChr / 2.0f && m_isFirstSnd)
-		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE115_PISTON);
-			m_isFirstSnd = false;
+			if (cPacnRollLoopSndMan::CanPlay()) m_SndHnd = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlayActor(ESEKind::PACN_ROLL_SND_SE115_PISTON, m_pSndActor, Vector3(v.x, v.y, v.z)));
 		}
 	}
 	else
 	{
-		SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE115_PISTON, 16.666666f);
+		SoundManager::get_SE()->Stop(m_SndHnd, 1.0f);
 		m_nSyncSndNo = -1;
-		m_isFirstSnd = false;
 	}
+	m_pSndActor->SetPosition(v);
 	return cJetTask::Execute(pParam);
 }
 
+// DOL 0x801527c4 [audited: per AUDIT_G03_G07 row] (blr)
 void cTaskBgGimmickPistonMan::Draw(int nState, cJetTask* pParam)
 {
 	cJetTask::Draw(nState, pParam);
 }
 
+// DOL 0x801527c8 [audited: per AUDIT_G03_G07 row]: length = 2 x the half diagonal of the gimmick's scene model volume (c3e0 = 2.0)
 void cTaskBgGimmickPistonMan::RegistGimmick(cTaskBgGimmick* gim)
 {
 	cTaskBgGimmickPistonMan::AreaGimmick* areaGimmick = new cTaskBgGimmickPistonMan::AreaGimmick();
-	Vector4 v = Vector4();
-	AABB& reference = gim->pFaceList()->ReadOnlyAABB();
-	v[0] = (reference.This.max().x - reference.This.min().x) * 0.5f;
-	v[1] = (reference.This.max().y - reference.This.min().y) * 0.5f;
-	v[2] = (reference.This.max().z - reference.This.min().z) * 0.5f;
-	v[3] = 1.0f;
-	areaGimmick->length = ::Constants::jetGeoVecLength(v);
-	areaGimmick->length *= 2.0f;
+	areaGimmick->length = gim->ModelHalfDiagonal() * 2.0f;
 	areaGimmick->pTaskBgGimmick = gim;
 	m_vecGimmick.push_back(areaGimmick);
 }

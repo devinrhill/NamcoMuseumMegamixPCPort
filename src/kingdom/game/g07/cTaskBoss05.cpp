@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskBoss05.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -177,6 +178,7 @@ void cTaskBoss05::HeadRotate(Vector4 v)
 	::Constants::jetGeoVecCopy(pModel(10u)->vRotate(), v);
 }
 
+// DOL 0x80049114 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05::Init()
 {
 	m_nPiyoFrame = 0;
@@ -311,13 +313,14 @@ void cTaskBoss05::SetRingDamageFrame()
 	uint idx = 5u;
 	if (GetMode() == 6 || m_RingInfo->m_vRingPos[1] >= 2.1f)
 	{
-		pModel(idx)->SetFrameMatClr(0u, 2.3333333f);
+		pModel(idx)->SetFrameMatClr(0u, 140.0f); // DOL 0x80049ba4 [audited: per AUDIT_G03_G07 row]: FLOAT_8047a404 = 140 frames (the port had the C#'s 2.333 s)
 		return;
 	}
 	float num = m_RingInfo->m_vRingPos[1] / 2.1f * 139.0f;
 	pModel(idx)->SetFrameMatClr(0u, num);   // native frames (the C# passed Unity seconds)
 }
 
+// DOL 0x80049e6c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss05::ActionBoth()
 {
 	SetRingDamageFrame();
@@ -363,6 +366,7 @@ bool cTaskBoss05::ActionBoth()
 	return true;
 }
 
+// DOL 0x80049ba4 (compared 2026-10-30)
 bool cTaskBoss05::ActionLocal()
 {
 	if (m_fCenterPosY < 0.0f && m_fCenterPosY + 2.95f <= m_RingInfo->m_vRingPos[1])
@@ -463,6 +467,7 @@ void cTaskBoss05::AdjustMaxSpeed()
 	}
 }
 
+// DOL 0x8004a1e0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss05::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	if (GetMode() != 0)
@@ -928,7 +933,7 @@ bool cTaskBoss05::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 							}
 							else
 							{
-								nTimer() = 40 + Random::Range(0, 40);
+								nTimer() = 40 + kingdom::MslRandRange(0, 40);
 								Step(1) = 0;
 								Step() = 3;
 							}
@@ -1077,7 +1082,7 @@ bool cTaskBoss05::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			if (2 == nMes)
 			{
 				StepInit();
-				nTimer() = 45;
+				nTimer() = 90; // DOL 0x8004a1e0 mode 10: 0x5a
 				::Constants::jetGeoVecUnit(vSpeed());
 				BombAllExplode();
 				Step() = 0;
@@ -1303,6 +1308,7 @@ float cTaskBoss05::GetHitPower(int nPart, int nOtherID)
 	}
 }
 
+// DOL 0x8004c0fc [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05::RefAttacked(int nParts, int nGrobalID)
 {
 	cTaskChar* cTaskChar2 = KingdomGlobal::g_pMotosGame->pChars((uint)nGrobalID);
@@ -1521,13 +1527,13 @@ void cTaskBoss05::ModeAppear()
 			Vector4 v4;
 			::Constants::jetGeoVecCopy(v4, pModel()->vTrans());
 			v4[1] += fCenterPosY();
-			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), Extentions::GetUnityPos(v4));
+			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), v4);
 			float num12 = 10.0f;
 			v4[0] += Mathf::Sin(fMovePoints) * num12;
 			v4[1] = 30.0f;
 			v4[2] += Mathf::Cos(fMovePoints) * num12;
 			fMovePoints += 0.002f * num11;
-			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), Extentions::GetUnityPos(v4));
+			::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), v4);
 			vMTrans()[1] -= 0.05f * num11;
 			if (vMTrans()[1] < 30.0f)
 			{
@@ -1551,12 +1557,12 @@ void cTaskBoss05::ModeAppear()
 				Vector4 v2;
 				::Constants::jetGeoVecCopy(v2, pModel()->vTrans());
 				v2[1] += fCenterPosY();
-				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), Extentions::GetUnityPos(v2));
+				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), v2);
 				v2[0] += Mathf::Sin(fMovePoints2) * 10.0f;
 				v2[1] = 30.0f;
 				v2[2] += Mathf::Cos(fMovePoints2) * 10.0f;
 				fMovePoints2 = 0.0f;
-				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), Extentions::GetUnityPos(v2));
+				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), v2);
 				vMTrans()[1] -= 0.05f * num9;
 				if (vMTrans()[1] < 6.0f)
 				{
@@ -1568,10 +1574,10 @@ void cTaskBoss05::ModeAppear()
 		case 2:
 			{
 				Vector4 originPos = Vector4(vMTrans()[0], 0.5f, vMTrans()[2], 0.0f);
-				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), Extentions::GetUnityPos(originPos));
+				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vTarget(), originPos);
 				originPos[2] += 10.0f;
 				originPos[1] = 20.5f;
-				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), Extentions::GetUnityPos(originPos));
+				::Constants::jetGeoVecCopy(KingdomGlobal::g_pMotosGame->pCamera()->vPosition(), originPos);
 				vMTrans()[1] -= 0.05f;
 				if (vMTrans()[1] < -2.3f)
 				{
@@ -1588,11 +1594,7 @@ void cTaskBoss05::ModeAppear()
 			}
 		case 3:
 			{
-				float rate2 = 1.0f - (float)(int)Step(2) / 60.0f;
-				for (int k = 0; k < 11; k++)
-				{
-					SetFlash(k, rate2);
-				}
+				FogStep(2.0f); // DOL 0x8004cdcc [audited: described by the 43rd-session pass] (FLOAT_8047a3dc = 2)
 				if (Step(2) < 30)
 				{
 					::Constants::jetGeoVecCopy(vMTrans(), m_vTempTrans);
@@ -1621,11 +1623,7 @@ void cTaskBoss05::ModeAppear()
 				pModel()->vRotate()[1] += fRotatePow;
 				HeadRotate(pModel()->vRotate());
 				fRotatePow += 0.0001f;
-				float rate3 = 1.0f - (float)(int)Step(2) / 60.0f;
-				for (int l = 0; l < 11; l++)
-				{
-					SetFlash(l, rate3);
-				}
+				FogStep(1.0f); // DOL 0x8004cfd4 [audited: described by the 43rd-session pass] (FLOAT_8047a3b8 = 1)
 				if (!CustomKingdomUtil::IF(Step(2)))
 				{
 					SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE057_ENERGY, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
@@ -1657,11 +1655,7 @@ void cTaskBoss05::ModeAppear()
 			}
 		case 5:
 			{
-				float rate4 = vMTrans()[1] / -2.3f;
-				for (int m = 0; m < 11; m++)
-				{
-					SetFlash(m, rate4);
-				}
+				FogStep(2.0f); // DOL 0x8004d0dc [audited: call-site address checked in the disassembly]
 				pModel()->vRotate()[1] += fRotatePow;
 				HeadRotate(pModel()->vRotate());
 				fRotatePow += 0.002f;
@@ -1699,11 +1693,7 @@ void cTaskBoss05::ModeAppear()
 			}
 		case 6:
 			{
-				float rate = 1.0f - (float)(int)Step(2) / 30.0f;
-				for (int j = 0; j < 11; j++)
-				{
-					SetFlash(j, rate);
-				}
+				FogStep(2.0f); // DOL 0x8004d4cc [audited: call-site address checked in the disassembly]
 				if (Step(2)++ > 180)
 				{
 					Vector4 v = Vector4::zero;
@@ -1747,14 +1737,15 @@ void cTaskBoss05::ModeAppear()
 	}
 }
 
+// DOL 0x8004d740 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05::ModeFoamChange()
 {
 	cTaskFade* cTaskFade2 = KingdomGlobal::g_pMotosGame->pTaskFade();
 	switch (Step())
 	{
 	case 0:
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
-		if (++Step(1) >= 30)
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
+		if (++Step(1) >= 60) // DOL 0x8004d740: 0x3b < count (the port had half the counts / times of this sequence)
 		{
 			fFogNear() = 0.0f;
 			fFogFar() = 0.0f;
@@ -1763,26 +1754,26 @@ void cTaskBoss05::ModeFoamChange()
 		break;
 	case 1:
 		{
-			vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+			vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 			if (Step(1) == 0)
 			{
 				KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.15f, 150);
 			}
 			bool flag = true;
-			if (++Step(1) < 45)
+			if (++Step(1) < 90)
 			{
 				fFogNear() -= 1.0f / 3.0f;
 				fFogFar() -= -1.0f / 3.0f;
 				flag = false;
 			}
-			if (++Step(2) < 45)
+			if (++Step(2) < 90)
 			{
 				flag = false;
 			}
 			if (flag)
 			{
 				vMTrans()[1] = 0.0f;
-				cTaskBoss05::SET_STEP_WAIT(this, 2, 30);
+				cTaskBoss05::SET_STEP_WAIT(this, 2, 60);
 			}
 			break;
 		}
@@ -1793,15 +1784,15 @@ void cTaskBoss05::ModeFoamChange()
 			Constants::VEC3_SET(_out, 0.0f, 0.0f, vMTrans()[2]);
 			Vector4 _out2;
 			Constants::VEC3_SET(_out2, 0.0f, 0.0f, 0.25f);
-			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 16.0f, 1.0f, 3.0f);
-			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 16.0f, 1.0f, 3.0f, 20);
+			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 16.0f, 1.0f, 1.0f);
+			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 16.0f, 1.0f, 1.0f, 20);
 			Constants::VEC3_SET(_out, vMTrans()[0], 0.0f, 0.0f);
 			Constants::VEC3_SET(_out2, 0.25f, 0.0f, 0.0f);
-			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 1.0f, 16.0f, 3.0f);
-			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 1.0f, 16.0f, 3.0f, 20);
+			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 1.0f, 16.0f, 1.0f);
+			SpawnExplode(_out, Constants::VEC3_GET(0.0f, 0.0f, 0.0f), _out2, 1.0f, 16.0f, 1.0f, 20);
 			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE047_BOSS_FALL, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
-			cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 1000);
-			cTaskBoss05::SET_STEP_WAIT(this, 3, 30);
+			cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 2000);
+			cTaskBoss05::SET_STEP_WAIT(this, 3, 60);
 			break;
 		}
 	case 3:
@@ -1818,7 +1809,7 @@ void cTaskBoss05::ModeFoamChange()
 			cTaskCharEnemyBoss05Last2->InitParam(Constants::get_g_MoEnemyParam()[26]);
 			cTaskCharEnemyBoss05Last2->OffFlag(16385u);
 			KingdomGlobal::MotosSys->nLastBossType() = 1u;
-			cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 1000);
+			cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 2000);
 			ChangeTaiki();
 		}
 		else

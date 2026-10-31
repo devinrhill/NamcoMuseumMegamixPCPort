@@ -35,6 +35,7 @@ cTaskConsMultiMenuItem::cTaskConsMultiMenuItem(cTaskConsMenuManBase* const& pCon
 {
 }
 
+// DOL 0x801cb54c [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 int cTaskConsMultiMenuItem::nGetNumberAnmNo(uint nNo, int nAnmState)
 {
 	int obj[10][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, 10, 11}, {12, 13, 14}, {15, 16, 17}, {18, 19, 20}, {21, 22, 23}, {24, 25, 26}, {27, 28, 29}};
@@ -43,6 +44,7 @@ int cTaskConsMultiMenuItem::nGetNumberAnmNo(uint nNo, int nAnmState)
 	return obj[nNo][nAnmState];
 }
 
+// DOL 0x801cb598 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuItem::SetData(uint nItem)
 {
 	nDrawPriority(2147483653u);
@@ -56,6 +58,7 @@ void cTaskConsMultiMenuItem::SetData(uint nItem)
 	}
 }
 
+// DOL 0x801cb69c [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuItem::SetItemAnm(int nAnmState)
 {
 	for (uint num = 0u; num < 2; num++)
@@ -89,11 +92,13 @@ void cTaskConsMultiMenuItem::SetItemAnm(int nAnmState)
 	}
 }
 
+// DOL 0x801cb880 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuItem::WaitExec()
 {
 	SetItemAnm(1);
 }
 
+// DOL 0x801cb894 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuItem::AppearExec()
 {
 	if (nStep() == 0)
@@ -108,6 +113,7 @@ bool cTaskConsMultiMenuItem::AppearExec()
 	return false;
 }
 
+// DOL 0x801cb918 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuItem::DeleteExec()
 {
 	if (nStep() == 0)

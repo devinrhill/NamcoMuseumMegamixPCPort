@@ -22,6 +22,7 @@ cTaskCharEnemy* cTaskCharEnemySpirus::Construct()
 	return new cTaskCharEnemySpirus();
 }
 
+// DOL 0x8005925c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemySpirus::Init()
 {
 	nChangeMoveFrame() = 16;
@@ -34,6 +35,7 @@ void cTaskCharEnemySpirus::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80059280 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemySpirus::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -50,6 +52,7 @@ bool cTaskCharEnemySpirus::Create(uint no)
 	return true;
 }
 
+// DOL 0x80059364 [audited: per AUDIT_G03_G07 row] (every branch compared 2026-10-30)
 uint cTaskCharEnemySpirus::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -273,6 +276,7 @@ uint cTaskCharEnemySpirus::Input()
 	return num2;
 }
 
+// DOL 0x80059b04 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemySpirus::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

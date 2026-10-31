@@ -72,23 +72,27 @@ void cTaskMenuPacman::Term()
 {
 }
 
+// DOL 0x8005f558 [audited: per AUDIT_G03_G07 row] (vtable slot +0x48: state = 1, step = 0; the class_funcs names are shifted by one slot)
 void cTaskMenuPacman::AppearState()
 {
 	nState() = 1;
 	nStep() = 0;
 }
 
+// DOL 0x8005f56c [audited: per AUDIT_G03_G07 row] (state == 2)
 bool cTaskMenuPacman::IsAppearEndState()
 {
 	return nState() == 2;
 }
 
+// DOL 0x8005f580 [audited: per AUDIT_G03_G07 row] (state = 0, step = 0)
 void cTaskMenuPacman::WaitState()
 {
 	nState() = 0;
 	nStep() = 0;
 }
 
+// DOL 0x8005f590 [audited: per AUDIT_G03_G07 row] (the real RegistData: model 1 BIN_MENU_SET_MDL, model 0 BIN_PAC_NORMAL_MDL + BIN_PAC_N_MOTION_01_CHA, light set 0; reads node set_pac trans / rot (deg2rad) / scale into +0x1e0 / +0x1f0 / +0x200; the port draws the Pac-Man natively with the menu SCN0 camera and light)
 void cTaskMenuPacman::RegistData()
 {
 	m_bLoaded = false;

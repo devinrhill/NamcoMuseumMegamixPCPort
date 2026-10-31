@@ -19,12 +19,15 @@ namespace
 float g_eye[3] = {0, 0, 5}, g_target[3] = {0, 0, 0}, g_fovy = 45.0f, g_near = 0.2f, g_far = 4000.0f;
 bool g_hasCamera = false;
 bool g_ortho = false;
+float g_fixedAspect = 0.0f;   // > 0: camera 0 keeps this aspect (scene root flag +0x1d8 off)
 float g_orthoBox[4] = {};   // top, bottom, left, right
 bool g_shadowOn = false;
 cKingdomShadow g_shadow;
 float g_shEye[3], g_shTarget[3], g_shBox[4], g_shNear = 0.0f, g_shFar = 1.0f;
 wii::LightResult g_light[8];
 bool g_hasLight[8] = {};
+NativeScene::FogSlot g_fogSlot[8];
+bool g_hasFogSlot[8] = {};
 std::vector<cKingdomModelBase*> g_list;    // registered models
 std::vector<cKingdomModelBase*> g_frame;   // submitted this frame
 bool g_perFrame = false;
@@ -38,7 +41,7 @@ Cam g_cam[4] = {{{0, 0, 5}, {0, 0, 0}, 45.0f, 0.2f, 4000.0f},
                 {{0, 0, 100.3f}, {0, 0, 0}, 30.0f, 0.1f, 32766.0f},
                 {{0, 0, 100.3f}, {0, 0, 0}, 30.0f, 0.1f, 32766.0f}};   // cameras 1..3 (0 = g_eye / g_target / ...)
 
-int CameraCount(int layout)   // DOL 0x8009bc4c (the switch at its start)
+int CameraCount(int layout)   // DOL 0x8009bc4c [audited: camera counts per layout and per-frame list compared; the GX scene setup is the native pass] (the switch at its start)
 {
 	switch (layout)
 	{
@@ -48,7 +51,7 @@ int CameraCount(int layout)   // DOL 0x8009bc4c (the switch at its start)
 	default: return 1;
 	}
 }
-// DOL 0x8009b884: the viewport (x, y, w, h) of camera n of a layout on the 640 x 480 screen
+// DOL 0x8009b884 [audited]: the viewport (x, y, w, h) of camera n of a layout on the 640 x 480 screen
 void ViewportOf(int layout, int n, float r[4])
 {
 	const unsigned w = 640, h = 480;
@@ -114,7 +117,9 @@ void NativeScene::GetCamera(float eye[3], float target[3], float& fovyDeg)
 void NativeScene::GetClip(float& nearZ, float& farZ) { nearZ = g_near; farZ = g_far; }
 void NativeScene::SetLight(int set, const wii::LightResult& l) { if (set >= 0 && set < 8) { g_light[set] = l; g_hasLight[set] = true; } }
 const wii::LightResult* NativeScene::Light(int set) { return (set >= 0 && set < 8 && g_hasLight[set]) ? &g_light[set] : nullptr; }
-void NativeScene::ClearLights() { for (bool& b : g_hasLight) b = false; }
+void NativeScene::ClearLights() { for (bool& b : g_hasLight) b = false; for (bool& b : g_hasFogSlot) b = false; }
+void NativeScene::SetFogSlot(int idx, const FogSlot& f) { if (idx >= 0 && idx < 8) { g_fogSlot[idx] = f; g_hasFogSlot[idx] = true; } }
+NativeScene::FogSlot* NativeScene::GetFogSlot(int idx) { return (idx >= 0 && idx < 8 && g_hasFogSlot[idx]) ? &g_fogSlot[idx] : nullptr; }
 void NativeScene::Add(cKingdomModelBase* m) { if (std::find(g_list.begin(), g_list.end(), m) == g_list.end()) g_list.push_back(m); }
 void NativeScene::Remove(cKingdomModelBase* m)
 {
@@ -125,7 +130,7 @@ void NativeScene::Submit(cKingdomModelBase* m) { if (std::find(g_frame.begin(), 
 // MEGAMIX_SCENE_REGISTERED=1 (debug): every loaded visible model is drawn, as before the per-frame audit (for comparison shots)
 void NativeScene::SetPerFrame(bool b) { static const bool registered = std::getenv("MEGAMIX_SCENE_REGISTERED") != nullptr; g_perFrame = b && !registered; }
 // a new stage / retry: models of the previous run (their tasks were released without Term) must not be drawn again (that was z-fighting on retry)
-void NativeScene::Reset() { g_layout = 0; g_shadowOn = false; g_shadow.Reset(); for (int i = 1; i < 4; i++) g_cam[i] = Cam{{0, 0, 100.3f}, {0, 0, 0}, 30.0f, 0.1f, 32766.0f}; g_hasCamera = false; ClearLights(); g_list.clear(); g_frame.clear(); g_perFrame = false; }
+void NativeScene::Reset() { g_fixedAspect = 0.0f; g_layout = 0; g_shadowOn = false; g_shadow.Reset(); for (int i = 1; i < 4; i++) g_cam[i] = Cam{{0, 0, 100.3f}, {0, 0, 0}, 30.0f, 0.1f, 32766.0f}; g_hasCamera = false; ClearLights(); g_list.clear(); g_frame.clear(); g_perFrame = false; }
 
 // the camera matrices of the 3D pass (column-major, OpenGL clip space); false when the camera is degenerate
 namespace
@@ -161,8 +166,10 @@ bool BuildMatrices(const float eye[3], const float target[3], float fovy, float 
 
 bool NativeScene::GetMatrices(float view[16], float proj[16])
 {
-	return BuildMatrices(g_eye, g_target, g_fovy, g_near, g_far, 4.0f / 3.0f, g_ortho, view, proj);
+	return BuildMatrices(g_eye, g_target, g_fovy, g_near, g_far, g_fixedAspect > 0.0f ? g_fixedAspect : 4.0f / 3.0f, g_ortho, view, proj);
 }
+
+void NativeScene::SetFixedAspect(float aspect) { g_fixedAspect = aspect; }
 
 namespace
 {
@@ -238,6 +245,15 @@ void ShadowPass(const std::vector<cKingdomModelBase*>& list)
 }
 }
 
+bool NativeScene::ShadowMatrices(const cKingdomShadow& sh, float view[16], float proj[16])
+{
+	const cKingdomShadow saved = g_shadow;
+	g_shadow = sh;
+	const bool ok = BuildLight(view, proj);
+	g_shadow = saved;
+	return ok;
+}
+
 void NativeScene::Flush()
 {
 	static const bool dbg = std::getenv("MEGAMIX_SCENE_DEBUG") != nullptr;
@@ -272,7 +288,7 @@ void NativeScene::Flush()
 		const float asp = r[2] / r[3];
 		bool ok;
 		if (c == 0)
-			ok = BuildMatrices(g_eye, g_target, g_fovy, g_near, g_far, asp, false, view, proj);
+			ok = BuildMatrices(g_eye, g_target, g_fovy, g_near, g_far, g_fixedAspect > 0.0f ? g_fixedAspect : asp, false, view, proj);
 		else
 			ok = BuildMatrices(g_cam[c].eye, g_cam[c].target, g_cam[c].fovy, g_cam[c].nearZ, g_cam[c].farZ, asp, false, view, proj);
 		if (!ok) continue;

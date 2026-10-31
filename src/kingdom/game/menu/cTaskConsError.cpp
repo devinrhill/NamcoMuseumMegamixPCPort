@@ -39,7 +39,7 @@ uint cTaskConsError::nGetErrorCode()
 	return nErrorCode();
 }
 
-// DOL 0x801d4060: also a cTaskFontWriter child (0x26c bytes, priority 0x80000021, Init(0x400, 0x200) 0x80016d2c, font KingSys +0xa64 =
+// DOL 0x801d4060 [audited: text drawn natively in Draw (font writer child not ported); origin = layer pos + (320, -240)]: also a cTaskFontWriter child (0x26c bytes, priority 0x80000021, Init(0x400, 0x200) 0x80016d2c, font KingSys +0xa64 =
 // RESIDENT_FONT_FRAME (CRC 0x52901112, 0x8000aa90), colour -1 0x80016dd0, size 25.0 0x80016dd8, hidden), and the text origin +0x1e0 = anita 0
 // layer 0 pattern 0 (0x80014408) + (0.5 * fb width, -0.5 * efb height) (render mode 0x80138e58 +4 / +6: 640 x 480)
 cTaskConsError::cTaskConsError(int nId, string Key, cParamMessage* pMessage)
@@ -65,7 +65,7 @@ bool cTaskConsError::AppearProc()
 	}
 	else if (nStep() == 1 && pAnita(0u)->IsState(65536u))
 	{
-		m_bTextVisible = true;   // DOL 0x801d4370: writer +0x268 = 1
+		m_bTextVisible = true;   // DOL 0x801d4370 [audited]: writer +0x268 = 1
 		return true;
 	}
 	return false;
@@ -76,7 +76,7 @@ bool cTaskConsError::DeleteProc()
 	if (nStep() == 0)
 	{
 		pAnita(0u)->SetAnimNo(nGetWndAnmNo(2u));
-		m_bTextVisible = false;   // DOL 0x801d4440: writer +0x268 = 0
+		m_bTextVisible = false;   // DOL 0x801d4440 [audited]: writer +0x268 = 0
 		nStep()++;
 	}
 	else if (nStep() == 1 && pAnita(0u)->IsState(65536u))
@@ -94,7 +94,7 @@ int cTaskConsError::nGetWndAnmNo(uint nState)
 	return obj[nState];
 }
 
-// DOL 0x801d4544: while the writer is visible, queue the message of the error code (pParamMessage +0x20 + code * 0x1000) with 0x80016e88
+// DOL 0x801d4544 [audited: text queued natively in Draw]: while the writer is visible, queue the message of the error code (pParamMessage +0x20 + code * 0x1000) with 0x80016e88
 // (mode 2 = flags 0x311: baseline, centred) at ((int)x, (int)-y); the writer task draws the queue. Natively the text is drawn in Draw.
 bool cTaskConsError::Execute(cJetTask* pParam)
 {

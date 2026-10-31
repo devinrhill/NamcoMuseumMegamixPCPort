@@ -12,7 +12,7 @@ constexpr float DEG = 0.017453292f;       // FLOAT_8047aa24
 constexpr float MS_TO_FRAME = 6000.0f / 100000.0f;   // FUN_8000d7d4 (FLOAT_80479c38 / FLOAT_80479c3c)
 }
 
-// DOL 0x8007e358 (cTaskUnit::Init, the cParamCar block +0x2d4)
+// DOL 0x8007e358 [audited] (cTaskUnit::Init, the cParamCar block +0x2d4)
 bool cParamCar::Load(int nMultiPattern)
 {
 	kingdom::cKingdomCSV csv;
@@ -79,14 +79,14 @@ bool cParamCar::Load(int nMultiPattern)
 	return true;
 }
 
-// DOL 0x80087c1c
+// DOL 0x80087c1c [audited]
 void cParamCar::SetSpeedLevel(int level)
 {
 	const int r = level - 1;
 	fSpeedBase = m_fRow[5] * (r >= 0 && r < 0x3d ? m_fRow[r] : 0.0f) / SEC;
 }
 
-// DOL 0x8007a2e8 (cTaskPlayer::Init, the cParamCarPlayer block +0x9c8)
+// DOL 0x8007a2e8 [audited] (cTaskPlayer::Init, the cParamCarPlayer block +0x9c8)
 bool cParamCarPlayer::Load()
 {
 	kingdom::cKingdomCSV csv;
@@ -99,7 +99,7 @@ bool cParamCarPlayer::Load()
 	return true;
 }
 
-// DOL 0x8006d500 (cTaskEnemy::Init, the cParamCarEnemy block +0xa20)
+// DOL 0x8006d500 [audited] (cTaskEnemy::Init, the cParamCarEnemy block +0xa20)
 bool cParamCarEnemy::Load()
 {
 	kingdom::cKingdomCSV csv;

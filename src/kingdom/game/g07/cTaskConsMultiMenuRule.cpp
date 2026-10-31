@@ -17,6 +17,7 @@ cTaskConsMultiMenuRule::~cTaskConsMultiMenuRule()
 {
 }
 
+// DOL 0x801cea58 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuRule::SetData()
 {
 	nDrawPriority(2147483670u);
@@ -27,6 +28,7 @@ void cTaskConsMultiMenuRule::SetData()
 	this->UnityUI = (static_cast<cTaskConsMultiMenuMan*>(pTaskConsMenuMan()))->UnityUI;
 }
 
+// DOL 0x801ceb3c [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuRule::nGetRuleAnmNo(int nAnmState)
 {
 	int obj[4] = {79, 80, 81, 82};

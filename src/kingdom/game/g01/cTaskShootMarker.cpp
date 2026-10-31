@@ -15,7 +15,7 @@ constexpr int ANM_OUT = 0x3f;
 bool AnimDone(cKingdomAnita* a) { return a->IsState(cJetAnita::JET_ANITA_STATE_ANIM_END); }
 }
 
-// DOL 0x800f84d4: priority 0x80000001, ANT_SCORE anita 0 hidden, owner +0x250, offset / rot / scale, state 1, inactive
+// DOL 0x800f84d4 [audited]: priority 0x80000001, ANT_SCORE anita 0 hidden, owner +0x250, offset / rot / scale, state 1, inactive
 cTaskShootMarker::cTaskShootMarker(const cObject* pOwner, const Vector4* pOffset, const Vector4* pRot, const Vector4* pScale) : m_pOwner(pOwner)
 {
 	SetName("g01::cTaskShootMarker");
@@ -30,7 +30,7 @@ cTaskShootMarker::cTaskShootMarker(const cObject* pOwner, const Vector4* pOffset
 	m_b08 = false;
 }
 
-// DOL 0x800f88a4: the owner's +0x20 through S(w/2, -h/2) * proj * view (w, h = the camera's viewport), divided by w; false when off the
+// DOL 0x800f88a4 [audited: native OpenGL clip range instead of GX z/w > 0, viewport taken as the 640 x 480 screen]: the owner's +0x20 through S(w/2, -h/2) * proj * view (w, h = the camera's viewport), divided by w; false when off the
 // viewport or in front of the near plane (GX z / w > 0); else +0x20 = layout coordinates (origin in the middle, y up).
 // Native: the port's 3D pass uses OpenGL clip space (z / w in -1..1, near = -1), so "z / w > 0" (GX, near = 0) reads "z / w < -1 or w <= 0";
 // the viewport is the 640 x 480 layout screen the 3D pass is fitted into.
@@ -51,7 +51,7 @@ bool cTaskShootMarker::Project()
 	return true;
 }
 
-// DOL 0x800f8c08 (when active, not paused): state 0 appear -> loop (state 1), state 2 out -> hidden, inactive;
+// DOL 0x800f8c08 [audited] (when active, not paused): state 0 appear -> loop (state 1), state 2 out -> hidden, inactive;
 // then the projection places (or hides) the anita: +0x400 = offset + the projected point, +0x410 = rot, +0x420 = scale
 bool cTaskShootMarker::Execute(cJetTask* pParam)
 {
@@ -100,7 +100,7 @@ bool cTaskShootMarker::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x800f8e6c: only while active (an ortho over the viewport, then the anitas)
+// DOL 0x800f8e6c [audited]: only while active (an ortho over the viewport, then the anitas)
 void cTaskShootMarker::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_b08) cTaskAnita::Draw(nStatus, pParam);

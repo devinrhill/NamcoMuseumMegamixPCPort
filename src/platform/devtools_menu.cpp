@@ -50,7 +50,7 @@ std::string Fmt(const char* f, int a, int b = 0)
 
 void Start(uint job) { Kingdom_SetJobNo(job, false, false); }   // at once, like the debug menus (SysCore->SetJobNo)
 
-// Galaga: stages 1..10 (10 = the world 3 boss), cRecordMan stage records (+0x24 bOpen); AllOpen = the debug menu's save (DOL 0x800b0074)
+// Galaga: stages 1..10 (10 = the world 3 boss), cRecordMan stage records (+0x24 bOpen); AllOpen = the debug menu's save (DOL 0x800b0074 [audited: AllOpen via dev tool])
 using game::g01::cG01GalagaSys;
 cG01GalagaSys* Galaga() { return KingdomGlobal::GalagaSys; }
 

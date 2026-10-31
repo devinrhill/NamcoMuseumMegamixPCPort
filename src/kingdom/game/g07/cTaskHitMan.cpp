@@ -56,6 +56,7 @@ void cTaskHitMan::Free()
 {
 }
 
+// DOL 0x801f84d0 [audited: per AUDIT_G03_G07 row] (audited 44th: matches)
 bool cTaskHitMan::Execute(cJetTask* pParam)
 {
 	if (Constants::MOTOS_IS_PAUSE() || Constants::IS_CLEARPAUSE())
@@ -204,6 +205,7 @@ bool cTaskHitMan::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x801f8e58 [audited: per AUDIT_G03_G07 row] (audited 44th: matches)
 int cTaskHitMan::HitCheck(cTaskChar* pChar1, cTaskChar* pChar2, Nullable<Vector4> pSpeed1, Nullable<Vector4> pSpeed2)
 {
 	int pAxis = -1;
@@ -266,6 +268,7 @@ int cTaskHitMan::HitCheck(cTaskChar* pChar1, cTaskChar* pChar2, Nullable<Vector4
 	return pAxis;
 }
 
+// DOL 0x801f9128 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskHitMan::HitCheckSimple(cTaskChar* pChar1, cTaskChar* pChar2, Vector4 pSpeed1, Vector4 pSpeed2)
 {
 	Constants::MOTOS_CAUTION("HitCheckSimple");
@@ -299,6 +302,7 @@ bool cTaskHitMan::HitCheckSimple(cTaskChar* pChar1, cTaskChar* pChar2, Vector4 p
 	return true;
 }
 
+// DOL 0x801f92b8 [audited: per AUDIT_G03_G07 row] (audited 44th: matches)
 int cTaskHitMan::m_HitCheckExSub(int& pAxis, cTaskChar* pChar1, cTaskChar* pChar2, Vector4 pPos1, Vector4 pPos2, float fSize, int nHigh)
 {
 	int num = 0;
@@ -367,6 +371,7 @@ int cTaskHitMan::m_HitCheckExSub(int& pAxis, cTaskChar* pChar1, cTaskChar* pChar
 	return -1;
 }
 
+// DOL 0x801f9738 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskHitMan::HitCheckThrough(cTaskChar* pChar1, cTaskChar* pChar2)
 {
 	if (pChar1->bTestFlag(278624u))
@@ -388,6 +393,8 @@ bool cTaskHitMan::HitCheckThrough(cTaskChar* pChar1, cTaskChar* pChar2)
 	return true;
 }
 
+// DOL 0x801f97e0 [audited: per AUDIT_G03_G07 row] (audited 44th: matches)
+// DOL 0x801f97e0 (compared 2026-10-30)
 bool cTaskHitMan::ExecHitGimmick()
 {
 	cTaskGimmickBase* cTaskGimmickBase2 = nullptr;
@@ -427,6 +434,7 @@ bool cTaskHitMan::ExecHitGimmick()
 	return true;
 }
 
+// DOL 0x801f9940 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskHitMan::RegistReflect(int nGrobalID1, int nGrobalID2, int axis)
 {
 	byte b = 0;

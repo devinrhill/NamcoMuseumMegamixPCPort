@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskWind.hpp"
 
 #include "AABB.hpp"
@@ -60,6 +61,7 @@ float cTaskWind::vWindForce(int n)
 	return m_vWindForce[n];
 }
 
+// DOL 0x801893a0 [audited: per AUDIT_G03_G07 row] (record 0x30 bytes: position / 1000, rotation degrees -> radians, scale / 1000, wind rotation, force / 1000)
 cTaskWind::cTaskWind(sSaveDataWind& wind)
 {
 	m_hPtkWind = new cKingdomPtkHnd();
@@ -95,6 +97,7 @@ cTaskWind::~cTaskWind()
 	Term();
 }
 
+// DOL 0x80189a64 [audited: per AUDIT_G03_G07 row]
 void cTaskWind::Init()
 {
 	::Constants::jetGeoVecUnit(vTrans());
@@ -107,6 +110,7 @@ void cTaskWind::Term()
 {
 }
 
+// DOL 0x80189ad8 [audited: per AUDIT_G03_G07 row] (effect by round: 11 / 13 -> 16, 15 / 17 -> 17, 23 -> 36; pushes Pac-Man's move by the wind force each frame inside the area)
 bool cTaskWind::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -141,9 +145,9 @@ bool cTaskWind::Execute(cJetTask* pParam)
 			::Constants::jetGeoVecAdd(v, cTaskCharPacman2->vTrans(), v);
 			m_hPtkWind->vSetTrans(v);
 			m_hPtkWind->vSetRotate(m_vRotWind);
-			if (nullptr == m_hSndWind)
+			if (!SoundManager::get_SE()->IsPlaying(m_hSndWind))   // DOL 0x80189ad8: SoundSeBank::IsPlaying (0x80026424), not a null test: the loop restarts when the area is entered again
 			{
-				m_hSndWind = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, true);
+				if (cPacnRollLoopSndMan::CanPlay()) m_hSndWind = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, true));
 			}
 		}
 		::Constants::jetGeoVecAdd(cTaskCharPacman2->vMove(), cTaskCharPacman2->vMove(), vWindForce());
@@ -166,6 +170,7 @@ void cTaskWind::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x80189cd8 [audited: per AUDIT_G03_G07 row] (oriented box: half scale 0.5, translate, then Z, Y, X rotations; inside when the squared distance is 0)
 bool cTaskWind::AreaCheck()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();

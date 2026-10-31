@@ -35,6 +35,7 @@ cTaskConsMultiMenuRound::cTaskConsMultiMenuRound(cTaskConsMenuManBase* const& pC
 {
 }
 
+// DOL 0x801ce5a8 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 int cTaskConsMultiMenuRound::nGetNumberAnmNo(uint nNo, int nAnmState)
 {
 	int obj[10][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, 10, 11}, {12, 13, 14}, {15, 16, 17}, {18, 19, 20}, {21, 22, 23}, {24, 25, 26}, {27, 28, 29}};
@@ -43,6 +44,7 @@ int cTaskConsMultiMenuRound::nGetNumberAnmNo(uint nNo, int nAnmState)
 	return obj[nNo][nAnmState];
 }
 
+// DOL 0x801ce5f4 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuRound::SetData(uint nRound)
 {
 	nDrawPriority(2147483651u);
@@ -56,6 +58,7 @@ void cTaskConsMultiMenuRound::SetData(uint nRound)
 	}
 }
 
+// DOL 0x801ce6f8 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuRound::SetRoundAnm(int nAnmState)
 {
 	for (uint num = 0u; num < 2; num++)
@@ -89,11 +92,13 @@ void cTaskConsMultiMenuRound::SetRoundAnm(int nAnmState)
 	}
 }
 
+// DOL 0x801ce8dc [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuRound::WaitExec()
 {
 	SetRoundAnm(1);
 }
 
+// DOL 0x801ce8f0 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuRound::AppearExec()
 {
 	if (nStep() == 0)
@@ -108,6 +113,7 @@ bool cTaskConsMultiMenuRound::AppearExec()
 	return false;
 }
 
+// DOL 0x801ce974 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuRound::DeleteExec()
 {
 	if (nStep() == 0)

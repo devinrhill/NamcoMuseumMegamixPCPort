@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskConsoleResultMulti.hpp"
 
 #include <cstdint>
@@ -22,7 +23,7 @@ const int g_data[] = {
 constexpr uint32_t DATA_BASE = 0x80372360u;
 int D(uint32_t addr) { return g_data[(addr - DATA_BASE) / 4]; }
 
-// rows {appear, wait, out, -1, roulette}: DOL 0x80372468 (digit * 5 + column)
+// rows {appear, wait, out, -1, roulette}: DOL 0x80372468 [audited] (digit * 5 + column)
 int Digit(int d, int col) { return col == 4 ? 39 : d * 3 + col; }
 
 constexpr int TYPE = 1;   // +0x224 / +0x218 of the cResultAnita: multiplayer
@@ -53,7 +54,7 @@ void Digits(cTaskAnita* t, uint first, uint count, uint value, int col, uint kee
 void Roulette(cKingdomAnita* a)
 {
 	a->SetAnimNo(Digit(0, 4), false);
-	a->SetFrame((float)(std::rand() % 10));
+	a->SetFrame((float)(kingdom::MslRand() % 10));
 }
 
 void Load(cTaskAnita* t, uint n, const char* name)
@@ -68,7 +69,7 @@ void Place(cTaskAnita* t, uint n, uint layer, int pat)
 	t->pAnita(n)->GetLayerPos(t->pAnita(n)->vTrans(), layer, pat);   // 0x80014408
 }
 
-// DOL 0x800dc9ec / 0x800dcbb0: the player's hit ratio (hits / shots, 0 without shots; stage 10: averaged with the carried rate)
+// DOL 0x800dc9ec [audited] / 0x800dcbb0: the player's hit ratio (hits / shots, 0 without shots; stage 10: averaged with the carried rate)
 float HitRatio(const cTaskConsolePlayer* p)
 {
 	float r = 0.0f;
@@ -80,7 +81,7 @@ float HitRatio(const cTaskConsolePlayer* p)
 
 // ---- cTaskResultPlayerAnita ----
 
-// DOL 0x800db828 (priority 0x80000005, state 4 = idle, +8 = 1)
+// DOL 0x800db828 [audited] (priority 0x80000005, state 4 = idle, +8 = 1)
 cTaskResultPlayerAnita::cTaskResultPlayerAnita(cTaskConsolePlayer* player, int nPlayers)
 {
 	SetName("g01::cTaskPlayerAnita");
@@ -118,7 +119,7 @@ void cTaskResultPlayerAnita::Draw(int nStatus, cJetTask* pParam)
 
 float cTaskResultPlayerAnita::Ratio() const { return HitRatio(m_pPlayer); }
 
-// DOL 0x800dc0a8: the hit rate (anitas 1..4 digits, 6 "%", 5 "."); 0 the first two digits appear, 4 roulette, 1 the rate, 2 out
+// DOL 0x800dc0a8 [audited: tables read from the DOL (D()); structure compared with the DOL Digits loops]: the hit rate (anitas 1..4 digits, 6 "%", 5 "."); 0 the first two digits appear, 4 roulette, 1 the rate, 2 out
 void cTaskResultPlayerAnita::Rate(int kind)
 {
 	static const int PERCENT[3] = {D(0x80372688u), D(0x8037268cu), D(0x80372690u)};   // "%" appear / wait / out
@@ -153,7 +154,7 @@ void cTaskResultPlayerAnita::Rate(int kind)
 	}
 }
 
-// DOL 0x800dc8f8
+// DOL 0x800dc8f8 [audited]
 bool cTaskResultPlayerAnita::IsRateEnd()
 {
 	for (uint n = 1; n < 5; n++)
@@ -170,7 +171,7 @@ bool cTaskResultPlayerAnita::Gauge()
 	return 100.0f <= m_fBar;
 }
 
-// DOL 0x800dcbb0 (vtable +0x94): the shown state at once
+// DOL 0x800dcbb0 [audited] (vtable +0x94): the shown state at once
 void cTaskResultPlayerAnita::Instant(bool winner)
 {
 	Show(pAnita(0));
@@ -186,7 +187,7 @@ void cTaskResultPlayerAnita::Instant(bool winner)
 	Idle();   // 0x800dcb38
 }
 
-// DOL 0x800dcd38. States 0 appear (bar, roulette 75 frames, the rate, the crown), 1 shown, 2 out, 3 out done, 4 idle
+// DOL 0x800dcd38 [audited]. States 0 appear (bar, roulette 75 frames, the rate, the crown), 1 shown, 2 out, 3 out done, 4 idle
 bool cTaskResultPlayerAnita::Execute(cJetTask* pParam)
 {
 	if (m_nState == 0)
@@ -256,7 +257,7 @@ bool cTaskResultPlayerAnita::Execute(cJetTask* pParam)
 
 // ---- cTaskConsoleResultMulti ----
 
-// DOL 0x800dd06c (priority 0x80000004, +0x224 = 1) + Init 0x800dd444
+// DOL 0x800dd06c [audited] (priority 0x80000004, +0x224 = 1) + Init 0x800dd444
 cTaskConsoleResultMulti::cTaskConsoleResultMulti(cTaskConsolePlayer** players, int nPlayers, cTaskConsoleLife* life)
 {
 	SetName("g01::cTaskConsoleResultMulti");
@@ -292,14 +293,14 @@ cTaskConsoleResultMulti::cTaskConsoleResultMulti(cTaskConsolePlayer** players, i
 	Load(this, 0xe, "ANT_RESULT");
 }
 
-// DOL 0x800dd3b4 (vtable +0x94)
+// DOL 0x800dd3b4 [audited] (vtable +0x94)
 void cTaskConsoleResultMulti::SumKills()
 {
 	m_nKills = 0;
 	for (int i = 0; i < m_nPlayers && i < 4; i++) m_nKills += m_pPanel[i]->pPlayer()->nKill();   // player +0x234
 }
 
-// DOL 0x800dfc48: console state 4 (0x800eb6c4), phase 0, SumKills
+// DOL 0x800dfc48 [audited]: console state 4 (0x800eb6c4), phase 0, SumKills
 void cTaskConsoleResultMulti::Start()
 {
 	m_nState = 4;
@@ -308,7 +309,7 @@ void cTaskConsoleResultMulti::Start()
 	m_b08 = true;
 }
 
-// DOL 0x800ddb3c (vtable +0x98): the kill counters; 0 appear, 4 roulette, 1 the kills, 2 out
+// DOL 0x800ddb3c [audited] (vtable +0x98): the kill counters; 0 appear, 4 roulette, 1 the kills, 2 out
 void cTaskConsoleResultMulti::Kill(int kind)
 {
 	const int slash[3] = {D(0x8037269cu), D(0x803726a0u), D(0x803726a4u)};
@@ -338,7 +339,7 @@ void cTaskConsoleResultMulti::Kill(int kind)
 	}
 }
 
-// DOL 0x800de52c (vtable +0x9c)
+// DOL 0x800de52c [audited] (vtable +0x9c)
 bool cTaskConsoleResultMulti::IsKillEnd()
 {
 	for (uint n = 7; n < 10; n++) if (!Done(pAnita(n))) return false;
@@ -346,7 +347,7 @@ bool cTaskConsoleResultMulti::IsKillEnd()
 	return Done(pAnita(0xd));
 }
 
-// DOL 0x800de638
+// DOL 0x800de638 [audited: phase machine compared in structure]
 bool cTaskConsoleResultMulti::PhaseExec()
 {
 	if ((GamePad::Get(0).trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)   // get_pad1(0)->trig & 0x860

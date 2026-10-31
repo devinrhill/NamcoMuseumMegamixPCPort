@@ -28,6 +28,7 @@ void cTaskGimmickReaction::Term()
 	cTaskGimmickBase::Term();
 }
 
+// DOL 0x8012ce54 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickReaction::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -44,12 +45,14 @@ bool cTaskGimmickReaction::Create(uint no)
 	return true;
 }
 
+// DOL 0x8012cf10 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickReaction::Execute(cJetTask* pParam)
 {
 	UpdateFrame();
 	return true;
 }
 
+// DOL 0x8012cf34 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickReaction::IsAction(cTaskChar* pChar)
 {
 	if (IsStepOnCnt(pChar))

@@ -5,7 +5,7 @@
 namespace kingdom::game::g02
 {
 
-// DOL 0x8008120c (CSV_SHADOW, column 1 = the value: cJetCSV::F32(csv, row, 1, out))
+// DOL 0x8008120c [audited] (CSV_SHADOW, column 1 = the value: cJetCSV::F32(csv, row, 1, out))
 bool cParamShadow::Load()
 {
 	kingdom::cKingdomCSV csv;

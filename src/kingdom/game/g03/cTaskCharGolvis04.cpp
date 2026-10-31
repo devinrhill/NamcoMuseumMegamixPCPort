@@ -12,16 +12,15 @@
 #include "kingdom/game/g03/cTaskCharGear1.hpp"
 #include "kingdom/game/g03/cTaskCharPacman.hpp"
 #include "KingdomGlobal.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include <Constants.hpp>
 #include <ESEKind.hpp>
-#include <ReleaseObjectManager.hpp>
 #include <SoundManager.hpp>
 
 namespace kingdom::game::g03
 {
 
 const Constants::gmSGolvisAttack* cTaskCharGolvis04::s_AttackTBL[4] = {[]() { Constants::gmSGolvisAttack* _o1 = new Constants::gmSGolvisAttack(); _o1->uiKind = 3; _o1->fRangeMin = 0.0f; _o1->fRangeMax = 6.0f; _o1->iTimeMin = 5; _o1->iTimeMax = 10; return _o1; }(), []() { Constants::gmSGolvisAttack* _o2 = new Constants::gmSGolvisAttack(); _o2->uiKind = 9; _o2->fRangeMin = 3.0f; _o2->fRangeMax = 10.0f; _o2->iTimeMin = 5; _o2->iTimeMax = 10; return _o2; }(), []() { Constants::gmSGolvisAttack* _o3 = new Constants::gmSGolvisAttack(); _o3->uiKind = 8; _o3->fRangeMin = 3.0f; _o3->fRangeMax = 10.0f; _o3->iTimeMin = 5; _o3->iTimeMax = 10; return _o3; }(), []() { Constants::gmSGolvisAttack* _o4 = new Constants::gmSGolvisAttack(); _o4->uiKind = 0; return _o4; }()};
-const int cTaskCharGolvis04::scDemoFrameCnts[11] = {30, 354, 384, 420, 635, 710, 743, 783, 820, 950, 990};
 
 cTaskCharGolvis04::cTaskCharGolvis04(cJetTask* pParent)
 	: cTaskCharGolvis(pParent), m_hDemoPtk(new cKingdomPtkHnd())
@@ -30,6 +29,7 @@ cTaskCharGolvis04::cTaskCharGolvis04(cJetTask* pParent)
 	Init();
 }
 
+// DOL 0x8011bc7c [audited]
 void cTaskCharGolvis04::Init()
 {
 	::Constants::jetGeoVecSet(vTrans(), 0.0f, 0.0f, 0.0f, 1.0f);
@@ -43,7 +43,6 @@ void cTaskCharGolvis04::Init()
 	m_pGear = new cTaskCharGear1(this);
 	m_pGear->nFlag() |= 2u;
 	DemoPacManCreate();
-	CreateDummyDemoCamera();
 }
 
 void cTaskCharGolvis04::DemoPacManCreate()
@@ -55,27 +54,26 @@ void cTaskCharGolvis04::DemoPacManCreate()
 	obj->SetLightSetIdx(2);
 	obj->SetFogIdx(2);
 	obj->Invisible();
-	std::vector<SkinnedMeshRenderer*> componentsInChildren; // TODO(unity): componentsInChildren = obj.pScnMdl().GetComponentsInChildren<SkinnedMeshRenderer>()
-	for (SkinnedMeshRenderer* obj2 : componentsInChildren)
-	{
-		Bounds localBounds = Bounds(); // TODO(unity): localBounds = obj2.localBounds
-		localBounds.Expand(100.0f); // the converter dropped the argument (C#: Expand(100f))
-		// TODO(unity): obj2.localBounds = localBounds;
-	}
+	// (the C# widened the Unity bounds here; the DOL registers with flags 0x36f, FUN_8001f72c)
 	ConnectChild(m_pDemoPacMan);
 }
 
+// DOL 0x8011bdac [audited]
 void cTaskCharGolvis04::Term()
 {
-	if (m_pDemoPacMan != nullptr)
-	{
-		m_pDemoPacMan->TermOnce();
-	}
-	ReleaseObjectManager::Regist(m_dummyDemoCamObj);
-	ReleaseObjectManager::Regist(m_dummyDemoCamAimObj);
-	cTaskCharGolvis::Term();
+	// DOL blr (0x8011bdac): the demo Pac-Man is a child task and terminates with the tree
 }
 
+void cTaskCharGolvis04::ReleaseTerm()
+{
+	cTaskCharGolvis04::Term();
+	m_hDemoPtk->Detach(true);   // ~cKingdomPtkHnd of +0xa10
+	delete m_pDemoCamera;       // the scene camera task dies with the tree in the DOL (connected to this task)
+	m_pDemoCamera = nullptr;
+	cTaskCharGolvis::ReleaseTerm();
+}
+
+// DOL 0x8011bdb0 [audited: thresholds 10 / 20, timer 40 vs decomp]
 bool cTaskCharGolvis04::IsForceAttack()
 {
 	int gear = m_pGear->GetGear(Constants::PACMAN_OBJ()->vTrans());
@@ -102,6 +100,7 @@ bool cTaskCharGolvis04::IsForceAttack()
 	return false;
 }
 
+// DOL 0x8011beb8 [audited]
 bool cTaskCharGolvis04::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -117,6 +116,7 @@ void cTaskCharGolvis04::Draw(int nStatus, cJetTask* pParam)
 	cTaskCharGolvis::Draw(nStatus, pParam);
 }
 
+// DOL 0x8011bf64 [audited: gear tests and kinds 8/9/14 vs disassembly]
 bool cTaskCharGolvis04::ChangeToAttack(int iAttackKind)
 {
 	if (m_pGear->GetGear(vTrans()) < 2)
@@ -148,6 +148,7 @@ bool cTaskCharGolvis04::ChangeToAttack(int iAttackKind)
 	return false;
 }
 
+// DOL 0x8011c060 [audited]
 void cTaskCharGolvis04::Setting(bool bRelocate)
 {
 	cTaskCharGolvis::Setting(bRelocate);
@@ -156,18 +157,21 @@ void cTaskCharGolvis04::Setting(bool bRelocate)
 	InitStateFirst();
 }
 
+// DOL 0x8011c0b0 [audited]
 void cTaskCharGolvis04::InitStateFirst()
 {
 	ChangeToAppear();
 	m_bDisp = true;
 }
 
+// DOL 0x8011c0f0 [audited]
 void cTaskCharGolvis04::InitStateStart()
 {
 	m_iAIMode = 2;
 	m_iState = cTaskCharGolvis04::gmEMonsterStateGolvisGear1::STATE_GOLVISGEAR1_MOVE;
 }
 
+// DOL 0x8011c104 [audited]
 void cTaskCharGolvis04::MonsterFrameMove_PreProcess()
 {
 	int subState = GetSubState();
@@ -182,6 +186,7 @@ void cTaskCharGolvis04::MonsterFrameMove_PreProcess()
 	}
 }
 
+// DOL 0x8011c150 [audited: 43rd-session pass; not re-read now]
 void cTaskCharGolvis04::MonsterFrameMove_Free()
 {
 	Vector4 v;
@@ -236,6 +241,7 @@ void cTaskCharGolvis04::MonsterFrameMove_Free()
 	}
 }
 
+// DOL 0x8011c3a0 [audited: 43rd-session pass; not re-read now]
 void cTaskCharGolvis04::MonsterFrameMove_Escape()
 {
 	Vector4 v;
@@ -284,12 +290,28 @@ void cTaskCharGolvis04::MonsterFrameMove_Escape()
 	::Constants::jetGeoVecAdd(vTrans(), vTrans(), v3);
 }
 
+// DOL 0x8011c5e4 [audited: death demo, 43rd-session pass; not re-read now]
 void cTaskCharGolvis04::ChangeToDamage()
 {
 	vTrans()[1] = vFirstTrans()[1];
 	cTaskCharGolvis::ChangeToDamage();
 }
 
+// the demo's per-frame animation calls (DOL 0x8011c62c [audited: per AUDIT_G03_G07 row], procs 2 and 3)
+void cTaskCharGolvis04::DemoUpdateFrame()
+{
+	m_pDemoPacMan->UpdateFrame();                                  // FUN_8009a478
+	if (m_pDemoCamera != nullptr)
+	{
+		m_pDemoCamera->UpdateFrame();                              // FUN_8014a43c(app +0x2b0)
+	}
+	Constants::PACN_APP()->pTaskBgGimmick()->Model->UpdateFrame();     // gimmick[0] +0x50 vtable +0x14
+	Constants::PACN_APP()->pTaskBgGimmick(1u)->Model->UpdateFrame();   // gimmick[1]
+}
+
+// 43rd session: rewritten from the DOL. The C# drove the demo with Unity camera animation clips whose clock was stubbed (always frame 0),
+// so the demo never left its first step; the DOL counts frames at +0x9f4 (m_nDemoTimer) and plays the camera as a SCN0 scene camera.
+// DOL 0x8011c62c
 bool cTaskCharGolvis04::MonsterFrameMove_Death()
 {
 	if (!IsBossDeath())
@@ -300,7 +322,7 @@ bool cTaskCharGolvis04::MonsterFrameMove_Death()
 	switch (GetDeathProc())
 	{
 	case 0u:
-		Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_OUT_BLACK);
+		Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_OUT_BLACK);   // (0x10002, 500)
 		Constants::PACN_APP()->pTaskItem()->SetBossCookie(0u);
 		ChangeDeathProc(1u);
 		break;
@@ -325,16 +347,20 @@ bool cTaskCharGolvis04::MonsterFrameMove_Death()
 			for (uint num = 0u; num < 3; num++)
 			{
 				cTaskCharPacman2->pModel(num)->Invisible();
-				// TODO(unity): cTaskCharPacman2.pModel(num).pScnMdl().SetActive(value: false);
 			}
 			SetAnmState(33u);
 			m_nDemoTimer = 0;
 			m_pDemoPacMan->pModel()->RegistAnm(0u, "BIN_DEMO_BOS_ANM_PAC");
-			Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_IN_BLACK);
+			Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_IN_BLACK);   // (2, 500)
 			vScale()[0] = 1.0f;
 			vScale()[1] = vScale()[0];
 			vScale()[2] = vScale()[0];
-			Constants::PACN_APP()->pTaskCamera()->SetCameraType(4u);
+			// new cTaskSceneCamera(ScnRoot) -> app +0x2b0, FUN_80149f74(cam, 0, BIN_DEMO_BOS_CAMERA), FUN_8014a388(cam, 0), ConnectChild
+			delete m_pDemoCamera;
+			m_pDemoCamera = new cDemoSceneCamera();
+			m_pDemoCamera->Bind("BIN_DEMO_BOS_CAMERA");
+			m_pDemoCamera->SetAnm();
+			cDemoSceneCamera::Active() = m_pDemoCamera;
 			Constants::PACN_APP()->pTaskCharPacman()->DisposeEffect();
 			Constants::PACN_APP()->StopIjikeSnd();
 			ChangeDeathProc(2u);
@@ -348,69 +374,57 @@ bool cTaskCharGolvis04::MonsterFrameMove_Death()
 		break;
 	case 2u:
 		::Constants::jetGeoVecUnit(vRotate());
-		m_pDemoPacMan->UpdateFrame();
-		Constants::PACN_APP()->pTaskBgGimmick()->Model->UpdateFrame();
-		Constants::PACN_APP()->pTaskBgGimmick(1u)->Model->UpdateFrame();
+		DemoUpdateFrame();
 		::Constants::jetGeoVecUnit(m_pDemoPacMan->vTrans());
 		::Constants::jetGeoVecUnit(m_pDemoPacMan->vRotate());
-		UpdateDummyDemoCamera();
-		if (GetDemoCurrentFrameCnt() >= (float)scDemoFrameCnts[(int)m_demoStep])
+		switch (m_nDemoTimer)   // SEs without a sound actor
 		{
-			switch (m_demoStep)
-			{
-			case cTaskCharGolvis04::EDemoStep::Entry:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE099_GOL_TOUJYOU);
-				break;
-			case cTaskCharGolvis04::EDemoStep::AttackBefore:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1);
-				break;
-			case cTaskCharGolvis04::EDemoStep::Attack:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE080_BOSS_TATAKI);
-				break;
-			case cTaskCharGolvis04::EDemoStep::Escape:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE);
-				break;
-			case cTaskCharGolvis04::EDemoStep::Jump1:
-			case cTaskCharGolvis04::EDemoStep::Jump2:
-			case cTaskCharGolvis04::EDemoStep::Jump3:
-			case cTaskCharGolvis04::EDemoStep::Jump4:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE031_JUMP);
-				break;
-			case cTaskCharGolvis04::EDemoStep::Dash:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
-				break;
-			case cTaskCharGolvis04::EDemoStep::FadeOut:
-				Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE);
-				ChangeDeathProc(3u);
-				break;
-			}
-			m_demoStep = (EDemoStep)((int)m_demoStep + 1);
+		case 0x1e:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE099_GOL_TOUJYOU);
+			break;
+		case 0x162:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1);
+			break;
+		case 0x180:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE080_BOSS_TATAKI);
+			break;
+		case 0x1a4:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE);
+			break;
+		case 0x27b:
+		case 0x2c6:
+		case 0x2e7:
+		case 0x30f:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE031_JUMP);
+			break;
+		case 0x334:
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+			break;
+		}
+		if (m_nDemoTimer++ == 0x3b6)
+		{
+			Constants::PACN_APP()->pTaskFade()->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE);   // (0x10001, 500)
+			ChangeDeathProc(3u);
 		}
 		break;
 	case 3u:
-		GetDemoCurrentFrameCnt();
-		if (false)
+		if (++m_nDemoTimer < 0x3de)
 		{
-			UpdateDummyDemoCamera();
-		}
-		if (false)
-		{
-			m_pDemoPacMan->UpdateFrame();
-			Constants::PACN_APP()->pTaskBgGimmick()->Model->UpdateFrame();
-			Constants::PACN_APP()->pTaskBgGimmick(1u)->Model->UpdateFrame();
+			DemoUpdateFrame();
 		}
 		if (Constants::PACN_APP()->pTaskFade()->IsEnd())
 		{
 			m_hDemoPtk->Detach(true);
 			KingdomGlobal::PacnRollSys->nRound() = 25u;
 			cTaskCharPacman2->SetRetryData();
-			kingdom::Constants::Kingdom_SetJobNo(221249536u);
+			kingdom::Constants::Kingdom_SetJobNo(kingdom::job::PACNROLL_GAME);   // Go(0xd300000, 0, 0): the game again at round 25
 		}
 		break;
 	}
 	return true;
 }
 
+// DOL 0x8011ce18 [audited: 43rd-session pass]
 void cTaskCharGolvis04::IjikeStart()
 {
 	m_bIjikeMsgCome = true;
@@ -420,47 +434,10 @@ void cTaskCharGolvis04::IjikeStart()
 	}
 }
 
+// DOL 0x8011ce44 [audited: 43rd-session pass]
 Constants::gmSGolvisAttack* cTaskCharGolvis04::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	return cTaskCharGolvis::GetAttackKind(nEatNum, nIjikeLevel, nNum);
-}
-
-void cTaskCharGolvis04::CreateDummyDemoCamera()
-{
-	AnimationClip* animationClip = nullptr; // TODO(unity): animationClip = ResourceCache.Get<AnimationClip>("g03_pacnroll/bg/world5/st5/demo/g03d_demo01_a01")
-	// TODO(unity): m_dummyDemoCamObj = new GameObject();
-	// TODO(unity): m_dummyDemoCamObj.name = "g03d_demo01_a01";
-	// TODO(unity): m_dummyDemoCamAnim = m_dummyDemoCamObj.AddComponent<Animation>();
-	// TODO(unity): m_dummyDemoCamAnim.AddClip(animationClip, animationClip.name);
-	// TODO(unity): m_dummyDemoCamAnim.clip = animationClip;
-	// TODO(unity): m_dummyDemoCamAnim.Sample(0f);
-	// TODO(unity): m_dummyDemoCamAnim.Stop();
-	AnimationClip* animationClip2 = nullptr; // TODO(unity): animationClip2 = ResourceCache.Get<AnimationClip>("g03_pacnroll/bg/world5/st5/demo/g03d_demo01_a01_aim")
-	// TODO(unity): m_dummyDemoCamAimObj = new GameObject();
-	// TODO(unity): m_dummyDemoCamAimObj.name = "g03d_demo01_a01_aim";
-	// TODO(unity): m_dummyDemoCamAimAnim = m_dummyDemoCamAimObj.AddComponent<Animation>();
-	// TODO(unity): m_dummyDemoCamAimAnim.AddClip(animationClip2, animationClip2.name);
-	// TODO(unity): m_dummyDemoCamAimAnim.clip = animationClip2;
-	// TODO(unity): m_dummyDemoCamAimAnim.Sample(0f);
-	// TODO(unity): m_dummyDemoCamAimAnim.Stop();
-}
-
-void cTaskCharGolvis04::UpdateDummyDemoCamera()
-{
-	// TODO(unity): m_dummyDemoCamAnim.Progress(Time.deltaTime);
-	// TODO(unity): m_dummyDemoCamAimAnim.Progress(Time.deltaTime);
-	// TODO(unity): Constants.PACN_APP().pTaskCamera().vPos() = m_dummyDemoCamObj.transform.position.GetUnityPos();
-	// TODO(unity): Constants.PACN_APP().pTaskCamera().vTarget() = m_dummyDemoCamAimObj.transform.position;
-}
-
-float cTaskCharGolvis04::GetDemoCurrentFrameCnt()
-{
-	if (false /* TODO(unity): m_dummyDemoCamAnim == null || m_dummyDemoCamAnim.clip == null */)
-	{
-		return -1.0f;
-	}
-	// TODO(unity): return m_dummyDemoCamAnim[m_dummyDemoCamAnim.clip.name].time * 60f - 10f;
-	return 0.0f;
 }
 
 }

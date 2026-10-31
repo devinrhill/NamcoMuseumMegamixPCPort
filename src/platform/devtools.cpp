@@ -1,4 +1,5 @@
 #include "platform/devtools.hpp"
+#include "platform/devtools_g03gray.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -21,6 +22,7 @@ void SetG03Start(float x, float y, float z) { g_hasStart = true; g_start[0] = x;
 bool G03StartOverride(float out[3])
 {
 	if (G03EditStart(out)) return true;   // the dev window editor's test start wins
+	if (G03GrayStart(out)) return true;   // a graybox stage starts on its first primitive
 	static bool envRead = false;
 	if (!envRead)
 	{

@@ -98,20 +98,20 @@ void VecSub(const float a[3], const float b[3], float out[3])
 
 // ---- construction --------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80127808 (this, cTaskScnRoot, 0): vtable, Init (slot +0x08), then +0x04
+// DOL 0x80127808 [audited] (this, cTaskScnRoot, 0): vtable, Init (slot +0x08), then +0x04
 cCamera::cCamera(const s32* pScnLayout)
 {
 	Init();
 	m_pScnLayout = pScnLayout;
 }
 
-// DOL 0x8012785c: Term (slot +0x0c), delete
+// DOL 0x8012785c [audited]: Term (slot +0x0c), delete
 cCamera::~cCamera()
 {
 	Term();
 }
 
-// DOL 0x801278c4: new cParamCamera (0x150) + CSV_CAMERA, then the camera defaults
+// DOL 0x801278c4 [audited]: new cParamCamera (0x150) + CSV_CAMERA, then the camera defaults
 void cCamera::Init()
 {
 	cParamCamera* p = new cParamCamera();
@@ -139,7 +139,7 @@ void cCamera::Init()
 	m_nMode = eMODE_NONE;
 }
 
-// DOL 0x80128148: delete the parameters (their vtable +0x10)
+// DOL 0x80128148 [audited]: delete the parameters (their vtable +0x10)
 void cCamera::Term()
 {
 	if (m_pParam != nullptr)
@@ -151,7 +151,7 @@ void cCamera::Term()
 
 // ---- the ScnRoot camera ----------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80129c94: ScnRoot::GetCamera(nCam) -> SetPosition(eye), SetPosture(LOOKAT, up +0x30, target +0x20). The starters inline the same block.
+// DOL 0x80129c94 [audited]: ScnRoot::GetCamera(nCam) -> SetPosition(eye), SetPosture(LOOKAT, up +0x30, target +0x20). The starters inline the same block.
 // Native: camera 0 is the scene camera, 1..3 the split screen's (NativeScene::SetLayout from the app's layout, SetCameraN).
 void cCamera::Apply(int nCam) const
 {
@@ -159,7 +159,7 @@ void cCamera::Apply(int nCam) const
 	kingdom::NativeScene::SetCameraN(nCam, m_vEye, m_vTarget, ScnCameraFovy(nCam), SCN_NEAR, SCN_FAR);
 }
 
-// DOL 0x80129d30: ScnRoot::GetCamera(nCam) -> Camera::GetCameraMtx. Native: C_MTXLookAt(eye, up, target) of this camera (the ScnRoot camera
+// DOL 0x80129d30 [audited]: ScnRoot::GetCamera(nCam) -> Camera::GetCameraMtx. Native: C_MTXLookAt(eye, up, target) of this camera (the ScnRoot camera
 // holds exactly this after Apply / a start; UNVERIFIED equivalence if another task moved ScnRoot camera nCam in between)
 void cCamera::GetCameraMtx(float mtx[3][4], int nCam) const
 {
@@ -204,7 +204,7 @@ void cCamera::ResetFollow(const float* dir)
 	m_fRangeNow = m_fRange;
 }
 
-// DOL 0x80128238
+// DOL 0x80128238 [audited]
 void cCamera::StartFirst(int nCam, const float* pos, const float* dir)
 {
 	(void)pos;   // only the dead tail reads it
@@ -214,7 +214,7 @@ void cCamera::StartFirst(int nCam, const float* pos, const float* dir)
 	ResetFollow(dir);
 }
 
-// DOL 0x80128504 (ModeChange(2) changes nothing: the parameters of the StartTop / StartQuarter before it stay)
+// DOL 0x80128504 [audited] (ModeChange(2) changes nothing: the parameters of the StartTop / StartQuarter before it stay)
 void cCamera::StartToGame(int nCam, const float* pos, const float* dir)
 {
 	(void)pos;
@@ -224,7 +224,7 @@ void cCamera::StartToGame(int nCam, const float* pos, const float* dir)
 	Apply(nCam);
 }
 
-// DOL 0x801285c0
+// DOL 0x801285c0 [audited]
 void cCamera::StartTop(int nCam, const float* pos, const float* dir, int bReset)
 {
 	(void)pos;
@@ -238,7 +238,7 @@ void cCamera::StartTop(int nCam, const float* pos, const float* dir, int bReset)
 	}
 }
 
-// DOL 0x80128890
+// DOL 0x80128890 [audited]
 void cCamera::StartQuarter(int nCam, const float* pos, const float* dir, int bReset)
 {
 	(void)pos;
@@ -252,7 +252,7 @@ void cCamera::StartQuarter(int nCam, const float* pos, const float* dir, int bRe
 	}
 }
 
-// DOL 0x80128b60: remember eye / target for the orbit
+// DOL 0x80128b60 [audited]: remember eye / target for the orbit
 void cCamera::StartClear(int nCam)
 {
 	m_nMode = eMODE_CLEAR;
@@ -263,7 +263,7 @@ void cCamera::StartClear(int nCam)
 	Apply(nCam);
 }
 
-// DOL 0x80128c54: copy a parameter entry (the *_2P one when the ScnRoot layout is 4 = two screens). Modes 2 and 5 change nothing.
+// DOL 0x80128c54 [audited]: copy a parameter entry (the *_2P one when the ScnRoot layout is 4 = two screens). Modes 2 and 5 change nothing.
 void cCamera::ModeChange(int nMode)
 {
 	if (nMode == 0) nMode = m_nMode;
@@ -298,7 +298,7 @@ void cCamera::ModeChange(int nMode)
 	}
 }
 
-// DOL 0x80128e4c: the fovy of a view (the sys per-player view): 1 quarter, 2 / 3 top (the *_2P entry on the two-screen layout); else entry -1
+// DOL 0x80128e4c [audited]: the fovy of a view (the sys per-player view): 1 quarter, 2 / 3 top (the *_2P entry on the two-screen layout); else entry -1
 // (the DOL then reads param +0x18, a word inside the cJetCSV base: garbage as a fovy; natively 0; UNVERIFIED that no caller passes another view)
 float cCamera::GetFovy(int nView) const
 {
@@ -310,7 +310,7 @@ float cCamera::GetFovy(int nView) const
 	return m_pParam->m_Entry[i].fFovy;
 }
 
-// DOL 0x80128ed8: called by the unit step every frame (1 = the car's +0x220 is FLOAT_8047aa28, UNVERIFIED meaning: straight). Nothing in the
+// DOL 0x80128ed8 [audited]: called by the unit step every frame (1 = the car's +0x220 is FLOAT_8047aa28, UNVERIFIED meaning: straight). Nothing in the
 // camera reads +0x40 / +0x44 (searched every camera function, Approach .. GetCameraMtx).
 void cCamera::SetSpeedCurve(int bStraight)
 {
@@ -326,7 +326,7 @@ void cCamera::SetSpeedCurve(int bStraight)
 	}
 }
 
-// DOL 0x80127734: move cur toward target by speed, slowed by sin(distance / between) inside "between", never past the target
+// DOL 0x80127734 [audited]: move cur toward target by speed, slowed by sin(distance / between) inside "between", never past the target
 float cCamera::Approach(float target, float cur, float speed, float between)
 {
 	if (target < cur)
@@ -356,7 +356,7 @@ float cCamera::Approach(float target, float cur, float speed, float between)
 
 // ---- follow --------------------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80128f24 (cam, unit +0x200 pos, unit +0x230 dir, speed mode). Mode 0 does nothing.
+// DOL 0x80128f24 [audited] (cam, unit +0x200 pos, unit +0x230 dir, speed mode). Mode 0 does nothing.
 void cCamera::Update(const float* pos, const float* dir, int nSpeed)
 {
 	switch (m_nMode)
@@ -389,7 +389,7 @@ static void WrapRotY(float& rotY, float t)
 	if (t < rotY - PI) rotY = rotY - PI2;
 }
 
-// DOL 0x80129050: the opening: the heading snaps, the extra turn (+0x70) eases from ROTY_FIRST to 0, the range follows it START -> END
+// DOL 0x80129050 [audited]: the opening: the heading snaps, the extra turn (+0x70) eases from ROTY_FIRST to 0, the range follows it START -> END
 void cCamera::UpdateFirst(const float* pos, const float* dir)
 {
 	const cParamCamera& p = *m_pParam;
@@ -413,7 +413,7 @@ void cCamera::UpdateFirst(const float* pos, const float* dir)
 	std::memcpy(m_vEye, eye, sizeof(eye));
 }
 
-// DOL 0x80129388: eases target and eye (each of x, y, z, w) to the follow position of the current entry; the heading is not smoothed here.
+// DOL 0x80129388 [audited]: eases target and eye (each of x, y, z, w) to the follow position of the current entry; the heading is not smoothed here.
 // FIRST_TO_GAME_POSITION_* move the target and *_TARGET_* the eye (as the DOL).
 void cCamera::UpdateToGame(const float* pos, const float* dir)
 {
@@ -436,7 +436,7 @@ void cCamera::UpdateToGame(const float* pos, const float* dir)
 	std::memcpy(m_vEye, out, sizeof(out));
 }
 
-// DOL 0x80129714: the quarter view. The heading (pi + dir[1]) is followed through Approach(ROTY_SPEED, ROTY_BITWEEN) (raw CSV values against
+// DOL 0x80129714 [audited]: the quarter view. The heading (pi + dir[1]) is followed through Approach(ROTY_SPEED, ROTY_BITWEEN) (raw CSV values against
 // radians: about 2.3 % of the gap a frame), the extra turn +0x70 steps 2 degrees a frame to +0x6c (both 0 in this mode), the distance eases to
 // RANGE_NORMAL / NITRO / BRAKE (the 1P values also on the two-screen layout), and the eye height is ALWAYS POSY_LIMIT (not a clamp).
 void cCamera::UpdateQuarter(const float* pos, const float* dir, int nSpeed)
@@ -475,7 +475,7 @@ void cCamera::UpdateQuarter(const float* pos, const float* dir, int nSpeed)
 	std::memcpy(m_vEye, eye, sizeof(eye));
 }
 
-// DOL 0x80129ad8: the clear orbit around the car: the saved eye - target offset turned by +0xa0 about Y. +0xa0 grows TWICE a frame by
+// DOL 0x80129ad8 [audited]: the clear orbit around the car: the saved eye - target offset turned by +0xa0 about Y. +0xa0 grows TWICE a frame by
 // CLEAR_ROTSPEED_Y / 60 degrees (once directly, once through FUN_800c53c0 which clamps it at 4 pi), then wraps once past 2 pi.
 // Dead in the DOL: 0.5 * offset (PSVECScale) and the lengths of both offsets (sqrt of dot products) are computed and dropped.
 void cCamera::UpdateClear(const float* pos)

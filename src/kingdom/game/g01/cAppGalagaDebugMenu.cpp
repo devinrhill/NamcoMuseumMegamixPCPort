@@ -18,7 +18,7 @@ const char* const STAGE_NAME[11] = {nullptr, "World1 Stage1", "World1 Stage2", "
                                     "World2 Stage3", "World3 Stage1", "World3 Stage2", "World3 Stage3", "World3 Boss"};
 }
 
-// DOL 0x800af848
+// DOL 0x800af848 [audited]
 cAppGalagaDebugMenu::cAppGalagaDebugMenu()
 {
 	SetName("Galaga Debug Menu");
@@ -28,7 +28,7 @@ cAppGalagaDebugMenu::cAppGalagaDebugMenu()
 	m_nStage = stage > 10 ? 10 : stage;
 }
 
-// DOL 0x800af96c: MENU row: left / right = player count 1..4 (wrapping); STAGE row: stage 1..10 (wrapping); both are written to the sys
+// DOL 0x800af96c [audited: left / right read the physical arrows, not game bits 4 / 8]: MENU row: left / right = player count 1..4 (wrapping); STAGE row: stage 1..10 (wrapping); both are written to the sys
 // every frame, then cAppGameDebugMenu::Execute (= cAppBaseDebugMenu::Execute 0x800c2414)
 bool cAppGalagaDebugMenu::Execute(cJetTask* pParam)
 {
@@ -53,7 +53,7 @@ bool cAppGalagaDebugMenu::Execute(cJetTask* pParam)
 	return cAppBaseDebugMenu::Execute(pParam);
 }
 
-// DOL 0x800afabc: behind the MENU row "PLAYER COUNT : %d", behind the STAGE row the stage's name, at x 0xb6, y 0x30 + row * 0x14
+// DOL 0x800afabc [audited]: behind the MENU row "PLAYER COUNT : %d", behind the STAGE row the stage's name, at x 0xb6, y 0x30 + row * 0x14
 void cAppGalagaDebugMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_title != nullptr)
@@ -66,7 +66,7 @@ void cAppGalagaDebugMenu::Draw(int nStatus, cJetTask* pParam)
 	cAppBaseDebugMenu::Draw(nStatus, pParam);
 }
 
-// DOL 0x800afba8
+// DOL 0x800afba8 [audited]
 bool cAppGalagaDebugMenu::SaveData()
 {
 	KingdomGlobal::GalagaSys->AllOpen();
@@ -74,7 +74,7 @@ bool cAppGalagaDebugMenu::SaveData()
 	return true;
 }
 
-// DOL 0x800b0c8c (job 177)
+// DOL 0x800b0c8c [audited] (job 177)
 void cAppGalagaDebugMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppGalagaDebugMenu());

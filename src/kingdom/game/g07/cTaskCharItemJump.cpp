@@ -25,6 +25,7 @@ void cTaskCharItemJump::Term()
 	cTaskCharItem::Term();
 }
 
+// DOL 0x800ad230 [audited: per AUDIT_G03_G07 row] (vtable +0xe8 of the cTaskChar part): model, its TSA / CLA / CHA when present, light set 2, fog 2
 bool cTaskCharItemJump::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();

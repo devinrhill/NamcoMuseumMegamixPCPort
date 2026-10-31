@@ -17,8 +17,6 @@
 #include "kingdom/game/g03/cTaskMenuPacman.hpp"
 #include "KingdomGlobal.hpp"
 #include "kingdom/game/g03/cG03PacnRollSys.hpp"
-#include "MotosUIManager.hpp"
-#include "MotosUIRollHome.hpp"
 #include <ESEKind.hpp>
 #include <InGamePadManager.hpp>
 #include <PadDefine.hpp>
@@ -129,7 +127,6 @@ cTaskConsMenuBase*& cTaskConsMenuMan::pHitArray(uint nNo)
 cTaskConsMenuMan::cTaskConsMenuMan(cAppGameBaseMenu* pApp)
 	: cTaskConsMenuManBase(pApp)
 {
-	UnityUI = MotosUIManager::Get<MotosUIRollHome>(MotosUIManager::EUIIndex::RollHome);
 	nState() = 0;
 	nStep() = 0;
 	StageSetting();
@@ -139,13 +136,12 @@ cTaskConsMenuMan::cTaskConsMenuMan(cAppGameBaseMenu* pApp)
 	reference = new cTaskConsMenuBg(pConsMan, nWorldNo());
 	CustomKingdomUtil::Assert(pTaskConsMenuBg() != nullptr);
 	KingdomGlobal::KingSys->pAppMain()->ConnectChild(pTaskConsMenuBg());
-	// DOL 0x8005bfdc: the Back button (+0x1e0) is created right after the Bg (the C# dropped it: Unity left through its own UI)
+	// DOL 0x8005bfdc [audited: described by the 43rd-session pass]: the Back button (+0x1e0) is created right after the Bg (the C# dropped it: Unity left through its own UI)
 	pTaskConsMenuBack() = new cTaskConsMenuBack(this);
 	KingdomGlobal::KingSys->pAppMain()->ConnectChild(pTaskConsMenuBack());
 	pTaskConsMenuRule() = new cTaskConsMenuRule(this);
 	CustomKingdomUtil::Assert(pTaskConsMenuRule() != nullptr);
 	KingdomGlobal::KingSys->pAppMain()->ConnectChild(pTaskConsMenuRule());
-	pTaskConsMenuRule()->UnityUI = UnityUI;
 	for (uint num = 0u; num < 2; num++)
 	{
 		pTaskConsMenuArrow(num) = new cTaskConsMenuArrow(this, num, nFreeWorldNo() != 0);
@@ -197,6 +193,7 @@ void cTaskConsMenuMan::Reset()
 	nStep() = 0;
 }
 
+// DOL 0x8005c51c [audited: checked vs decomp (call order and offsets)]
 void cTaskConsMenuMan::FreeStageCheck()
 {
 	if (nWorldNo() >= nFreeWorldNo())
@@ -221,6 +218,7 @@ void cTaskConsMenuMan::FreeStageCheck()
 	}
 }
 
+// DOL 0x8005c5b8 [audited: checked vs decomp (call order and offsets)]
 void cTaskConsMenuMan::StageSetting()
 {
 	uint nWorldStage = KingdomGlobal::PacnRollSys->nFreeStage();
@@ -235,18 +233,8 @@ void cTaskConsMenuMan::StageSetting()
 		}
 		else
 		{
-			SSaveDataPacnRoll::sStageRecord _out = SSaveDataPacnRoll::sStageRecord();
-			KingdomGlobal::PacnRollSys->pSaveLoadMan()->GetStageRecord(_out, KingdomGlobal::PacnRollSys->nRound());
-			if (_out.bFree)
-			{
-				nWorldNo() = KingdomGlobal::PacnRollSys->nWorld();
-				nStageNo() = KingdomGlobal::PacnRollSys->nStage();
-			}
-			else
-			{
-				nWorldNo() = KingdomGlobal::PacnRollSys->nWorld(nWorldStage);
-				nStageNo() = KingdomGlobal::PacnRollSys->nStage(nWorldStage);
-			}
+			nWorldNo() = KingdomGlobal::PacnRollSys->nWorld();
+			nStageNo() = KingdomGlobal::PacnRollSys->nStage();
 		}
 	}
 	else if (KingdomGlobal::PacnRollSys->IsAllClear())
@@ -266,6 +254,7 @@ void cTaskConsMenuMan::StageSetting()
 	}
 }
 
+// DOL 0x8005c6f4 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskConsMenuMan::AddHitArray()
 {
 	for (uint num = 0u; num < 13; num++)
@@ -285,7 +274,7 @@ void cTaskConsMenuMan::AddHitArray()
 	pHitArray(11u) = pTaskConsMenuArrow(1u);
 }
 
-// DOL 0x8005c76c (called by SelectProc 0x8005ce1c on a focus change): every object's WaitState (vtable +0x64), the Back button (+0x1e0) first.
+// DOL 0x8005c76c [audited: described by the 43rd-session pass] (called by SelectProc 0x8005ce1c on a focus change): every object's WaitState (vtable +0x64), the Back button (+0x1e0) first.
 // The converted C# had no Back button, so it stayed in its pointed look after the focus moved away ("Return stays in focus")
 void cTaskConsMenuMan::AllWaitState()
 {
@@ -306,6 +295,7 @@ void cTaskConsMenuMan::AllWaitState()
 	}
 }
 
+// DOL 0x8005c884 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskConsMenuMan::_ObjProc()
 {
 	int num = nSelectObjNow();
@@ -317,7 +307,7 @@ void cTaskConsMenuMan::_ObjProc()
 	}
 }
 
-// DOL 0x8005d270 (Select, DpdSelect inlined at 0x8005d298..0x8005d2fc): pad 0's pointer is tested against every object of the hit array in index order;
+// DOL 0x8005d270 [audited: described by the 43rd-session pass] (Select, DpdSelect inlined at 0x8005d298..0x8005d2fc): pad 0's pointer is tested against every object of the hit array in index order;
 // the LAST object that is hit becomes the selection. UNVERIFIED: the DOL has no "pointer valid" test here (pad +0xa8 is only checked by the cursor);
 // the native pad reports no pointer when the mouse is outside the window, so nothing is hit then and the keys select instead.
 bool cTaskConsMenuMan::DpdSelect(int padNum)
@@ -363,8 +353,10 @@ bool cTaskConsMenuMan::IsPointActive()
 	}
 }
 
+// DOL 0x8005c8f4 [audited: described by the 43rd-session pass]: get_pad1(0)->trig bits only (the C# also took the Nunchuk stick)
 void cTaskConsMenuMan::KeySelect(int padNum)
 {
+	const uint trig = GamePad::Get(0).trig;
 	// DOL 0x8005c8f4: {object, up, down} table copied from 0x8036aba0. The C# rerouted the rows that lead to the Back button (1), which Unity
 	// did not have; this is the DOL table.
 	int array[12][3] = {{0, -1, -1}, {1, 4, 12}, {2, 12, 4}, {3, 1, 2}, {4, 2, 7}, {5, 2, 8}, {6, 2, 9}, {7, 4, 1}, {8, 5, 1}, {9, 6, 1}, {12, 1, 2}, {-1, -1, -1}};
@@ -372,7 +364,7 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 	{
 		nSelectObjNow() = 12;
 	}
-	if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_UP) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_UP))
+	if (trig & GamePad::PAD_UP)
 	{
 		do
 		{
@@ -387,7 +379,7 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 		}
 		while (!IsPointActive());
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_DOWN) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_DOWN))
+	else if (trig & GamePad::PAD_DOWN)
 	{
 		do
 		{
@@ -402,7 +394,7 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 		}
 		while (!IsPointActive());
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT))
+	else if (trig & GamePad::PAD_LEFT)
 	{
 		if (4 <= nSelectObjNow() && nSelectObjNow() <= 6)
 		{
@@ -435,7 +427,7 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 	}
 	else
 	{
-		if (!InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) && !InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT))
+		if (!(trig & GamePad::PAD_RIGHT))
 		{
 			return;
 		}
@@ -470,8 +462,13 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 	}
 }
 
+// DOL 0x8005ce1c [audited: described by the 43rd-session pass]: trig & 0x80 (TWO) moves the cursor to Back
 void cTaskConsMenuMan::SelectProc(int padNum)
 {
+	if (GamePad::Get(0).trig & 0x80u)
+	{
+		nSelectObjNow() = 1;
+	}
 	if (nSelectObjNow() == 0)
 	{
 		return;
@@ -511,6 +508,7 @@ void cTaskConsMenuMan::SelectProc(int padNum)
 	}
 }
 
+// DOL 0x8005d194 [audited: described by the 43rd-session pass] (table 0x8036ac30): TWO on an unchanged Back = back out; A / B / Z (0x860) decide; left / right on the arrow pair turn the world
 void cTaskConsMenuMan::DecideCheck(int padNum)
 {
 	int array[13][2] = {{0, -1}, {1, 2}, {2, 3}, {3, 4}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {8, 7}, {9, 7}, {10, 5}, {11, 6}, {-1, -1}};
@@ -518,11 +516,12 @@ void cTaskConsMenuMan::DecideCheck(int padNum)
 	{
 		return;
 	}
-	if (InGamePadManager::GetCancelKeyDown(padNum) && nSelectObjNow() == nSelectObjOld() && nSelectObjOld() == 1)
+	const uint trig = GamePad::Get(0).trig;
+	if ((trig & 0x80u) != 0 && nSelectObjNow() == nSelectObjOld())
 	{
 		nState() = 2;
 	}
-	else if (InGamePadManager::GetEnterKeyDown(padNum))
+	else if ((trig & 0x860u) != 0)
 	{
 		for (uint num = 0u; array[num][0] != -1; num++)
 		{
@@ -532,19 +531,20 @@ void cTaskConsMenuMan::DecideCheck(int padNum)
 			}
 		}
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT))
+	else if ((trig & GamePad::PAD_LEFT) != 0)
 	{
 		if (nSelectObjNow() == 12)
 		{
 			nState() = 5;
 		}
 	}
-	else if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT)) && nSelectObjNow() == 12)
+	else if ((trig & GamePad::PAD_RIGHT) != 0 && nSelectObjNow() == 12)
 	{
 		nState() = 6;
 	}
 }
 
+// DOL 0x8005d270
 void cTaskConsMenuMan::Select()
 {
 	if (nState() == 0)
@@ -560,6 +560,7 @@ void cTaskConsMenuMan::Select()
 	}
 }
 
+// DOL 0x8005d348 [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::KingSys->pAppMain()->IsPause())
@@ -573,7 +574,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 		if (nStep() == 0)
 		{
 			pTaskConsMenuBack()->DecideState();
-			if (InGamePadManager::GetCancelKeyDown(InGamePadManager::GetPad1No()))
+			if (GamePad::Get(0).trig & 0x80u)
 			{
 				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE03_CANCEL);
 			}
@@ -773,6 +774,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8005d958 [audited: checked vs decomp (call order and offsets)]
 void cTaskConsMenuMan::AppearStart()
 {
 	pTaskConsMenuBack()->AppearState(); // Back (+0x1e0) first, in the order of the DOL's wait-all 0x8005c76c (UNVERIFIED for the appear call)
@@ -790,19 +792,12 @@ void cTaskConsMenuMan::AppearStart()
 	{
 		pTaskConsMenuArrow(num2)->AppearState();
 	}
-	if (UnityUI != nullptr)
-	{
-		UnityUI->SetEnable(true);
-	}
-	if (UnityUI != nullptr)
-	{
-		UnityUI->PlayBaseAnim(MotosUIRollHome::EBaseAnim::In);
-	}
 }
 
+// DOL 0x8005da70 [audited: checked vs decomp (call order and offsets)]
 bool cTaskConsMenuMan::IsAppearEnd()
 {
-	bool flag = true;
+	bool flag = pTaskConsMenuBack()->IsAppearEndState();
 	if (flag)
 	{
 		flag = pTaskConsMenuRule()->IsAppearEndState();
@@ -849,19 +844,16 @@ bool cTaskConsMenuMan::IsAppearEnd()
 			}
 		}
 	}
-	if (nullptr != UnityUI && flag)
-	{
-		flag = !UnityUI->IsPlayBaseAnim(MotosUIRollHome::EBaseAnim::In);
-	}
 	return flag;
 }
 
-// DOL 0x8005dbd8: the Back task (+0x1e0) -> IsDecideEndState (vtable slot 0x84, same as IsStageDecide); the C# returned false (Unity left through its own UI)
+// DOL 0x8005dbd8 [audited: described by the 43rd-session pass]: the Back task (+0x1e0) -> IsDecideEndState (vtable slot 0x84, same as IsStageDecide); the C# returned false (Unity left through its own UI)
 bool cTaskConsMenuMan::IsBackDecide()
 {
 	return pTaskConsMenuBack() != nullptr && pTaskConsMenuBack()->IsDecideEndState();
 }
 
+// DOL 0x8005dbec [audited: checked vs decomp (call order and offsets)]
 bool cTaskConsMenuMan::IsStageDecide()
 {
 	return pTaskConsMenuStage(nStageNo())->IsDecideEndState();

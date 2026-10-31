@@ -13,7 +13,7 @@
 namespace kingdom::game::g11
 {
 
-// DOL 0x800aaa0c
+// DOL 0x800aaa0c [audited]
 cTaskGrobdaShot::cTaskGrobdaShot()
 {
 	m_fRadius = 0.2f;   // +0x24 (FLOAT_804772f0 / 804772c0)
@@ -31,7 +31,7 @@ void cTaskGrobdaShot::GenerateHandle(uint slot)
 	m_pHnd->Generate(slot, false, true, true, 0.0f, Vector4(0.0f, -100.0f, 0.0f, 1.0f));
 }
 
-// DOL 0x800ab424
+// DOL 0x800ab424 [audited]
 void cTaskGrobdaShot::Stop()
 {
 	m_nState = 0;
@@ -42,9 +42,10 @@ void cTaskGrobdaShot::Stop()
 	}
 }
 
-// DOL 0x800ab090: velocity = rotY(angle) * (0, 0, speed) = the move vector, the handle shown at the shot
+// DOL 0x800ab090 [audited]: velocity = rotY(angle) * (0, 0, speed) = the move vector, the handle shown at the shot
 void cTaskGrobdaShot::BaseFire(float speed, const float pos[3], float rotY)
 {
+	m_fReach = speed;   // SetCharSpace(speed): the broad radius of the sweeps, the homing speed
 	m_nMode = 0;
 	m_nState = 1;
 	for (int i = 0; i < 3; i++) m_vPos[i] = pos[i];
@@ -62,7 +63,7 @@ void cTaskGrobdaShot::BaseFire(float speed, const float pos[3], float rotY)
 	}
 }
 
-// DOL 0x800aac50: a flying shot remembers its position, and while x and z stay within -50 .. 50 (FLOAT_8047ae90 / 94) moves by its move vector (0x800aadfc,
+// DOL 0x800aac50 [audited]: a flying shot remembers its position, and while x and z stay within -50 .. 50 (FLOAT_8047ae90 / 94) moves by its move vector (0x800aadfc,
 // the homing mode 1 NOT PORTED) and registers in its list; else it ends
 bool cTaskGrobdaShot::Execute(cJetTask* pParam)
 {
@@ -100,7 +101,7 @@ bool cTaskGrobdaShot::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800ab4b4: the nearest record (smallest squared distance) of a kind < 3 (a mover, a wall) shows the hit effect (slot 0x17) at its point
+// DOL 0x800ab4b4 [audited]: the nearest record (smallest squared distance) of a kind < 3 (a mover, a wall) shows the hit effect (slot 0x17) at its point
 void cTaskGrobdaShot::HitEffect()
 {
 	const sGrobdaHit* best = nullptr;
@@ -110,7 +111,7 @@ void cTaskGrobdaShot::HitEffect()
 		cTaskGrobdaEffect::Spawn((uint)cTaskGrobdaEffect::eHIT, best->point);
 }
 
-// DOL 0x800ac738 / 0x800ab930
+// DOL 0x800ac738 [audited]
 void cTaskGrobdaShot::Resolve(int a, int b)
 {
 	const size_t hits = HitList().size();
@@ -119,24 +120,36 @@ void cTaskGrobdaShot::Resolve(int a, int b)
 	if (hits != 0) Stop();
 }
 
-// DOL 0x800ac4a8: the effect is generated once (BIN_EFF_SHOT_PLAYER_0N) and kept hidden until a shot flies
+// DOL 0x800ab930 [audited]: as the player's, and the effect's emitter is let go (0x8008a508(handle, 1))
+void cTaskGrobdaShotEnemy::Resolve(int a, int b)
+{
+	const size_t hits = HitList().size();
+	if (a == 0) HitEffect();
+	(void)b;
+	if (hits != 0)
+	{
+		Stop();
+		if (m_pHnd != nullptr) m_pHnd->Detach(true);
+	}
+}
+// DOL 0x800ac4a8 [audited]: the effect is generated once (BIN_EFF_SHOT_PLAYER_0N) and kept hidden until a shot flies
 cTaskGrobdaShotPlayer::cTaskGrobdaShotPlayer(int player)
 	: m_nPlayer(player)
 {
 	SetName("cTaskGrobdaShotPlayer");
-	SetType((uint)player);              // GXInitTexObjUserData(this, param_2): 0xf000000 + the player id
+	SetType(0x1000001u + (uint)player);   // GXInitTexObjUserData(this, param_2): the tank's type 0x10000001 + player - 0xf000000 (Init 0x80194e74)
 	GenerateHandle((uint)(cTaskGrobdaEffect::eSHOT_PLAYER + (player & 3)));
 	Stop();
 }
 
-// DOL 0x800ac640 (the sound m11se_laser) + 0x800ab090
+// DOL 0x800ac640 [audited] (the sound m11se_laser) + 0x800ab090
 void cTaskGrobdaShotPlayer::Fire(float speed, const float pos[3], float rotY)
 {
 	snd::Play("m11se_laser");   // DAT_8047aed8
 	BaseFire(speed, pos, rotY);
 }
 
-// DOL 0x800ab5b8
+// DOL 0x800ab5b8 [audited]
 cTaskGrobdaShotEnemy::cTaskGrobdaShotEnemy(uint type)
 {
 	SetName("cTaskGrobdaShotEnemy");
@@ -145,7 +158,7 @@ cTaskGrobdaShotEnemy::cTaskGrobdaShotEnemy(uint type)
 	m_nState = 0;
 }
 
-// DOL 0x800ab7cc + 0x800ab254 (+ the nearest player, 0x800aba50): the shot leaves along rot[1] and then homes in on the nearest player
+// DOL 0x800ab7cc [audited] + 0x800ab254 (+ the nearest player, 0x800aba50): the shot leaves along rot[1] and then homes in on the nearest player
 bool cTaskGrobdaShotEnemy::FireAimed(float speed, const float pos[3], const float rot[3])
 {
 	uint slot = 0x10;
@@ -173,7 +186,7 @@ bool cTaskGrobdaShotEnemy::FireAimed(float speed, const float pos[3], const floa
 	return true;
 }
 
-// DOL 0x800ab6e0: the effect of the enemy kind (slot 0x10 + type - 0x2000001; 0x800ab9ac) is generated into the shot's handle, then the beam sound and the fire
+// DOL 0x800ab6e0 [audited]: the effect of the enemy kind (slot 0x10 + type - 0x2000001; 0x800ab9ac) is generated into the shot's handle, then the beam sound and the fire
 bool cTaskGrobdaShotEnemy::Fire(float speed, const float pos[3], float rotY)
 {
 	uint slot = 0x10;
@@ -187,18 +200,18 @@ bool cTaskGrobdaShotEnemy::Fire(float speed, const float pos[3], float rotY)
 
 float cTaskGrobdaShotGrenade::s_fGravity = 0.01f;
 
-// DOL 0x800abb8c + 0x800abc90: radius (FLOAT_804772d0 .. d8), the trail effect (slot 0x1a + player), hidden
+// DOL 0x800abb8c [audited] + 0x800abc90: radius (FLOAT_804772d0 .. d8), the trail effect (slot 0x1a + player), hidden
 cTaskGrobdaShotGrenade::cTaskGrobdaShotGrenade(uint type)
 {
 	SetName("cTaskGrobdaShotGrenade");
 	SetType(type);
-	m_fRadius = 0.3f;   // UNVERIFIED: FLOAT_804772d8 (the sphere is never swept: no list)
+	m_fRadius = 0.5f;   // FLOAT_804772d8 (+0x1c 0.2, +0x20 1.0 = FLOAT_804772d0 / d4)
 	GenerateHandle((uint)(cTaskGrobdaEffect::eGRENADE_LOCUS + (int)(type - 0x3000001u)));
 	// the shadow: FUN_80193e74 + RegistModel(BIN_MDL_GRENADE_SHADOW 0x14f86b46, 0x36f), vtable +0x20 (0x80194118) sets its +0x54 flag to 1.
 	// The model (m11e_18_gren_shad) is a plain opaque cylinder (no blend, z compare + update, raster colour): a depth-shadow caster, not
 	// a colour model. Its push-back slots are 0x80194120 (+0x4c / +0x58: the +0x54 flag = IsDrawShadowDepth) and 0x80194128 (+0x50 / +0x5c:
 	// the model while a state byte (app chain +0x1b8 / +0x1b4, +0xf4) is 4; UNVERIFIED meaning). Natively shadow-only (as cTaskModelEx's
-	// shadow models): the colour pass never draws it and the engine has no depth-shadow pass yet, so it shows nothing. Not ported: the
+	// shadow models): the colour pass never draws it, the depth-shadow pass does (NativeScene::SetShadow, on in cTaskGrobdaStage). Not ported: the
 	// draw step 0x8019406c (ScnObj options 2 / 3 / 4 cleared, world matrix re-set)
 	m_pShadow = new kingdom::cKingdomModel(string("BIN_MDL_GRENADE_SHADOW"), 0x36fu);
 	m_pShadow->SetShadowOnly(true);
@@ -208,14 +221,14 @@ cTaskGrobdaShotGrenade::cTaskGrobdaShotGrenade(uint type)
 	m_nState = 0;
 }
 
-// DOL 0x800abbf0: the shadow model goes (vtable +0x10)
+// DOL 0x800abbf0 [audited]: the shadow model goes (vtable +0x10)
 cTaskGrobdaShotGrenade::~cTaskGrobdaShotGrenade()
 {
 	delete m_pShadow;
 	m_pShadow = nullptr;
 }
 
-// DOL 0x800ac050: sound, the shot's fire, then the velocity = (0, 0, 1) turned about X by rot[0] and about Y by rot[1], times the speed
+// DOL 0x800ac050 [audited]: sound, the shot's fire, then the velocity = (0, 0, 1) turned about X by rot[0] and about Y by rot[1], times the speed
 void cTaskGrobdaShotGrenade::Throw(float speed, const float pos[3], const float rot[3])
 {
 	snd::Play("m11se_grenade");   // DAT_8047aec0
@@ -237,10 +250,11 @@ void cTaskGrobdaShotGrenade::Throw(float speed, const float pos[3], const float 
 	}
 	for (int i = 0; i < 3; i++) m_vMove[i] = v[i] * speed;
 	m_vRot[0] = rot[0];
+	if (m_pHnd != nullptr && m_pHnd->IsValid()) m_pHnd->vSetRotate(Vector4(rot[0], rot[1], rot[2], 1.0f));   // BaseFire 0x800ab090 sets the whole rotation
 	m_bFlight = true;
 }
 
-// DOL 0x800ac320: a blast of the owner's combo (kind 2 = the grenade size, not counted), the sound, the ball ends
+// DOL 0x800ac320 [audited]: a blast of the owner's combo (kind 2 = the grenade size, not counted), the sound, the ball ends
 void cTaskGrobdaShotGrenade::Explode()
 {
 	uint ctype = 0x4000005u;
@@ -257,7 +271,7 @@ void cTaskGrobdaShotGrenade::Explode()
 	Stop();
 }
 
-// DOL 0x800abddc: gravity, the landing, the turn of the ball to its flight direction, then the shot's move
+// DOL 0x800abddc [audited]: gravity, the landing, the turn of the ball to its flight direction, then the shot's move
 bool cTaskGrobdaShotGrenade::Execute(cJetTask* pParam)
 {
 	if (cTaskGrobdaCollision::Running() && m_nState == 1)
@@ -269,6 +283,7 @@ bool cTaskGrobdaShotGrenade::Execute(cJetTask* pParam)
 		{
 			const float dx = m_vMove[0] / l, dy = m_vMove[1] / l, dz = m_vMove[2] / l;
 			m_vRot[0] = std::atan2(-dy, std::fabs(dx) + std::fabs(dz));
+			if (m_pHnd != nullptr && m_pHnd->IsValid()) m_pHnd->vSetRotate(Vector4(m_vRot[0], m_vRot[1], m_vRot[2], 1.0f));   // vtable +0x2c = the handle's rotation
 		}
 	}
 	const bool ret = cTaskGrobdaShot::Execute(pParam);
@@ -278,7 +293,7 @@ bool cTaskGrobdaShotGrenade::Execute(cJetTask* pParam)
 		Vector4& t = m_pShadow->vTrans();
 		t = Vector4(m_vPos[0], m_vPos[1], m_vPos[2], m_vPos[3]);
 	}
-	// DOL 0x800abfc8 (Draw): the shadow is drawn only while +0xb3c is set (natively its visibility, the scene draws registered models)
+	// DOL 0x800abfc8 [audited] (Draw): the shadow is drawn only while +0xb3c is set (natively its visibility, the scene draws registered models)
 	if (m_pShadow != nullptr)
 	{
 		if (m_bFlight) m_pShadow->Visible();

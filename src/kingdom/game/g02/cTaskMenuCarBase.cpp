@@ -43,12 +43,12 @@ cTaskMenuCarBase::cTaskMenuCarBase()
 	m_nStep = 0;
 }
 
-// DOL 0x80110c54
+// DOL 0x80110c54 [audited]
 cTaskMenuCarBase::~cTaskMenuCarBase()
 {
 }
 
-// DOL 0x80110bac
+// DOL 0x80110bac [audited]
 cTaskMenuPacman::cTaskMenuPacman()
 {
 	SetName("g02::cTaskMenuPacman");
@@ -56,12 +56,12 @@ cTaskMenuPacman::cTaskMenuPacman()
 	m_fScale = 0.0f;
 }
 
-// DOL 0x80111148
+// DOL 0x80111148 [audited]
 cTaskMenuPacman::~cTaskMenuPacman()
 {
 }
 
-// DOL 0x80110cac: model 1 = MENU_NULL_MODEL (0x72dd0c3c, the placement); model 0 = CAR_PAC (0x973daad2) + CAR_PAC_ANIM_NORMAL, light set 1,
+// DOL 0x80110cac [audited]: model 1 = MENU_NULL_MODEL (0x72dd0c3c, the placement); model 0 = CAR_PAC (0x973daad2) + CAR_PAC_ANIM_NORMAL, light set 1,
 // shown; its transform = node "set_pac" of the null model (rotation degrees -> radians), scale 0 until it appears. BODY_PAC on the car's node
 // "man_root" (light set 1 is set on the car again, not on the body), HEAD_PAC on the body's node "face" + HEAD_PAC_ANIM_NORMAL; the body
 // gets light set 1, the head keeps its resource light set (the DOL sets none on it).
@@ -93,27 +93,27 @@ void cTaskMenuPacman::Init()
 	}
 }
 
-// DOL 0x80110b74
+// DOL 0x80110b74 [audited]
 void cTaskMenuPacman::AppearState()
 {
 	m_nState = 1;
 	m_nStep = 0;
 }
 
-// DOL 0x80110b88
+// DOL 0x80110b88 [audited]
 bool cTaskMenuPacman::IsAppearEnd()
 {
 	return m_nState == 2;
 }
 
-// DOL 0x80110b9c
+// DOL 0x80110b9c [audited]
 void cTaskMenuPacman::Reset()
 {
 	m_nState = 0;
 	m_nStep = 0;
 }
 
-// DOL 0x80110ef4: unless paused: appearing = the car's scale grows from 0 to its node scale by 0.075 a frame; then the clips step
+// DOL 0x80110ef4 [audited]: unless paused: appearing = the car's scale grows from 0 to its node scale by 0.075 a frame; then the clips step
 // (cTaskModel::UpdateFrame 0x8009a478) and the model task runs
 bool cTaskMenuPacman::Execute(cJetTask* pParam)
 {

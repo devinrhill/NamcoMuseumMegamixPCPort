@@ -30,7 +30,7 @@ bool EnsureFont()
 	wii::Brres b;
 	wii::Image img;
 	std::vector<std::uint8_t> file;
-	{   // the font BRRES inside the executable (DOL 0x80442bc0)
+	{   // the font BRRES inside the executable (DOL 0x80442bc0 [audited])
 		const wii::Dol* dol = wii::GameDol();
 		if (dol == nullptr) return false;
 		const std::uint8_t* p = dol->At(kFontBres, 0x10);
@@ -46,7 +46,7 @@ bool EnsureFont()
 }
 }
 
-// DOL 0x8013be34: the string is formatted into the queue (entries {x, y, color, text} in a 0x3000 byte buffer, 4 byte aligned,
+// DOL 0x8013be34 [audited]: the string is formatted into the queue (entries {x, y, color, text} in a 0x3000 byte buffer, 4 byte aligned,
 // text NUL terminated); when the buffer is full the call is dropped.
 void Print(int x, int y, std::uint32_t color, const char* fmt, ...)
 {
@@ -55,13 +55,20 @@ void Print(int x, int y, std::uint32_t color, const char* fmt, ...)
 	va_start(ap, fmt);
 	std::vsnprintf(buf, sizeof buf, fmt, ap);
 	va_end(ap);
-	const std::size_t need = 12 + ((std::strlen(buf) + 1 + 3) & ~3u);
-	if (g_bytes + need >= (std::size_t)kQueueBytes) return;
-	g_bytes += need;
+	// the entry header (x, y, color) is 12 bytes; the text goes into what is left of the 0x3000 byte buffer (truncated like vsnprintf) and the
+	// next entry starts at the next multiple of 4 AFTER the NUL (an already aligned end still moves up by 4)
+	if (g_bytes + 12 >= (std::size_t)kQueueBytes) return;
+	const std::size_t start = g_bytes + 12;
+	if (start >= (std::size_t)kQueueBytes) return;
+	const std::size_t room = (std::size_t)kQueueBytes - start;   // incl. the NUL
+	std::size_t len = std::strlen(buf);
+	if (len > room - 1) { len = room - 1; buf[len] = 0; }
+	const std::size_t end = start + len + 1;
+	g_bytes = end + (4 - (end & 3));
 	g_queue.push_back({x, y, color, buf});
 }
 
-// DOL 0x8013c3d4 per entry: 4 vertices per glyph, u = col * 8 / 128, v = row * 8 / 64
+// DOL 0x8013c3d4 [audited: the DOL draws on a top-left ortho; port flips to the centred game space] per entry: 4 vertices per glyph, u = col * 8 / 128, v = row * 8 / 64
 void Flush()
 {
 	if (!g_queue.empty() && EnsureFont())

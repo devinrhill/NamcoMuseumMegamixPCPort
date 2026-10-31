@@ -46,15 +46,12 @@ void cTaskBGEffect::Term()
 {
 }
 
+// DOL 0x801e1c94 [audited: per AUDIT_G03_G07 row]: step the particles by 1.0 unless paused / HOME / game step 1 (the C# else branch UpdateFrame(0) was a no-op)
 bool cTaskBGEffect::Execute(cJetTask* pParam)
 {
 	if (!Constants::SYSTEM_IS_PAUSE() && KingdomGlobal::g_pMotosGame->nStep(0) != 1)
 	{
-		this->get_KingdomPtkMan()->UpdateFrame();
-	}
-	else
-	{
-		this->get_KingdomPtkMan()->UpdateFrame(0.0f);
+		this->get_KingdomPtkMan()->UpdateFrame(1.0f);
 	}
 	return true;
 }

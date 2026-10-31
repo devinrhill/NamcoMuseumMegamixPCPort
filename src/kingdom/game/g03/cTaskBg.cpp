@@ -8,6 +8,7 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x8014badc [audited: per AUDIT_G03_G07 row] (ctor 0x8014bc60: name "cTaskBg", scene matrix = translate * RotZ * RotY * RotX (each when non-zero), scale)
 void cTaskBg::Initialize()
 {
 	SetName("cTaskBg");
@@ -31,6 +32,7 @@ void cTaskBg::Term()
 	cTaskBgBase::Term();
 }
 
+// DOL 0x8014bce4 [audited: per AUDIT_G03_G07 row] (model UpdateFrame unless paused / HOME held; reached through the +0xd8 sub-vtable thunk 0x8014bd70)
 bool cTaskBg::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE())

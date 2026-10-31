@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCharEnemyLadyBug.hpp"
 
 #include "CustomKingdomUtil.hpp"
@@ -19,6 +20,7 @@ cTaskCharEnemy* cTaskCharEnemyLadyBug::Construct()
 	return new cTaskCharEnemyLadyBug();
 }
 
+// DOL 0x80055a8c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyLadyBug::Init()
 {
 	nChangeMoveFrame() = 20;
@@ -30,6 +32,7 @@ void cTaskCharEnemyLadyBug::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80055aa4 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyLadyBug::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -46,6 +49,7 @@ bool cTaskCharEnemyLadyBug::Create(uint no)
 	return true;
 }
 
+// DOL 0x80055b88 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyLadyBug::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -89,7 +93,7 @@ uint cTaskCharEnemyLadyBug::Input()
 	}
 	if (!bTestFlag(1024u) && GetMode() == 2)
 	{
-		if (Random::Range(0, 2) == 0)
+		if (kingdom::MslRandRange(0, 2) == 0)
 		{
 			ForceMode(3);
 			switch (num2)
@@ -145,6 +149,7 @@ uint cTaskCharEnemyLadyBug::Input()
 	return num2;
 }
 
+// DOL 0x80055f14 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyLadyBug::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

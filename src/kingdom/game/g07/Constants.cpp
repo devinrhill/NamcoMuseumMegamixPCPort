@@ -1,3 +1,6 @@
+#include "GamePad.hpp"
+#include "kingdom/MslRand.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "platform/devtools_g07edit.hpp"
 #include "kingdom/game/g07/Constants.hpp"
 
@@ -252,7 +255,7 @@ uint Constants::get_MO_HITFLAG_REPEL()
 void Constants::Kingdom_G07_Init_ChangeInit()
 {
 	Constants::Motos_System_Init();
-	kingdom::Constants::Kingdom_SetJobNo(287309824u);
+	kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_MENU);
 }
 
 void Constants::Kingdom_G07_Term_ChangeInit()
@@ -380,9 +383,9 @@ void Constants::ReleaseMotos()
 
 bool Constants::IsExecGCCollect()
 {
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 287309824 && KingdomGlobal::SysCore->GetLastJobNo() != 291504128)
+	if (KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_MENU && KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_MATCHING)
 	{
-		return KingdomGlobal::SysCore->GetLastJobNo() != 292552704;
+		return KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_MULTI_MENU;
 	}
 	return false;
 }
@@ -422,11 +425,11 @@ cG07MotosSys* Constants::Motos_System()
 
 namespace
 {
-// `new System.Random().Next()`: a non-negative int from a fresh time seeded generator
+// DOL: the table index of every MOTOS_RAND* call is the MSL rand() (e.g. cTaskCharPlayer mode 4: rand() then 0x800a1b50(min, max, sys, rand)); the table
+// MOTOS_RAND_TBL (512 words) equals the DOL's at 0x8036de20. The C# used a time-seeded System.Random here (audited 44th).
 uint SysRandomNext()
 {
-	static std::mt19937 gen{std::random_device{}()};
-	return (uint)(gen() & 0x7fffffffu);
+	return (uint)kingdom::MslRand();
 }
 }
 
@@ -601,13 +604,11 @@ bool Constants::MOTOS_IS_PAUSE()
 	return true;
 }
 
+// inlined in the DOL (cTaskBG::Execute 0x801e1c18, cTaskPanel::Execute 0x801fda08, cTaskBGEffect::Execute 0x801e1c94): game pause (+0x1b4) or
+// pad 0 holding the HBM bit 0x400; the C# tested its Unity pad-disable flag instead of HOME
 bool Constants::SYSTEM_IS_PAUSE()
 {
-	if (!KingdomGlobal::g_pMotosGame->IsPause())
-	{
-		return InGamePadManager::get_Disable();
-	}
-	return true;
+	return KingdomGlobal::g_pMotosGame->IsPause() || (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;
 }
 
 float Constants::FPS_LEN(float f)

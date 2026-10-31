@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g11/cTaskGrobdaEnemyListManager.hpp"
 
 #include <cstdio>
@@ -18,10 +19,10 @@ void cTaskGrobdaEnemyListManager::LoadLevel(int row)
 	m_Waves.RegistData(name);
 	m_nLevel = row;
 	const int n = m_Waves.nRow();
-	m_nWave = n > 0 ? std::rand() % n : 0;
+	m_nWave = n > 0 ? kingdom::MslRand() % n : 0;
 }
 
-// DOL 0x800365fc
+// DOL 0x800365fc [audited]
 cTaskGrobdaEnemyListManager::cTaskGrobdaEnemyListManager()
 {
 	SetName("cTaskGrobdaEnemyListManager");
@@ -33,7 +34,7 @@ cTaskGrobdaEnemyListManager::cTaskGrobdaEnemyListManager()
 	LoadLevel(1);
 }
 
-// DOL 0x800366e8: the level follows the best score
+// DOL 0x800366e8 [audited]: the level follows the best score
 bool cTaskGrobdaEnemyListManager::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -50,13 +51,13 @@ bool cTaskGrobdaEnemyListManager::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8003684c
+// DOL 0x8003684c [audited]
 std::string cTaskGrobdaEnemyListManager::Current()
 {
 	return m_Waves.Str(m_nWave, 0, "");
 }
 
-// DOL 0x8003688c
+// DOL 0x8003688c [audited]
 void cTaskGrobdaEnemyListManager::Advance()
 {
 	m_nWave++;

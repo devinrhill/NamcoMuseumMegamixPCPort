@@ -2,6 +2,11 @@
 
 #include <cstring>
 
+#include "GamePad.hpp"
+#include "KingdomGlobal.hpp"
+#include "kingdom/cAppKingdom.hpp"
+#include "kingdom/cKingdomSys.hpp"
+#include "kingdom/game/g02/cTaskUnit.hpp"
 #include "wii/Archive.hpp"
 #include "wii/Brres.hpp"
 #include "wii/Mdl0.hpp"
@@ -41,7 +46,7 @@ struct cSet
 };
 }
 
-// DOL 0x8005f8e8 (priority 0x10001)
+// DOL 0x8005f8e8 [audited] (priority 0x10001)
 cTaskBG::cTaskBG()
 {
 	SetName("g02::cTaskBG");
@@ -59,8 +64,8 @@ cTaskBG::cTaskBG()
 	static const char* const MODEL[12] = {"STAGE_BG_1A", "STAGE_BG_1B", "STAGE_BG_1C", "STAGE_BG_1D", "STAGE_BG_2A", "STAGE_BG_2B",
 	                                      "STAGE_BG_2C", "STAGE_BG_2D", "STAGE_BG_3A", "STAGE_BG_3B", "STAGE_BG_3C", "STAGE_BG_3D"};
 	static const char* const NODE[12] = {"_1a", "_1b", "_1c", "_1d", "_2a", "_2b", "_2c", "_2d", "_3a", "_3b", "_3c", "_3d"};
-	// 0x8036b5f0: the clips (the first two CRCs, 0xfa92ff1b / 0x7c068db5, are not entries of the stage archives: the 1A / 1B models have none)
-	static const char* const ANIM[12] = {nullptr, nullptr, "STAGE_BG_1C_ANIM", "STAGE_BG_1D_ANIM", "STAGE_BG_2A_ANIM", "STAGE_BG_2B_ANIM",
+	// 0x8036b5f0: the clips (all 12 CRCs are these names, each attached only when the stage archive has it)
+	static const char* const ANIM[12] = {"STAGE_BG_1A_ANIM", "STAGE_BG_1B_ANIM", "STAGE_BG_1C_ANIM", "STAGE_BG_1D_ANIM", "STAGE_BG_2A_ANIM", "STAGE_BG_2B_ANIM",
 	                                     "STAGE_BG_2C_ANIM", "STAGE_BG_2D_ANIM", "STAGE_BG_3A_ANIM", "STAGE_BG_3B_ANIM", "STAGE_BG_3C_ANIM",
 	                                     "STAGE_BG_3D_ANIM"};
 	{
@@ -81,14 +86,14 @@ cTaskBG::cTaskBG()
 	add("STAGE_BG_OUT", nullptr, cSet("STAGE_BG_OUT_SET").ByIndex(1));
 }
 
-// DOL 0x8006002c: every handle detaches its particle (vtable +0x10 with 1)
+// DOL 0x8006002c [audited]: every handle detaches its particle (vtable +0x10 with 1)
 void cTaskBG::Term()
 {
 	for (auto& h : m_Ptk)
 		if (h != nullptr) h->Detach(true);
 }
 
-// DOL 0x8006016c
+// DOL 0x8006016c [audited]
 bool cTaskBG::ResetPtk()
 {
 	if (!Exists("STAGE_BG_PTK_POINT")) return false;   // FUN_8000bca0(0xefad9461)
@@ -109,13 +114,15 @@ bool cTaskBG::ResetPtk()
 		m_Ptk[i]->Generate(0x28u, false, false, true, 0.0f, Vector4(n.translate[0], n.translate[1], n.translate[2], 1.0f));
 		i++;
 	}
-	return i != 0;   // UNVERIFIED: the DOL returns 1 only when the node has children
+	return i != 0;   // the DOL returns 1 only when the node has children
 }
 
-// DOL 0x800600a4 (UNVERIFIED body: the clips run)
+// DOL 0x800600a4 [audited]: every model's clips step, unless the app is paused (+0x1b4), the stage end runs (+0x284) or HOME is held
 bool cTaskBG::Execute(cJetTask* pParam)
 {
-	UpdateFrame();
+	const cRallyUnitHost* host = KingdomGlobal::KingSys != nullptr ? dynamic_cast<const cRallyUnitHost*>(KingdomGlobal::KingSys->pAppMain()) : nullptr;
+	const bool home = (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;
+	if (!home && (host == nullptr || (!host->IsUnitPause() && !host->IsUnitStageEnd()))) UpdateFrame();
 	return cTaskModel::Execute(pParam);
 }
 

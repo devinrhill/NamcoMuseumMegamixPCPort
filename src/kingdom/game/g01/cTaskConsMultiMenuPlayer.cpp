@@ -20,16 +20,16 @@ namespace
 {
 const char* const ANT_MENU = "ANT_MENU";   // 0xd3a909fe, g01menu.lzs
 
-const uint WND_LAY[4] = {0u, 1u, 2u, 3u};                 // DOL 0x80370650: anita 0 layer per player (pattern 3) = the panel origin
-const uint FACE_LAY_A = 10u;                              // DOL 0x80370660
-const uint FACE_LAY_POS = 9u;                             // DOL 0x80370664
-const uint FACE_LAY_B = 11u;                              // DOL 0x80370668
-const uint SCORE_LAY[6] = {2u, 3u, 4u, 5u, 6u, 7u};       // DOL 0x80370670: anitas 4..9 (pattern 2)
+const uint WND_LAY[4] = {0u, 1u, 2u, 3u};                 // DOL 0x80370650 [audited]: anita 0 layer per player (pattern 3) = the panel origin
+const uint FACE_LAY_A = 10u;                              // DOL 0x80370660 [audited]
+const uint FACE_LAY_POS = 9u;                             // DOL 0x80370664 [audited]
+const uint FACE_LAY_B = 11u;                              // DOL 0x80370668 [audited]
+const uint SCORE_LAY[6] = {2u, 3u, 4u, 5u, 6u, 7u};       // DOL 0x80370670 [audited]: anitas 4..9 (pattern 2)
 // [player][appear, wait, delete]
-const int FRAME1_ANM[4][3] = {{0x4d, 0x4c, 0x4e}, {0xc1, 0xc2, 0xc3}, {0xa3, 0xa4, 0xa5}, {0xa6, 0xa7, 0xa8}};   // DOL 0x80370688 (anita 1)
-const int FRAME2_ANM[4][3] = {{0x76, 0x77, 0x78}, {0x79, 0x7a, 0x7b}, {0x7c, 0x7d, 0x7e}, {0x7f, 0x80, 0x81}};   // DOL 0x803706b8 (anita 2)
-const int MARK_ANM[3] = {0xc4, 0xc5, 0xc6};               // DOL 0x803706e8 (anita 3)
-// DOL 0x803706f8: [digit][appear, wait, delete] = digit * 3 + kind (0..29)
+const int FRAME1_ANM[4][3] = {{0x4d, 0x4c, 0x4e}, {0xc1, 0xc2, 0xc3}, {0xa3, 0xa4, 0xa5}, {0xa6, 0xa7, 0xa8}};   // DOL 0x80370688 [audited] (anita 1)
+const int FRAME2_ANM[4][3] = {{0x76, 0x77, 0x78}, {0x79, 0x7a, 0x7b}, {0x7c, 0x7d, 0x7e}, {0x7f, 0x80, 0x81}};   // DOL 0x803706b8 [audited] (anita 2)
+const int MARK_ANM[3] = {0xc4, 0xc5, 0xc6};               // DOL 0x803706e8 [audited] (anita 3)
+// DOL 0x803706f8 [audited]: [digit][appear, wait, delete] = digit * 3 + kind (0..29)
 int ScoreAnm(int nDigit, int nKind) { return nDigit * 3 + nKind; }
 
 constexpr uint STATE_VISIBLE = 1u;          // anita +4 bit 0
@@ -43,7 +43,7 @@ void AddXYZ(Vector4& dst, const Vector4& a, const Vector4& b)   // PSVECAdd (w o
 }
 }
 
-// DOL 0x800c0044
+// DOL 0x800c0044 [audited: the Mii face icon child is out of scope]
 cTaskConsMultiMenuPlayer::cTaskConsMultiMenuPlayer(cTaskConsMenuManBase* const& pConsMan, int nPlayer, char* pName)
 	: cTaskConsMenuBase(pConsMan)   // DOL 0x80145474
 {
@@ -122,25 +122,25 @@ cTaskConsMultiMenuPlayer::cTaskConsMultiMenuPlayer(cTaskConsMenuManBase* const& 
 	m_vFaceScale.w = 1.0f;
 }
 
-// DOL 0x800c13dc
+// DOL 0x800c13dc [audited]
 cTaskConsMultiMenuPlayer::~cTaskConsMultiMenuPlayer()
 {
 }
 
-// DOL 0x800c0b88
+// DOL 0x800c0b88 [audited]
 void cTaskConsMultiMenuPlayer::SetRecord(int nWorld, int nStage)
 {
 	if (nWorld != m_nWorld || nStage != m_nStage)
 	{
 		m_nWorld = nWorld;
 		m_nStage = nStage;
-		sMultiRecord* pRec = KingdomGlobal::GalagaSys->pMultiRecord(m_nWorld, m_nStage);   // DOL 0x800afeb4
+		sMultiRecord* pRec = KingdomGlobal::GalagaSys->pMultiRecord(m_nWorld, m_nStage);   // DOL 0x800afeb4 [audited]
 		m_nScore = pRec->n[10 + m_nPlayer];
 		m_bMark = ((u32)pRec->n[0] & (1u << m_nPlayer)) != 0;
 	}
 }
 
-// DOL 0x800c0c14
+// DOL 0x800c0c14 [audited]
 void cTaskConsMultiMenuPlayer::SetScoreAnm(int nKind)
 {
 	const int nScore = m_nScore;
@@ -166,7 +166,7 @@ void cTaskConsMultiMenuPlayer::SetScoreAnm(int nKind)
 	}
 }
 
-// DOL 0x800c0d84
+// DOL 0x800c0d84 [audited]
 void cTaskConsMultiMenuPlayer::WaitExec()
 {
 	SetScoreAnm(1);
@@ -174,7 +174,7 @@ void cTaskConsMultiMenuPlayer::WaitExec()
 	pAnita(3u)->SetState(STATE_VISIBLE, m_bMark);
 }
 
-// DOL 0x800c0e18
+// DOL 0x800c0e18 [audited]
 bool cTaskConsMultiMenuPlayer::AppearExec()
 {
 	if (nStep() == 0)
@@ -231,7 +231,7 @@ bool cTaskConsMultiMenuPlayer::AppearExec()
 	return false;
 }
 
-// DOL 0x800c1268 (the frames, name and face are left as they are)
+// DOL 0x800c1268 [audited] (the frames, name and face are left as they are)
 bool cTaskConsMultiMenuPlayer::DeleteExec()
 {
 	if (nStep() == 0)
@@ -261,15 +261,15 @@ bool cTaskConsMultiMenuPlayer::DeleteExec()
 	return false;
 }
 
-// DOL 0x800c1368
+// DOL 0x800c1368 [audited: the name is queued in Draw here]
 bool cTaskConsMultiMenuPlayer::Execute(cJetTask* pParam)
 {
-	return cTaskConsMenuBase::Execute(pParam);   // DOL 0x80145740; the name print below runs in Draw (the writer child draws it natively)
+	return cTaskConsMenuBase::Execute(pParam);   // DOL 0x80145740 [audited]; the name print below runs in Draw (the writer child draws it natively)
 }
 
 // The cTaskFontWriter child (vtable 0x804381c0, priority 0x80000002) prints the name at ((int)x, (int)-y) once its visible byte (+0x268) is set
 // (Execute 0x800c1368 queues it with 0x80016e88, the name as the format). UNVERIFIED: the font (KingSys +0xa68 is taken as RESIDENT_FONT_MII, the
-// Wii name font), the size 18 (0x80016dd8) and the baseline origin of the writer's default flags.
+// Wii name font). Size 18.0 = 0x8047b1cc.
 void cTaskConsMultiMenuPlayer::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskConsMenuBase::Draw(nStatus, pParam);
@@ -280,7 +280,7 @@ void cTaskConsMultiMenuPlayer::Draw(int nStatus, cJetTask* pParam)
 	if (h > 0) st.scaleX = st.scaleY = 18.0f / (float)h;
 	st.color = 0xffffffffu;
 	st.vorigin = gfx::TextStyle::VOrigin::Baseline;
-	gfx::DrawText((float)(int)m_vFontPos.x, (float)(int)-m_vFontPos.y, m_pName, st);
+	gfx::DrawText((float)(int)m_vFontPos.x, (float)(int)-m_vFontPos.y, m_pName, st, gfx::TextAlign::Center);   // 0x80016e88: writer mode 2, flags 0x311 = centred on x, baseline
 }
 
 }

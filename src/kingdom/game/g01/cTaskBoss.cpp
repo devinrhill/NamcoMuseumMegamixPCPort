@@ -1,4 +1,6 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskBoss.hpp"
+#include "kingdom/game/g01/IntersectionSegment3Sphere.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -77,16 +79,10 @@ bool RayAABB(const float org[3], const float dir[3], const float mn[3], const fl
 	t = t0;
 	return true;
 }
-// nw4r::math::IntersectionSegment3Sphere
+// nw4r::math::IntersectionSegment3Sphere (0x80302150): the segment must cross the sphere's surface (kingdom/game/g01/IntersectionSegment3Sphere.hpp)
 bool SegmentSphere(const float a[3], const float b[3], const float c[3], float r)
 {
-	const float d[3] = {b[0] - a[0], b[1] - a[1], b[2] - a[2]};
-	const float f[3] = {a[0] - c[0], a[1] - c[1], a[2] - c[2]};
-	const float dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
-	float t = 0.0f;
-	if (dd > 1e-12f) t = std::max(0.0f, std::min(1.0f, -(f[0] * d[0] + f[1] * d[1] + f[2] * d[2]) / dd));
-	const float p[3] = {f[0] + d[0] * t, f[1] + d[1] * t, f[2] + d[2] * t};
-	return p[0] * p[0] + p[1] * p[1] + p[2] * p[2] <= r * r;
+	return IntersectionSegment3Sphere(a, b, c, r);
 }
 // the DOL's "max < frame" (NW4R keeps a one-time clip's frame running, PlayPolicy_Onetime); the native frame stops at max, so "max <= frame"
 // (one frame earlier)
@@ -103,7 +99,7 @@ float Dist2(const float a[3], const float b[3])
 
 // ---- sBossParam / cBossLeaveEnemy -----------------------------------------------------------------------------------------------------
 
-// DOL 0x800ca8e4: the rows by name, column 1
+// DOL 0x800ca8e4 [audited]: the rows by name, column 1
 void sBossParam::Load(const char* name)
 {
 	kingdom::cKingdomCSV csv;
@@ -131,7 +127,7 @@ void sBossParam::Load(const char* name)
 	f32("s_Beam01", fBeamSe);
 }
 
-// DOL 0x800cad0c: count = rows - 1 (the last row is a comment), {type, orbit} per row, the index list 0..n-1
+// DOL 0x800cad0c [audited]: count = rows - 1 (the last row is a comment), {type, orbit} per row, the index list 0..n-1
 void cBossLeaveEnemy::Load(const char* name)
 {
 	kingdom::cKingdomCSV csv;
@@ -156,8 +152,8 @@ void cBossLeaveEnemy::Shuffle()
 	if (order.empty()) return;
 	for (int i = 0; i < 300; i++)
 	{
-		const u32 a = (u32)std::rand() % (u32)order.size();   // PtkSim::Rand15 (0x80211048)
-		const u32 b = (u32)std::rand() % (u32)order.size();
+		const u32 a = (u32)kingdom::MslRand() % (u32)order.size();   // PtkSim::Rand15 (0x80211048)
+		const u32 b = (u32)kingdom::MslRand() % (u32)order.size();
 		std::swap(order[a], order[b]);
 	}
 }
@@ -170,7 +166,7 @@ const cBossLeaveEnemy::sEntry* cBossLeaveEnemy::Next()
 
 // ---- cTaskBoss ------------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x801ba078 (cTaskEnemyBase + cTaskBoss vtables, the two particle handles, four sound handles) + Init 0x800cae80: kind 0xd, stage /
+// DOL 0x801ba078 [audited: handles/vtables only] (cTaskEnemyBase + cTaskBoss vtables, the two particle handles, four sound handles) + Init 0x800cae80: kind 0xd, stage /
 // world, no attack, state 2 (waiting for the app's GAME)
 cTaskBoss::cTaskBoss()
 {
@@ -219,7 +215,7 @@ bool cTaskBoss::ChildWorld(int nExp, const char* node, float out[16]) const
 	return true;
 }
 
-// DOL 0x800cebbc
+// DOL 0x800cebbc [audited: +0x388 = 2 (2nd arg) stored by the DOL, no reader found in the boss file; port passes 2 to SetOrbitSpec directly]
 void cTaskBoss::Setup(cTaskScene* pScene, cTaskPacman* pPacman)
 {
 	m_pScene = pScene;
@@ -313,7 +309,7 @@ void cTaskBoss::SetOrbitSpec(int n)
 	StartOrbit();
 }
 
-// DOL 0x800cb308: the orbit skeleton with the boss at "orbit" (light set 1, fog 0), the four shells at shell1..4 (cTaskShell 0x800c9e04)
+// DOL 0x800cb308 [audited: port deletes the old model first]: the orbit skeleton with the boss at "orbit" (light set 1, fog 0), the four shells at shell1..4 (cTaskShell 0x800c9e04)
 void cTaskBoss::LoadModel()
 {
 	DeleteModel(0);
@@ -337,7 +333,7 @@ void cTaskBoss::LoadModel()
 	}
 }
 
-// DOL 0x800cb4f0
+// DOL 0x800cb4f0 [audited]
 void cTaskBoss::SetSegmentClip(int nCode)
 {
 	char name[0x80];
@@ -345,7 +341,7 @@ void cTaskBoss::SetSegmentClip(int nCode)
 	if (cKingdomModel* orbit = pModel(0)) orbit->RegistAnm(0u, name);
 }
 
-// DOL 0x800cc7f4: model, the hit model at "orbit" (cTaskHitModel 0x801c398c; invisible 0x8001a330), the segment's clip, the idle clips
+// DOL 0x800cc7f4 [audited]: model, the hit model at "orbit" (cTaskHitModel 0x801c398c; invisible 0x8001a330), the segment's clip, the idle clips
 void cTaskBoss::StartClips()
 {
 	LoadModel();
@@ -363,7 +359,7 @@ void cTaskBoss::StartClips()
 	SyncCourse();
 }
 
-// DOL 0x800cc908: the models again (+0xc0 = 0x800cb308: new orbit / boss models and four new shells; natively the old shells, whose
+// DOL 0x800cc908 [audited]: the models again (+0xc0 = 0x800cb308: new orbit / boss models and four new shells; natively the old shells, whose
 // models hung on the deleted boss model, are released), the new shells' models invisible (0x8001a330), the orbit clip m01m_lb_ob_a50_cha
 // (rate 1.0, FLOAT_8047b3f4) and the boss's m01m_g09_a50_{cha, cla, tsa, tpa, via} where they exist (cha / tpa / via rate 1.0); the longest of
 // cha / tpa / via is the demo's cAnmCheck. The hit model is not expanded again.
@@ -439,13 +435,13 @@ bool cTaskBoss::GoalCheck()
 	return true;
 }
 
-// DOL 0x800cb554
+// DOL 0x800cb554 [audited]
 void cTaskBoss::SyncCourse()
 {
 	cKingdomModel* orbit = pModel(0);
 	if (orbit == nullptr || m_pScene == nullptr) return;
 	orbit->SetFrameAnmChr(0u, m_pScene->fFrame());
-	orbit->SetUpdateRateAnmChr(0u, m_pScene->fRate());
+	orbit->SetUpdateRateAnmChr(0u, m_pScene->fRate());   // 0x800f7df8 (annotate.py mislabels it fPacmanSpeed)
 }
 
 // a clip pair of an attack (the boss and its hit model in the same slot), rate 1, optionally weight 0 (blended in)
@@ -465,7 +461,7 @@ void cTaskBoss::SetAnm(int nSlot, const char* boss, const char* hit, bool bWeigh
 	}
 }
 
-// DOL 0x800cc664
+// DOL 0x800cc664 [audited]
 void cTaskBoss::Blend(float fFrames, int nFrom, int nTo)
 {
 	m_bBlend = true;
@@ -475,7 +471,7 @@ void cTaskBoss::Blend(float fFrames, int nFrom, int nTo)
 	m_fBlendTime = 0.0f;
 }
 
-// DOL 0x800cc684
+// DOL 0x800cc684 [audited]
 void cTaskBoss::UpdateBlend()
 {
 	if (!m_bBlend) return;
@@ -494,7 +490,7 @@ void cTaskBoss::UpdateBlend()
 	}
 }
 
-// DOL 0x800cb5b4: +0x3d0 = the orbit node's rotation * (0, 0, 1); +0x440.. = the bom%d matrices; +0x3f0 = ef_body
+// DOL 0x800cb5b4 [audited: node chains come from the model's node matrices, not the DOL's hand-built TRS products; ef_body/bom/forward only]: +0x3d0 = the orbit node's rotation * (0, 0, 1); +0x440.. = the bom%d matrices; +0x3f0 = ef_body
 void cTaskBoss::UpdateNodes()
 {
 	float n[12];
@@ -528,7 +524,7 @@ bool cTaskBoss::BomMatrix(int i, float out[16]) const
 	return true;
 }
 
-// DOL 0x800cc44c: +0x20 = the translate of the orbit skeleton's node 1 ("orbit"), the sound actor follows; +0x554 = +0x3f0
+// DOL 0x800cc44c [audited: +0x30 rotation and the +0x390 matrix are not kept (UNVERIFIED readers)]: +0x20 = the translate of the orbit skeleton's node 1 ("orbit"), the sound actor follows; +0x554 = +0x3f0
 void cTaskBoss::UpdateBossModel()
 {
 	float n[12];
@@ -541,13 +537,13 @@ void cTaskBoss::UpdateBossModel()
 	m_SndActor.SetPosition(m_v20);   // 0x800cc5dc: the sound actor (+0x344) at +0x20
 }
 
-// DOL 0x800cc618
+// DOL 0x800cc618 [audited]
 void cTaskBoss::UpdateHitEffect()
 {
 	if (m_HitFx.IsValid()) m_HitFx.vSetTrans(Vector4(m_vBody[0], m_vBody[1], m_vBody[2], 1.0f));
 }
 
-// DOL 0x800ccb30: the orbit as a timetable against the course frame; a hold node starts attack nParam + 1 when none runs
+// DOL 0x800ccb30 [audited]: the orbit as a timetable against the course frame; a hold node starts attack nParam + 1 when none runs
 bool cTaskBoss::UpdateBossOrbit(float fStep)
 {
 	(void)fStep;
@@ -572,7 +568,7 @@ bool cTaskBoss::UpdateBossOrbit(float fStep)
 	return true;
 }
 
-// DOL 0x800ccc40
+// DOL 0x800ccc40 [audited]
 void cTaskBoss::UpdateBossFire()
 {
 	bool bDone = false;
@@ -594,7 +590,7 @@ void cTaskBoss::UpdateBossFire()
 
 // (its step jump table at 0x80438ab8, right after cTaskBomb::cBombParam's vtable 0x80438aac, which the vtable audit reads as slots: case
 // targets 0x800ccf0c / 0x800ccfd4 / 0x800cd0d4 / 0x800cd178 / 0x800cd2e0 / 0x800cd3d4 / 0x800cd40c / 0x800cd488 / 0x800cd4e0)
-// DOL 0x800cceb8: inhale (CHA_03 -> CHA_04, mouth open o_Breath01 frames), then the beam (CHA_08 / CLA_08) that hurts Pac-Man at
+// DOL 0x800cceb8 [audited: DOL retriggers m01se_22hassya every frame past frame 130 (no guard; port once, audible effect UNVERIFIED); port also releases the hit model's slots 1/2]: inhale (CHA_03 -> CHA_04, mouth open o_Breath01 frames), then the beam (CHA_08 / CLA_08) that hurts Pac-Man at
 // o_Beam_Attack01; a missile in the mouth cuts the inhale short (CHA_06)
 bool cTaskBoss::AttackBeam()
 {
@@ -723,7 +719,7 @@ bool cTaskBoss::AttackBeam()
 	return false;
 }
 
-// DOL 0x800ccd38: the beam effect at the mouth effect's position, turned toward Pac-Man (0x801c1dbc)
+// DOL 0x800ccd38 [audited: FUN_8008a5b0 (handle reset before SetTrans) not ported]: the beam effect at the mouth effect's position, turned toward Pac-Man (0x801c1dbc)
 void cTaskBoss::AimBeam()
 {
 	if (!m_Beam.IsValid() || m_pFxMouth == nullptr || !m_pFxMouth->IsValid()) return;
@@ -738,7 +734,7 @@ void cTaskBoss::AimBeam()
 	m_Beam.vSetRotate(Vector4(-pitch, yaw, 0.0f, 0.0f));
 }
 
-// DOL 0x800cd540: the bite (CHA_07): the danger sign at a_Danger01, the threat effect at e_Threat01, the bite (effect, m01se_29kamituki,
+// DOL 0x800cd540 [audited]: the bite (CHA_07): the danger sign at a_Danger01, the threat effect at e_Threat01, the bite (effect, m01se_29kamituki,
 // it hurts Pac-Man this frame) at e_Bite01; the model lunges at Pac-Man (0x800cd894)
 bool cTaskBoss::AttackBite()
 {
@@ -793,7 +789,7 @@ bool cTaskBoss::AttackBite()
 	return false;
 }
 
-// DOL 0x800cd894: the lunge, as shares of the clip: wait (ToReady), to Pac-Man (ToPac), stay (ToWait), back (ToBack); +0x3e0 = the offset
+// DOL 0x800cd894 [audited]: the lunge, as shares of the clip: wait (ToReady), to Pac-Man (ToPac), stay (ToWait), back (ToBack); +0x3e0 = the offset
 void cTaskBoss::BiteMove()
 {
 	cKingdomModel* b = Boss();
@@ -830,7 +826,7 @@ void cTaskBoss::BiteMove()
 	}
 }
 
-// DOL 0x800cb48c
+// DOL 0x800cb48c [audited]
 void cTaskBoss::ShowDanger()
 {
 	if (m_pDanger == nullptr) return;
@@ -838,7 +834,7 @@ void cTaskBoss::ShowDanger()
 	m_pDanger->pAnita(0)->SetAnimNo(0, true, 0.0f);
 }
 
-// DOL 0x800cdcdc: CHA_03 (the shells open, +0x78) -> CHA_04 (they can be shot, +0x74); all four broken within o_Vomit01 frames: no vomit;
+// DOL 0x800cdcdc [audited: port also releases the hit model's slots 1/2]: CHA_03 (the shells open, +0x78) -> CHA_04 (they can be shot, +0x74); all four broken within o_Vomit01 frames: no vomit;
 // else they close (+0x7c) and it vomits (effects 0x37 / 0x40 at ef_body, m01se_35hakidasi, 200 frames; one enemy of the shuffled
 // BossEnemyList per frame: cTaskBossEnemyMan 0x800e7ca8); CHA_05 back
 bool cTaskBoss::AttackVomit()
@@ -886,7 +882,7 @@ bool cTaskBoss::AttackVomit()
 		{
 			if (m_pFxVomit != nullptr) m_pFxVomit->Start(FX_VOMIT, false, true, false);
 			if (m_pFxVomit2 != nullptr) m_pFxVomit2->Start(FX_VOMIT2, false, true, false);
-			m_nSeHakidasi = snd::Play("m01se_35hakidasi");
+			m_nSeHakidasi = m_SndActor.Play("m01se_35hakidasi");   // on the actor (+0x344, 0x63c handle)
 		}
 		if (m_fAtkTime <= VOMIT_TIME)
 			m_fAtkTime += 1.0f;
@@ -949,7 +945,7 @@ u32 cTaskBoss::NextMissileMask(float fAfter) const
 	return mask;
 }
 
-// DOL 0x800cdaf0: the hanging missiles fly (bom flash 0x3d, m01se_11missile), then the empty bom nodes get new ones
+// DOL 0x800cdaf0 [audited]: the hanging missiles fly (bom flash 0x3d, m01se_11missile), then the empty bom nodes get new ones
 bool cTaskBoss::AttackMissile()
 {
 	if (m_nAtkStep == 0)
@@ -982,7 +978,7 @@ bool cTaskBoss::AttackMissile()
 	return false;
 }
 
-// DOL 0x800cb058: a bit of the mask set = an SP missile (pool +0x200, MISSILE_SPEED), clear = a normal one (pool +0x1fc, SP_MISSILE_SPEED);
+// DOL 0x800cb058 [audited]: a bit of the mask set = an SP missile (pool +0x200, MISSILE_SPEED), clear = a normal one (pool +0x1fc, SP_MISSILE_SPEED);
 // the STRUGGLE speeds in state 4
 void cTaskBoss::ReloadMissiles(u32 nMask)
 {
@@ -1003,7 +999,7 @@ void cTaskBoss::ReloadMissiles(u32 nMask)
 	}
 }
 
-// DOL 0x800ce340: the struggle starts: CHA_09 / CLA_09 (not collidable; the shells break (+0x80); effect 0x3b at ef_body,
+// DOL 0x800ce340 [audited]: the struggle starts: CHA_09 / CLA_09 (not collidable; the shells break (+0x80); effect 0x3b at ef_body,
 // m01se_08bak4, m01se_27boss_02 at frame 115), then CHA_10 / CLA_10 becomes the idle clip
 bool cTaskBoss::StruggleStart()
 {
@@ -1050,7 +1046,7 @@ bool cTaskBoss::StruggleStart()
 	return false;
 }
 
-// DOL 0x800cf2e8
+// DOL 0x800cf2e8 [audited: frame/rate re-sent only when the scene flags it (+0x1fa/+0x1f9); port pins every tick (as cTaskPacman)]
 void cTaskBoss::FightStep()
 {
 	UpdateBossOrbit(1.0f);
@@ -1078,7 +1074,7 @@ void cTaskBoss::FightStep()
 	if (cKingdomModel* orbit = pModel(0)) orbit->UpdateFrame();   // +0xfc (0x800cc65c)
 }
 
-// DOL 0x800cf4bc
+// DOL 0x800cf4bc [audited: as FightStep; 0x801c47f0 on the hit model not ported]
 void cTaskBoss::StruggleStep()
 {
 	if (m_nStep == 0)
@@ -1108,7 +1104,7 @@ void cTaskBoss::StruggleStep()
 }
 
 // Term 0x800cafe8: the boss parameters (+0x358) and the sound actor (+0x380) are freed (natively by the destructor / not ported).
-// DOL 0x800cf654
+// DOL 0x800cf654 [audited: states 0/1 demo objects are approximated (0x801bce00/0x801bce94); frame/rate flags as FightStep]
 bool cTaskBoss::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -1156,6 +1152,7 @@ bool cTaskBoss::Execute(cJetTask* pParam)
 		break;
 	}
 	cTaskModel::Execute(pParam);
+	UpdateWorldAABB();   // 0x801c1950
 	UpdateBlend();       // +0xd4
 	UpdateNodes();       // +0x108
 	UpdateBossModel();   // +0x90
@@ -1163,7 +1160,7 @@ bool cTaskBoss::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800cf8b4: the orbit skeleton at T(+0x3e0, the bite) * T(vTrans) * R(vRotate)
+// DOL 0x800cf8b4 [audited: port replaces the model translate with the bite offset (DOL: T(bite)*T(vTrans)); the hit-box list flag loop (+0x23c) not ported]: the orbit skeleton at T(+0x3e0, the bite) * T(vTrans) * R(vRotate)
 void cTaskBoss::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08) return;
@@ -1197,7 +1194,7 @@ bool cTaskBoss::HitModelRay(const float org[3], const float dir[3], float& t)
 	return false;
 }
 
-// DOL 0x800cf250: the shells first (+0x410 = the one hit), then the hit model
+// DOL 0x800cf250 [audited]: the shells first (+0x410 = the one hit), then the hit model
 bool cTaskBoss::RayHit(const float org[3], const float dir[3], float& t)
 {
 	m_nShellHit = -1;
@@ -1210,7 +1207,7 @@ bool cTaskBoss::RayHit(const float org[3], const float dir[3], float& t)
 	return HitModelRay(org, dir, t);
 }
 
-// DOL 0x800ce73c: SP missiles (and the boss enemies, kind 0xb) reach the mouth while it inhales; Pac-Man is hurt by the bite
+// DOL 0x800ce73c [audited]: SP missiles (and the boss enemies, kind 0xb) reach the mouth while it inhales; Pac-Man is hurt by the bite
 // (unless he jumps) and the beam
 bool cTaskBoss::HitCheck(cObject* other)
 {
@@ -1239,7 +1236,7 @@ bool cTaskBoss::HitCheck(cObject* other)
 	return false;
 }
 
-// DOL 0x800ce928
+// DOL 0x800ce928 [audited]
 void cTaskBoss::HitCallback(cObject* other)
 {
 	const int kind = other->nKind();

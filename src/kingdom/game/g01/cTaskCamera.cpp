@@ -25,7 +25,7 @@ void Cross(const float a[3], const float b[3], float out[3])
 }
 }
 
-// DOL 0x800d3194
+// DOL 0x800d3194 [audited]
 // The 3D sound listener (+0x26c, a 0x70-byte nw4r Sound3DListener made by 0x800d2ee8, added to the sound manager by 0x80137768):
 // vtable +0x50 = 0x800d3064 reads PlayerParam.csv column 1 rows INTERIOR_SIZE (+0x260), DISTANCE (+0x264), DISTANCE_MAX (+0x268), then
 // SetInteriorSize (0x801378d0), unit distance (0x801378d4 -> listener +0x50), max volume distance (0x801378d8 -> +0x4c)
@@ -41,13 +41,13 @@ cTaskCamera::cTaskCamera()
 	SoundManager::get_SE()->SetListenerParam(interior, maxVolume, unit);
 }
 
-// DOL 0x800d3868 (the listener leaves the sound manager)
+// DOL 0x800d3868 [audited] (the listener leaves the sound manager)
 cTaskCamera::~cTaskCamera()
 {
 	SoundManager::get_SE()->ClearListener();
 }
 
-// DOL 0x800d322c (nothing while paused, DAT_80479118). Only aim cameras (posture type 2) update the frame. The DOL builds "up" by turning
+// DOL 0x800d322c [audited: a camera twist is not available natively (up = the roll-free up, equal to the DOL's Euler up for twist 0); non-aim cameras are updated too] (nothing while paused, DAT_80479118). Only aim cameras (posture type 2) update the frame. The DOL builds "up" by turning
 // (0, 1, 0) (DAT_80371e18) with the twist about the view direction and the Euler angles of that direction (0x801c1ccc); natively the camera
 // twist is not available from kingdom::NativeScene, so up = world up made orthogonal to the view (UNVERIFIED for twisted cameras).
 void cTaskCamera::Update()
@@ -82,21 +82,21 @@ bool cTaskCamera::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800d3520
+// DOL 0x800d3520 [audited]
 void cTaskCamera::LocalToWorld(float out[3], const float local[3]) const
 {
 	LocalDirToWorld(out, local);
 	for (int i = 0; i < 3; i++) out[i] += m_vAim[i];
 }
 
-// DOL 0x800d3628
+// DOL 0x800d3628 [audited]
 void cTaskCamera::LocalDirToWorld(float out[3], const float local[3]) const
 {
 	const float x = -local[0], y = local[1], z = local[2];
 	for (int i = 0; i < 3; i++) out[i] = m_vRight[i] * x + m_vUp[i] * y + m_vForward[i] * z;
 }
 
-// DOL 0x800d3714
+// DOL 0x800d3714 [audited]
 void cTaskCamera::WorldToLocal(float out[3], const float world[3]) const
 {
 	float d[3];
@@ -106,7 +106,7 @@ void cTaskCamera::WorldToLocal(float out[3], const float world[3]) const
 	out[2] = d[0] * m_vForward[0] + d[1] * m_vForward[1] + d[2] * m_vForward[2];
 }
 
-// DOL 0x800d37c8
+// DOL 0x800d37c8 [audited]
 void cTaskCamera::WorldDirToLocal(float out[3], const float world[3]) const
 {
 	const float x = -(world[0] * m_vRight[0] + world[1] * m_vRight[1] + world[2] * m_vRight[2]);

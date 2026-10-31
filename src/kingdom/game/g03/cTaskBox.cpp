@@ -13,12 +13,14 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x801553cc [audited: per AUDIT_G03_G07 row]
 cTaskBox::cTaskBox()
 {
 	SetName("cTaskBox");
 	Init();
 }
 
+// DOL 0x801555bc [audited: per AUDIT_G03_G07 row] (not a retry: BIN_BOX_SET_DAT 0x30-byte records; a retry: the stored boxes)
 void cTaskBox::Init()
 {
 	if (!KingdomGlobal::PacnRollSys->IsRetry())
@@ -51,6 +53,7 @@ void cTaskBox::Init()
 	}
 }
 
+// dtor 0x80155508
 void cTaskBox::Term()
 {
 	for (cTaskBgBox* item : m_vecBox)
@@ -62,6 +65,7 @@ void cTaskBox::Term()
 	}
 }
 
+// DOL 0x80155ee4 [audited: constant getter vs disassembly] (return 1)
 bool cTaskBox::Execute(cJetTask* pParam)
 {
 	return true;
@@ -71,6 +75,7 @@ void cTaskBox::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x80155ef0 [audited: per AUDIT_G03_G07 row] (kind, treasure, broken, position, rotation per box)
 void cTaskBox::SetRetryData()
 {
 	for (cTaskBgBox* item : m_vecBox)

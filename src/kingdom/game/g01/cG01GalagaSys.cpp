@@ -33,23 +33,23 @@ void PutBe32(u8* p, u32 v) { p[0] = (u8)(v >> 24); p[1] = (u8)(v >> 16); p[2] = 
 
 // ---- cDemoMan ----------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800b0650: frees the vector storage (the demo objects belong to their owners)
+// DOL 0x800b0650 [audited: vector storage]: frees the vector storage (the demo objects belong to their owners)
 cDemoMan::~cDemoMan() = default;
 
-// DOL 0x801be964 (the vector push_back)
+// DOL 0x801be964 [audited: vector push_back] (the vector push_back)
 void cDemoMan::Regist(cDemoInterface* p)
 {
 	m_Demo.push_back(p);
 }
 
-// DOL 0x801becd8
+// DOL 0x801becd8 [audited]
 void cDemoMan::Start()
 {
 	for (cDemoInterface* d : m_Demo) d->DemoStart();
 	m_fTimer = 0.0f;   // FLOAT_8047ced0
 }
 
-// DOL 0x801bedb8
+// DOL 0x801bedb8 [audited: port does not short-circuit (no side effects)]
 bool cDemoMan::IsAllDone() const
 {
 	bool all = true;
@@ -64,7 +64,7 @@ bool cDemoMan::IsAllDone() const
 	return all;
 }
 
-// DOL 0x801bec4c
+// DOL 0x801bec4c [audited]
 bool cDemoMan::IsSkip() const
 {
 	if (m_fTimer < 60.0f) return false;
@@ -73,14 +73,14 @@ bool cDemoMan::IsSkip() const
 	return false;
 }
 
-// DOL 0x801bed48
+// DOL 0x801bed48 [audited]
 void cDemoMan::StartGoal()
 {
 	for (cDemoInterface* d : m_Demo) d->DemoGoalStart();
 	m_fTimer = 0.0f;   // FLOAT_8047ced0
 }
 
-// DOL 0x801bedf8
+// DOL 0x801bedf8 [audited]
 bool cDemoMan::IsAllGoalDone() const
 {
 	for (const cDemoInterface* d : m_Demo)
@@ -88,7 +88,7 @@ bool cDemoMan::IsAllGoalDone() const
 	return true;
 }
 
-// DOL 0x801bee48
+// DOL 0x801bee48 [audited]
 void cDemoMan::Finish()
 {
 	for (cDemoInterface* d : m_Demo) d->DemoFinish();
@@ -96,24 +96,24 @@ void cDemoMan::Finish()
 
 // ---- records -------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800b094c
+// DOL 0x800b094c [audited]
 void cRecordStageAccess::Clear()
 {
 	std::memset(p, 0, sizeof *p);
 	p->n00 = 0; p->n04 = 0; p->n08 = 0; p->n10 = 0; p->n0c = 0; p->n14 = 0; p->n18 = 0; p->n1c = 0; p->n20 = 0; p->bOpen = 0;
 }
 
-// DOL 0x800b09d8
+// DOL 0x800b09d8 [audited]
 void cRecordMultiAccess::Clear()
 {
 	std::memset(p, 0, sizeof *p);
 	for (int i : {0, 1, 10, 11, 12, 13, 2, 3, 4, 5, 6, 7, 8, 9}) p->n[i] = 0;
 }
 
-// DOL 0x800b0a84 (only installs the vtable; the data is filled by the save copy in cG01GalagaSys::Init)
+// DOL 0x800b0a84 [audited] (only installs the vtable; the data is filled by the save copy in cG01GalagaSys::Init)
 cRecordMan::cRecordMan() {}
 
-// DOL 0x800b0ad4
+// DOL 0x800b0ad4 [audited]
 void cRecordMan::Reset()
 {
 	std::memset(m_Stage, 0, sizeof m_Stage);     // 0x1e4 bytes
@@ -129,7 +129,7 @@ void cRecordMan::Reset()
 	m_nVersion = VERSION;
 }
 
-// DOL 0x800b0ba4: walks stages 1..9 while they are open; the result is the first closed one (10 when 1..9 are open)
+// DOL 0x800b0ba4 [audited]: walks stages 1..9 while they are open; the result is the first closed one (10 when 1..9 are open)
 int cRecordMan::nOpenStage() const
 {
 	if (devtools::PreviewAll()) return 10; // devtools: --preview-all (not 1:1)
@@ -160,19 +160,19 @@ static_assert(sizeof(cRecordMan) == cRecordMan::DATA_SIZE, "cRecordMan must be t
 
 // ---- cG01GalagaSys ---------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800afc3c
+// DOL 0x800afc3c [audited]
 cG01GalagaSys::cG01GalagaSys()
 {
 	Init();
 }
 
-// DOL 0x800afc78
+// DOL 0x800afc78 [audited]
 cG01GalagaSys::~cG01GalagaSys()
 {
 	Term();
 }
 
-// DOL 0x800afd5c (jump table 0x803963b0): 1..3 within the world (stage 10 = 4, the boss)
+// DOL 0x800afd5c [audited] (jump table 0x803963b0): 1..3 within the world (stage 10 = 4, the boss)
 int cG01GalagaSys::nStageInWorld(int stage) const
 {
 	if (stage == CURRENT) stage = m_nStage;
@@ -180,7 +180,7 @@ int cG01GalagaSys::nStageInWorld(int stage) const
 	return (uint)stage <= 10 ? TABLE[stage] : 0;
 }
 
-// DOL 0x800afdb4
+// DOL 0x800afdb4 [audited]
 int cG01GalagaSys::nWorld(int stage) const
 {
 	if (stage == CURRENT) stage = m_nStage;
@@ -191,21 +191,21 @@ int cG01GalagaSys::nWorld(int stage) const
 	return 0;
 }
 
-// DOL 0x800afe5c
+// DOL 0x800afe5c [audited]
 sStageRecord* cG01GalagaSys::pStageRecord(int stage)
 {
 	if (stage == CURRENT) stage = m_nStage;
 	return m_pRecord->pStageRecord(stage);
 }
 
-// DOL 0x800afe9c
+// DOL 0x800afe9c [audited]
 sMultiRecord* cG01GalagaSys::pMultiRecord(int stage)
 {
 	if (stage == CURRENT) stage = m_nStage;
 	return m_pRecord->pMultiRecord(stage);
 }
 
-// DOL 0x800afedc
+// DOL 0x800afedc [audited]
 sScoreNorma* cG01GalagaSys::pScoreNorma(int stage)
 {
 	if (stage == CURRENT) stage = m_nStage;
@@ -226,13 +226,13 @@ void cG01GalagaSys::ClearWork()
 	m_pMultiWork->n[9] = -1;                      // +0x24
 }
 
-// DOL 0x800aff0c
+// DOL 0x800aff0c [audited]
 void cG01GalagaSys::ResetWork()
 {
 	ClearWork();
 }
 
-// DOL 0x800b0030: the record into save block 0 (written to NAND by the next save)
+// DOL 0x800b0030 [audited]: the record into save block 0 (written to NAND by the next save)
 void cG01GalagaSys::SaveData()
 {
 	if (devtools::PreviewAll()) return; // devtools: --preview-all never persists (not 1:1)
@@ -241,14 +241,14 @@ void cG01GalagaSys::SaveData()
 	KingdomGlobal::KingSys->SaveGameData(0, be, sizeof be);
 }
 
-// DOL 0x800b0074: opens stages 1..9 and sets the all-open flag
+// DOL 0x800b0074 [audited]: opens stages 1..9 and sets the all-open flag
 void cG01GalagaSys::AllOpen()
 {
 	for (int s = 1; s < 10; s++) pStageRecord(s)->bOpen = 1;
 	m_pRecord->bAllOpen(true);
 }
 
-// DOL 0x800b00ec: ScoreNorma.csv (g01resident) rows STAGE1..STAGE9 -> pScoreNorma(1..9); stage 0 and 10 stay 0
+// DOL 0x800b00ec [audited]: ScoreNorma.csv (g01resident) rows STAGE1..STAGE9 -> pScoreNorma(1..9); stage 0 and 10 stay 0
 void cG01GalagaSys::LoadScoreNorma()
 {
 	m_pScoreNorma = static_cast<sScoreNorma*>(::operator new(sizeof(sScoreNorma) * 11));   // FUN_8013b9f4(0x160)
@@ -275,7 +275,7 @@ void cG01GalagaSys::LoadScoreNorma()
 	}
 }
 
-// DOL 0x800b032c
+// DOL 0x800b032c [audited: sound group load (GROUP_galaga_SE) not ported]
 void cG01GalagaSys::Init()
 {
 	m_pDemoMan = nullptr;
@@ -308,7 +308,7 @@ void cG01GalagaSys::Init()
 	LoadScoreNorma();
 }
 
-// DOL 0x800b0558
+// DOL 0x800b0558 [audited: sound group release not ported]
 void cG01GalagaSys::Term()
 {
 	// FUN_801376d8(KingSys + 0xa54): releases the sound group (see Init)
@@ -327,7 +327,7 @@ void cG01GalagaSys::Term()
 	KingdomGlobal::KingSys->DetachArcData(RESIDENT_ARC);
 }
 
-// DOL 0x800b06e4
+// DOL 0x800b06e4 [audited]
 void cG01GalagaSys::AttachStageArc(int world, int stage)
 {
 	char path[0x80];
@@ -344,7 +344,7 @@ void cG01GalagaSys::AttachStageArc(int world, int stage)
 	KingdomGlobal::KingSys->AttachArcData(path, true);
 }
 
-// DOL 0x800b07a0
+// DOL 0x800b07a0 [audited]
 void cG01GalagaSys::DetachStageArc(int world, int stage)
 {
 	char path[0x80];
@@ -361,7 +361,7 @@ void cG01GalagaSys::DetachStageArc(int world, int stage)
 	KingdomGlobal::KingSys->DetachArcData(path);
 }
 
-// DOL 0x800b084c: asynchronous load (the port loads at once, like every RegistArcDataAS)
+// DOL 0x800b084c [audited]: asynchronous load (the port loads at once, like every RegistArcDataAS)
 void cG01GalagaSys::RegistStageArcAS(int world, int stage)
 {
 	char path[0x80];
@@ -378,19 +378,19 @@ void cG01GalagaSys::RegistStageArcAS(int world, int stage)
 	KingdomGlobal::KingSys->RegistArcDataAS(path);
 }
 
-// DOL 0x800b08f8
+// DOL 0x800b08f8 [audited]
 void cG01GalagaSys::AttachMenuArc()
 {
 	KingdomGlobal::KingSys->AttachArcData(MENU_ARC, true);
 }
 
-// DOL 0x800b0924
+// DOL 0x800b0924 [audited]
 void cG01GalagaSys::DetachMenuArc()
 {
 	KingdomGlobal::KingSys->DetachArcData(MENU_ARC);
 }
 
-// DOL 0x800b0cf4 (job 176, 0x0b000000): create the system, stage 1, then the stage select (job 178)
+// DOL 0x800b0cf4 [audited] (job 176, 0x0b000000): create the system, stage 1, then the stage select (job 178)
 void cG01GalagaSys::JobInit()
 {
 	KingdomGlobal::GalagaSys = new cG01GalagaSys();
@@ -398,7 +398,7 @@ void cG01GalagaSys::JobInit()
 	Kingdom_SetJobNo(job::GALAGA_MENU, false, 0);
 }
 
-// DOL 0x800b0d40 (job 191, 0x0bf00000): delete the system (the virtual destructor through the +0x28 vtable, flag 1), then the hub (138)
+// DOL 0x800b0d40 [audited] (job 191, 0x0bf00000): delete the system (the virtual destructor through the +0x28 vtable, flag 1), then the hub (138)
 void cG01GalagaSys::JobEnd()
 {
 	if (KingdomGlobal::GalagaSys != nullptr)

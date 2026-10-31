@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCharEnemyPupaRed.hpp"
 
 #include "CustomKingdomUtil.hpp"
@@ -19,6 +20,7 @@ cTaskCharEnemy* cTaskCharEnemyPupaRed::Construct()
 	return new cTaskCharEnemyPupaRed();
 }
 
+// DOL 0x80058dc0 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyPupaRed::Init()
 {
 	nChangeMoveFrame() = 16;
@@ -29,6 +31,7 @@ void cTaskCharEnemyPupaRed::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80058dd0 [audited: per AUDIT_G03_G07 row] (audited 44th: matches; rand() % 100 only on change frames: <15 reverse, then <20 stop, <35 slant)
 uint cTaskCharEnemyPupaRed::Input()
 {
 	pParam();
@@ -68,7 +71,7 @@ uint cTaskCharEnemyPupaRed::Input()
 	};
 	if ((long)Constants::get_GAME_COUNTER() % (long)nChangeMoveFrame() == 0L)
 	{
-		nRand = (uint)Random::Range(0, 100);
+		nRand = (uint)kingdom::MslRandRange(0, 100);
 		nRandBase = 0u;
 		if (RATE(15u))
 		{
@@ -114,6 +117,7 @@ uint cTaskCharEnemyPupaRed::Input()
 	return num2;
 }
 
+// DOL 0x8005915c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPupaRed::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -130,6 +134,7 @@ bool cTaskCharEnemyPupaRed::Create(uint no)
 	return true;
 }
 
+// DOL 0x80059240 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyPupaRed::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

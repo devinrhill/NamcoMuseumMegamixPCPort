@@ -25,7 +25,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800f40f0
+// DOL 0x800f40f0 [audited: param/demo setup (+0x3a4/+0x3a8, PacmanParam read) is the port's own]
 cTaskPacman::cTaskPacman(int nStage, cTaskScene* pScene)
 {
 	SetName("g01::cTaskPacman");
@@ -93,7 +93,7 @@ cTaskPacman::cTaskPacman(int nStage, cTaskScene* pScene)
 	}
 }
 
-// DOL 0x800f520c (n = 1, the opening demo) / 0x800f5860 (n = 2 / 3 / 4 for stages 3 / 6 / 9, the goal demos): the model again (+0xac), the
+// DOL 0x800f520c [audited] (n = 1, the opening demo) / 0x800f5860 (n = 2 / 3 / 4 for stages 3 / 6 / 9, the goal demos): the model again (+0xac), the
 // orbit clip m01m_pac_ob_a%x0_cha at 1.0, Pac-Man's a%x0 clips (cha / tpa / via at 1.0); the longest of cha / tpa / via is the demo's length
 void cTaskPacman::SetDemoClip(int n)
 {
@@ -267,7 +267,7 @@ bool cTaskPacman::GoalCheck()
 	return true;
 }
 
-// DOL 0x800f4f20: enemies (0xb), the gate (0xd), hit shots (7), bombs (8), spikes (0xe / 0xf) hurt while not invincible: the hit clips
+// DOL 0x800f4f20 [audited: the remote rumble (0x80021a14) is not ported, the hit cue goes through the unpositioned snd::Play]: enemies (0xb), the gate (0xd), hit shots (7), bombs (8), spikes (0xe / 0xf) hurt while not invincible: the hit clips
 // (vtable +0xa0), effect 0x10, the invincible time, the cue; the remote rumble (0x80021a14) is not ported. A cookie (4) heals.
 void cTaskPacman::HitCallback(cObject* other)
 {
@@ -297,7 +297,7 @@ void cTaskPacman::HitCallback(cObject* other)
 	else snd::Play("m01se_13p_hit");
 }
 
-// DOL 0x800f5d94 (vtable +0xa0): the hit clips CHAR_PACMAN_ANM_VIS_02 (0x01273414) and CHAR_PACMAN_ANM_TPA_02 (0xdb0ffff8) in slot 0
+// DOL 0x800f5d94 [audited] (vtable +0xa0): the hit clips CHAR_PACMAN_ANM_VIS_02 (0x01273414) and CHAR_PACMAN_ANM_TPA_02 (0xdb0ffff8) in slot 0
 void cTaskPacman::HitClip()
 {
 	cKingdomModel* orbit = pModel(0);
@@ -308,7 +308,7 @@ void cTaskPacman::HitClip()
 	}
 }
 
-// DOL 0x800f5e00 (vtable +0xa4): the hit clips released (vis FUN_8001ad60, pattern FUN_8001b1bc)
+// DOL 0x800f5e00 [audited] (vtable +0xa4): the hit clips released (vis FUN_8001ad60, pattern FUN_8001b1bc)
 void cTaskPacman::HitEnd()
 {
 	cKingdomModel* orbit = pModel(0);
@@ -319,18 +319,20 @@ void cTaskPacman::HitEnd()
 	}
 }
 
-// DOL 0x800f41d4: the orbit skeleton (CRC 0xdab12f18) + Pac-Man (0xf40fa7fc) at "pac_orbit"; both light set 1 (characters), fog 0
+// DOL 0x800f41d4 [audited]: the orbit skeleton (CRC 0xdab12f18) + Pac-Man (0xf40fa7fc) at "pac_orbit"; both light set 1 (characters), fog 0
 void cTaskPacman::LoadModel()
 {
 	cKingdomModel* orbit = CreateModel(0);
 	orbit->RegistModel("CHAR_PACMAN_ORBIT_MDL", 0x36f);
 	orbit->SetLightSetIdx(1);
 	orbit->SetFogIdx(0);
+	orbit->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800f4230
 	orbit->RegistExpand(0, "pac_orbit", "CHAR_PACMAN_MDL", 0x36f);
 	if (cKingdomModel* pac = orbit->pExpandMdl(0))
 	{
 		pac->SetLightSetIdx(1);
 		pac->SetFogIdx(0);
+		pac->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800f427c
 		// 0x800f4388 sets the expanded model's translate to the jump offset + pac_move with y negated: Pac-Man rests one radius above the
 		// course locator pac_orbit (which runs along the track surface)
 		if (const wii::Mdl0* mdl = pac->pMdl0())
@@ -343,9 +345,11 @@ void cTaskPacman::LoadModel()
 			if (n.name == "boss_bite") for (int i = 0; i < 3; i++) m_vBiteNode[i] = n.translate[i];
 }
 
-// DOL 0x800f5ab0: stage 1 has its own start clip, the others the world's
+// DOL 0x800f5ab0 [audited]: stage 1 has its own start clip, the others the world's
 void cTaskPacman::SetStartClip()
 {
+	DeleteModel(0);
+	LoadModel();   // vtable +0xac = 0x800f41d4: the model again
 	cKingdomModel* orbit = pModel(0);
 	char name[0x100];
 	if (m_nStage == 1)
@@ -360,9 +364,11 @@ void cTaskPacman::SetStartClip()
 	orbit->SetUpdateRateAnmChr(0u, 1.0f);
 }
 
-// DOL 0x800f5bf0: the course clip and the run clip CHAR_PACMAN_ANM_CHA_01 (0x0c454022), then SyncCourse
+// DOL 0x800f5bf0 [audited]: the course clip and the run clip CHAR_PACMAN_ANM_CHA_01 (0x0c454022), then SyncCourse
 void cTaskPacman::SetCourseClip()
 {
+	DeleteModel(0);
+	LoadModel();   // vtable +0xac = 0x800f41d4: the model again
 	cKingdomModel* orbit = pModel(0);
 	char name[0x80];
 	std::snprintf(name, sizeof name, "m01m_s%x_pac_ob_cha.brres", m_nStage);
@@ -371,7 +377,7 @@ void cTaskPacman::SetCourseClip()
 	SyncCourse();
 }
 
-// DOL 0x800f42c8
+// DOL 0x800f42c8 [audited]
 void cTaskPacman::SyncCourse()
 {
 	cKingdomModel* orbit = pModel(0);
@@ -390,7 +396,7 @@ void cTaskPacman::ReadyStart()
 	SetStartClip();
 }
 
-// DOL 0x800f53cc. The DOL re-sends the frame / rates only when the scene flags a change (+0x1fa / +0x1f9 / +0x1fb); natively the orbit clip is
+// DOL 0x800f53cc [audited: frame/rates pinned every tick instead of by the scene flags +0x1fa/+0x1f9/+0x1fb; enemy target computed from the pose instead of copying +0x20]. The DOL re-sends the frame / rates only when the scene flags a change (+0x1fa / +0x1f9 / +0x1fb); natively the orbit clip is
 // pinned to the scene frame every tick (the same value: both clocks start together and advance by the same rate).
 void cTaskPacman::GameStep()
 {
@@ -473,14 +479,14 @@ void cTaskPacman::GameStep()
 // start +0xe8 = 0x800f3d94 is DemoGoalStart. cTaskBossPacman's Init 0x800d0be4 (segment +0x464 / +0x468 = 0) is its member initialisers.
 cTaskPacman* cTaskPacman::s_pInstance = nullptr;
 
-// DOL 0x800f3ed0
+// DOL 0x800f3ed0 [audited]
 void cTaskPacman::RequestJump()
 {
 	if (m_pScene != nullptr && m_pScene->b240()) return;
 	m_bJumpReq = true;
 }
 
-// DOL 0x800f4be8: 0 a request starts it; 1 speed JUMP_START_SPEED, height 0, PTK_PAC_JUMPSTART01 (0x41), m01se_18jump; 2 speed -= GRAVITY,
+// DOL 0x800f4be8 [audited]: 0 a request starts it; 1 speed JUMP_START_SPEED, height 0, PTK_PAC_JUMPSTART01 (0x41), m01se_18jump; 2 speed -= GRAVITY,
 // height += speed, offset = height * up, landed when the offset no longer points up: PTK_PAC_JUMPEND01 (0x42), 3; 3 JUMP_MAX_RIGIDITY
 // frames, then 0 once the request is gone
 void cTaskPacman::JumpStep()
@@ -522,10 +528,10 @@ void cTaskPacman::JumpStep()
 	}
 }
 
-// DOL 0x800f5e4c
+// DOL 0x800f5e4c [audited: demo states 0/1 approximate the cDemo objects]
 bool cTaskPacman::Execute(cJetTask* pParam)
 {
-	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
+	if (!m_b08 || cG01GalagaSys::IsPause()) return true;   // +8 and DAT_80479118: nothing while hidden / paused
 	if (std::getenv("MEGAMIX_G01DBG"))
 	{
 		static int last = -1;
@@ -614,11 +620,13 @@ bool cTaskPacman::Execute(cJetTask* pParam)
 		break;
 	}
 	m_bJumpReq = false;   // 0x800f5fbc: the request lives one frame
-	return cTaskModel::Execute(pParam);
+	const bool bRet = cTaskModel::Execute(pParam);
+	UpdateWorldAABB();    // 0x801c1950
+	return bRet;
 }
 
 
-// DOL 0x800f600c
+// DOL 0x800f600c [audited]
 void cTaskPacman::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08 || !m_b09) return;
@@ -646,7 +654,7 @@ const wii::Mdl0UserItem* UserItem(const wii::Mdl0Node* n, const char* name)
 }
 }
 
-// DOL 0x800f5708: step 0 stop (+0x88), 1 next node (+0x8c: none left -> stage 9 straight to state 9, else step 3), 2 move (+0x90, then 1),
+// DOL 0x800f5708 [audited]: step 0 stop (+0x88), 1 next node (+0x8c: none left -> stage 9 straight to state 9, else step 3), 2 move (+0x90, then 1),
 // 3 arrival clips (+0x94), 4 their blend (+0x98, then state 9 via +0x104); the clips advance every frame (+0xb8)
 void cTaskPacman::GoalRun()
 {
@@ -677,7 +685,7 @@ void cTaskPacman::GoalRun()
 	UpdateFrame();   // +0xb8
 }
 
-// DOL 0x800f30f4: once Pac-Man is on the ground (jump state 0 or 3): the invincible time ends (+0x2e4 = -1; +0xa4 = 0x800f5e00 releases the
+// DOL 0x800f30f4 [audited]: once Pac-Man is on the ground (jump state 0 or 3): the invincible time ends (+0x2e4 = -1; +0xa4 = 0x800f5e00 releases the
 // hit clips; the hit effect detached), the orbit and Pac-Man clips stop (rate 0), +0x3b0 = Rz Ry Rx of the orbit clip's
 // pac_orbit rotation now, and the scene goes to its goal camera (0x800f6ad0, state 7)
 bool cTaskPacman::GoalStop()
@@ -712,7 +720,7 @@ bool cTaskPacman::GoalStop()
 	return true;
 }
 
-// DOL 0x800f3394: the frame counter to 0; the goal skeleton's (model 1) first nodes whose names contain pac_goal_%03d for the index and the next
+// DOL 0x800f3394 [audited: port guards the roll-rate division]: the frame counter to 0; the goal skeleton's (model 1) first nodes whose names contain pac_goal_%03d for the index and the next
 // one (from / to); the to node's user data pac_trans_frame (frames, f32) and pac_roll_anm (s32): rolling, Pac-Man's roll clip is set to run
 // out (plus a whole turn when less than half is left) over the trip (stages 7 / 8: stop unless at least 0.75 frames in), else it stops.
 // true when a node is missing (the run is over).
@@ -766,7 +774,7 @@ bool cTaskPacman::GoalNext()
 	return false;
 }
 
-// DOL 0x800f386c: one frame further (at most the trip length); the orbit model's translate = lerp of the two nodes' translates turned by
+// DOL 0x800f386c [audited: port guards the lerp division]: one frame further (at most the trip length); the orbit model's translate = lerp of the two nodes' translates turned by
 // +0x3b0, Pac-Man's rotate = lerp of their rotates (deg -> rad) (0x801c1b24); true when the trip is done
 bool cTaskPacman::GoalMove()
 {
@@ -798,7 +806,7 @@ bool cTaskPacman::GoalMove()
 	return m_fGoalFrames <= m_fGoalPos;
 }
 
-// DOL 0x800f3b44: Pac-Man's slot 0 clip rate 1 then 0 (as the DOL does), CHAR_PACMAN_ANM_CHA_04 in slot 1; not on stage 9: PTK_GOAL01 (0x2b)
+// DOL 0x800f3b44 [audited]: Pac-Man's slot 0 clip rate 1 then 0 (as the DOL does), CHAR_PACMAN_ANM_CHA_04 in slot 1; not on stage 9: PTK_GOAL01 (0x2b)
 // on the handle +0x410 (FUN_80021a9c: not one-time, not dependent, clipped) at Pac-Man (+0x20), turned by the pac_orbit rotation (+0x280)
 void cTaskPacman::GoalClip()
 {
@@ -818,7 +826,7 @@ void cTaskPacman::GoalClip()
 	}
 }
 
-// DOL 0x800f3c14: for 5 frames slot 0 / 1 weights 1 - 0.2 t / 0.2 t (FUN_8001d994); then, when the slot 1 clip ended (FUN_8001c630 max < FUN_8001c2e0
+// DOL 0x800f3c14 [audited]: for 5 frames slot 0 / 1 weights 1 - 0.2 t / 0.2 t (FUN_8001d994); then, when the slot 1 clip ended (FUN_8001c630 max < FUN_8001c2e0
 // frame; natively "<="), CHAR_PACMAN_ANM_CHA_05 (0x0b28843b) and CHAR_PACMAN_ANM_TPA_05 in slot 0 and slot 1 released (FUN_8001ab2c)
 bool cTaskPacman::GoalBlend()
 {
@@ -848,7 +856,7 @@ bool cTaskPacman::GoalBlend()
 
 // ---- the miss -----------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800f5590: step 0 the clips follow the scene while it slows down (natively pinned every frame, as GameStep); once the scene's rate is
+// DOL 0x800f5590 [audited: frame/rates pinned (SyncCourse) instead of by scene flags]: step 0 the clips follow the scene while it slows down (natively pinned every frame, as GameStep); once the scene's rate is
 // 0 (0x800f7df8) the Galaga system stops everything (+0x09, 0x800afe34) and the miss clips start (+0x9c); step 1 waits for their end
 // (+0xa8) -> state 7; the clips advance every frame (+0xb8)
 void cTaskPacman::MissStep()
@@ -870,7 +878,7 @@ void cTaskPacman::MissStep()
 	UpdateFrame();   // +0xb8
 }
 
-// DOL 0x800f5ca4
+// DOL 0x800f5ca4 [audited]
 void cTaskPacman::MissClip()
 {
 	cKingdomModel* orbit = pModel(0);
@@ -882,7 +890,7 @@ void cTaskPacman::MissClip()
 	pac->SetUpdateRateAnmTexPat(0u, 1.0f);          // FUN_8001ce94
 }
 
-// DOL 0x800f5d30: the bone clip ran out (FUN_8001c630 max < FUN_8001c2e0 frame; natively "<=")
+// DOL 0x800f5d30 [audited]: the bone clip ran out (FUN_8001c630 max < FUN_8001c2e0 frame; natively "<=")
 bool cTaskPacman::IsMissClipEnd()
 {
 	cKingdomModel* orbit = pModel(0);

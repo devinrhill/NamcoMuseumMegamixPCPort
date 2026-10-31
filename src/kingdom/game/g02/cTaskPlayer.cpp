@@ -31,7 +31,7 @@ void (*cTaskPlayer::CameraRotYGoal)(cCamera* pCam, float fRad) = nullptr;
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // construction
 
-// DOL 0x80124e54: the cTaskUnit part (cTaskModel ctor, the unit vtable, its Init, +0x1cc = index, the models FUN_8008120c), +0x9dc the count
+// DOL 0x80124e54 [audited]: the cTaskUnit part (cTaskModel ctor, the unit vtable, its Init, +0x1cc = index, the models FUN_8008120c), +0x9dc the count
 // sound handle, the cTaskPlayer vtable, then cTaskPlayer::Init (vtable +0x3c)
 cTaskPlayer::cTaskPlayer(cRallyUnitHost* pHost, int nColour, int nIndex) : cTaskUnit(pHost, nColour, nIndex)
 {
@@ -58,7 +58,7 @@ void cTaskPlayer::InitPlayer()
 	m_nCount = 0;                                // +0x9d8
 }
 
-// DOL 0x8007a468 (the CSV_CARPLAYER block only; no chain to cTaskUnit::Term, as in the DOL)
+// DOL 0x8007a468 [audited] (the CSV_CARPLAYER block only; no chain to cTaskUnit::Term, as in the DOL)
 void cTaskPlayer::Term()
 {
 	if (m_pPlayerParam != nullptr)
@@ -68,19 +68,19 @@ void cTaskPlayer::Term()
 	}
 }
 
-// DOL 0x8007ae2c
+// DOL 0x8007ae2c [audited]
 u32 cTaskPlayer::nUnitId() const { return (u32)m_nIndex | 0x10u; }
 
-// DOL 0x8007b720
+// DOL 0x8007b720 [audited]
 int cTaskPlayer::nView() const { return SysView(m_nIndex); }
 
-// DOL 0x8007b754: get_pad1(sys 0x800c5b98(index))->trig & 0x20 (A)
+// DOL 0x8007b754 [audited]: get_pad1(sys 0x800c5b98(index))->trig & 0x20 (A)
 bool cTaskPlayer::IsSmokeReq() { return (GamePad::Get(SysPad(m_nIndex)).trig & GamePad::PAD_A) != 0; }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // Execute
 
-// DOL 0x8007a558 (r4 = the app; natively the host)
+// DOL 0x8007a558 [audited] (r4 = the app; natively the host)
 bool cTaskPlayer::Execute(cJetTask* pParam)
 {
 	cRallyUnitHost* host = m_pHost;
@@ -155,7 +155,7 @@ bool cTaskPlayer::Execute(cJetTask* pParam)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // the decision
 
-// DOL 0x8007a8e0
+// DOL 0x8007a8e0 [audited]
 void cTaskPlayer::Decide()
 {
 	// (the DOL first calls get_pad1(sys 0x800c5b98(index)) and drops the result)
@@ -213,7 +213,7 @@ void cTaskPlayer::SteerStick()
 	else m_nSteer = 1;
 }
 
-// DOL 0x8007ae38 (acc: pad +0x30 x / +0x34 y / +0x38 z)
+// DOL 0x8007ae38 [audited] (acc: pad +0x30 x / +0x34 y / +0x38 z)
 void cTaskPlayer::SteerRemote()
 {
 	const GamePad::State& pad = GamePad::Get(SysPad(m_nIndex));
@@ -242,7 +242,7 @@ void cTaskPlayer::SteerRemote()
 	if (m_pCamera != nullptr && CameraRotYGoal != nullptr) CameraRotYGoal(m_pCamera, look);
 }
 
-// DOL 0x8007afcc
+// DOL 0x8007afcc [audited]
 void cTaskPlayer::OnTurn(int nKind)
 {
 	m_fPadKind = (float)nKind;
@@ -252,33 +252,33 @@ void cTaskPlayer::OnTurn(int nKind)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // event hooks
 
-// DOL 0x8007b01c (Crash 0x80088264 always returns 1: the Bounce 0x80084984 never runs)
+// DOL 0x8007b01c [audited] (Crash 0x80088264 always returns 1: the Bounce 0x80084984 never runs)
 void cTaskPlayer::OnCrash(cTaskUnit* pOther)
 {
 	if (!Crash()) Bounce(pOther);
 }
 
-// DOL 0x8007b068
+// DOL 0x8007b068 [audited]
 void cTaskPlayer::OnStone()
 {
 	if (ArmorHit()) Crash();
 }
 
-// DOL 0x8007b0a4
+// DOL 0x8007b0a4 [audited]
 void cTaskPlayer::OnSmoke(cTaskGimmick* g)
 {
 	(void)g;
 	SmokeHit();                                  // 0x80084c58
 }
 
-// DOL 0x8007b0a8
+// DOL 0x8007b0a8 [audited]
 void cTaskPlayer::OnOil(cTaskGimmick* g)
 {
 	(void)g;
 	SpinStart(1);                                // 0x80088004
 }
 
-// DOL 0x8007b0b0 (once per spike cell: +0x2d8 is cleared when the car leaves the cell)
+// DOL 0x8007b0b0 [audited] (once per spike cell: +0x2d8 is cleared when the car leaves the cell)
 void cTaskPlayer::OnSpike(cTaskGimmick* g)
 {
 	(void)g;
@@ -293,14 +293,14 @@ void cTaskPlayer::OnSpike(cTaskGimmick* g)
 	m_bSpike = true;
 }
 
-// DOL 0x8007b194
+// DOL 0x8007b194 [audited]
 void cTaskPlayer::OnMud(cTaskGimmick* g)
 {
 	(void)g;
 	if (0.0f < m_fSpeed) MudOn();                // 0x800885bc
 }
 
-// DOL 0x8007b1ac
+// DOL 0x8007b1ac [audited]
 void cTaskPlayer::OnItemFuel(cTaskGimmick* g)
 {
 	(void)g;
@@ -308,7 +308,7 @@ void cTaskPlayer::OnItemFuel(cTaskGimmick* g)
 	FuelBurstOn();                               // 0x80088440
 }
 
-// DOL 0x8007b22c
+// DOL 0x8007b22c [audited]
 void cTaskPlayer::OnItemPaint(cTaskGimmick* g)
 {
 	(void)g;
@@ -316,7 +316,7 @@ void cTaskPlayer::OnItemPaint(cTaskGimmick* g)
 	ChameleonOn();                               // 0x8008847c
 }
 
-// DOL 0x8007b2ac
+// DOL 0x8007b2ac [audited]
 void cTaskPlayer::OnItemSmoke(cTaskGimmick* g)
 {
 	(void)g;
@@ -324,7 +324,7 @@ void cTaskPlayer::OnItemSmoke(cTaskGimmick* g)
 	if (m_nSmokeStock < 5) m_nSmokeStock++;
 }
 
-// DOL 0x8007b338
+// DOL 0x8007b338 [audited]
 void cTaskPlayer::OnItemArmor(cTaskGimmick* g)
 {
 	(void)g;
@@ -344,7 +344,7 @@ void cTaskPlayer::ScoreFlag(cTaskGimmick* g, const char* cue)
 	if (!IsMultiStage()) AddScore(base * m_nFlagChain);   // sys 0x800c5ca0
 }
 
-// DOL 0x8007b3b8
+// DOL 0x8007b3b8 [audited]
 void cTaskPlayer::OnFlagSpecial(cTaskGimmick* g)
 {
 	m_bSpecial = 1;                              // (set before the score: the special flag itself already scores double)
@@ -352,7 +352,7 @@ void cTaskPlayer::OnFlagSpecial(cTaskGimmick* g)
 	FlagFx(m_nFlagChain, m_bSpecial, GimmickPos(g));
 }
 
-// DOL 0x8007b4d0
+// DOL 0x8007b4d0 [audited]
 void cTaskPlayer::OnFlagLucky(cTaskGimmick* g)
 {
 	ScoreFlag(g, "m02se_11Frag2");
@@ -360,7 +360,7 @@ void cTaskPlayer::OnFlagLucky(cTaskGimmick* g)
 	FlagFx(m_nFlagChain, m_bSpecial, GimmickPos(g));
 }
 
-// DOL 0x8007b610
+// DOL 0x8007b610 [audited]
 void cTaskPlayer::OnFlag(cTaskGimmick* g)
 {
 	ScoreFlag(g, "m02se_10Frag1");
@@ -370,27 +370,27 @@ void cTaskPlayer::OnFlag(cTaskGimmick* g)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // the boss stage's player
 
-// DOL 0x80124ac4
+// DOL 0x80124ac4 [audited]
 cTaskPlayerRedMode::cTaskPlayerRedMode(cRallyUnitHost* pHost, int nColour, int nIndex) : cTaskPlayer(pHost, nColour, nIndex)
 {
 	SetName("g02::cTaskPlayerRedMode");
 }
 
-// DOL 0x8007b79c
+// DOL 0x8007b79c [audited]
 void cTaskPlayerRedMode::OnSmoke(cTaskGimmick* g)
 {
 	(void)g;
 	SmokeHit();
 }
 
-// DOL 0x8007b7a0
+// DOL 0x8007b7a0 [audited]
 void cTaskPlayerRedMode::OnOil(cTaskGimmick* g)
 {
 	(void)g;
 	SpinStart(1);
 }
 
-// DOL 0x8007b7ac
+// DOL 0x8007b7ac [audited]
 void cTaskPlayerRedMode::OnMud(cTaskGimmick* g)
 {
 	(void)g;

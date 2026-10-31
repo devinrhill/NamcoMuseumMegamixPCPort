@@ -26,6 +26,7 @@ void cTaskCharEnemyPupaBlue::Term()
 	cTaskCharEnemyPupaRed::Term();
 }
 
+// DOL 0x80058b98 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPupaBlue::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();

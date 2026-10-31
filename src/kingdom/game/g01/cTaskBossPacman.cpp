@@ -7,7 +7,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800d0cec: stage, segments (+0x468), scene / enemy manager / life (+0x3a0 / +0x3a4 / +0x3a8), collision registration, then vtable +0x78
+// DOL 0x800d0cec [audited]: stage, segments (+0x468), scene / enemy manager / life (+0x3a0 / +0x3a4 / +0x3a8), collision registration, then vtable +0x78
 // = 0x800d0bf8 (cDemoPacmanBoss for stage 10, registered by cTaskPacman's ctor) -> the course clip (+0xd4)
 cTaskBossPacman::cTaskBossPacman(int nStage, cTaskScene* pScene) : cTaskPacman(nStage, pScene)
 {
@@ -15,7 +15,7 @@ cTaskBossPacman::cTaskBossPacman(int nStage, cTaskScene* pScene) : cTaskPacman(n
 	SetCourseClip();
 }
 
-// DOL 0x800d0f7c: the model again (+0xac), the orbit clip of the segment, CHAR_PACMAN_ANM_CHA_01 (0x0c454022) and CHAR_PACMAN_ANM_TPA_06, sync
+// DOL 0x800d0f7c [audited]: the model again (+0xac), the orbit clip of the segment, CHAR_PACMAN_ANM_CHA_01 (0x0c454022) and CHAR_PACMAN_ANM_TPA_06, sync
 void cTaskBossPacman::SetCourseClip()
 {
 	DeleteModel(0);
@@ -32,7 +32,7 @@ void cTaskBossPacman::SetCourseClip()
 	SyncCourse();   // +0xd8
 }
 
-// DOL 0x800d0dd0: the scene started the next course segment (+700): the segment's orbit clip (+0x108 = 0x800d0c88), sync (+0xd8)
+// DOL 0x800d0dd0 [audited: the rest of it is in the port's cTaskPacman::GameStep]: the scene started the next course segment (+700): the segment's orbit clip (+0x108 = 0x800d0c88), sync (+0xd8)
 void cTaskBossPacman::PreGameStep()
 {
 	if (m_pScene == nullptr || !m_pScene->IsSegmentChanged()) return;

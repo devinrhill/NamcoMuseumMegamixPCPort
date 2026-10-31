@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskEnemy.hpp"
 #include "kingdom/game/g01/cTaskEnemyGate.hpp"
 
@@ -40,7 +41,7 @@ float BeF(const u8* p) { u32 v = Be32(p); float f; std::memcpy(&f, &v, 4); retur
 enum { eINTERP_LINEAR = 0, eINTERP_HERMITE = 1, eINTERP_JUMP = 2, eINTERP_HOLD = 3 };
 enum { eFACE_NODE = 0, eFACE_TARGET = 1, eFACE_FROM_CAMERA = 2, eFACE_CAMERA = 3 };
 
-// DOL 0x80372c10: model per enemy type; 0x80372c50: its clips {cha, cla, tpa, tsa} (only these are non-zero)
+// DOL 0x80372c10 [audited]: model per enemy type; 0x80372c50: its clips {cha, cla, tpa, tsa} (only these are non-zero)
 const char* const MODEL[15] = {"CHAR_ENEMY_ZAKO_MDL", "CHAR_ENEMY_GOEI_MDL", "CHAR_ENEMY_BOSS_MDL", "CHAR_ENEMY_GYALBOSS_MDL",
                                "CHAR_ENEMY_ROOT_MDL", "CHAR_ENEMY_QUEEN_MDL", "CHAR_ENEMY_MIDORI_MDL", "CHAR_ENEMY_MOMIZI_MDL",
                                "CHAR_ENEMY_BOMB_MDL", "CHAR_ENEMY_QUEEN_MDL", "CHAR_FIGHTER_MDL", "CHAR_ENEMY_LASTBOSS_MDL",
@@ -56,21 +57,21 @@ const char* const CLIP[15][4] = {
 	{"CHAR_ENEMY_SPIKE_ANM_CHA_03", "CHAR_ENEMY_SPIKE_ANM_CLA_03", nullptr, nullptr},
 	{"CHAR_ENEMY_SPIKEMASTER_ANM_CHA_03", "CHAR_ENEMY_SPIKEMASTER_ANM_CLA_03", nullptr, nullptr}};
 
-// DOL 0x80373138 (0x24 bytes per stage): pool sizes {enemy, bullet dummy, bullet hit, missile, ?, ?, bomb, fighter, ?}; the enemy column
+// DOL 0x80373138 [audited] (0x24 bytes per stage): pool sizes {enemy, bullet dummy, bullet hit, missile, ?, ?, bomb, fighter, ?}; the enemy column
 u32 EnemyPoolSize(int nStage)
 {
 	static const u32 n[11] = {0, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x01};   // stage 0..10 (stage 10 = the boss app)
 	return (u32)nStage < 11 ? n[nStage] : 0x50;
 }
 
-// DOL 0x801c1b24
+// DOL 0x801c1b24 [audited]
 void OrbitLerp(float t, float out[4], const float a[4], const float b[4])
 {
 	for (int i = 0; i < 3; i++) out[i] = a[i] + (b[i] - a[i]) * t;
 	out[3] = 1.0f;
 }
 
-// DOL 0x801c1be8: cubic Hermite
+// DOL 0x801c1be8 [audited]: cubic Hermite
 void OrbitHermite(float t, float out[4], const float p0[4], const float m0[4], const float p1[4], const float m1[4])
 {
 	const float t2 = t * t, t3 = t2 * t;
@@ -79,7 +80,7 @@ void OrbitHermite(float t, float out[4], const float p0[4], const float m0[4], c
 	out[3] = 1.0f;
 }
 
-// DOL 0x801c1dbc: pitch / yaw of from -> to (the DOL's atan2 returns 256 steps per turn; plain atan2 here)
+// DOL 0x801c1dbc [audited: atan2 in radians = the DOL's 256-step atan2 * 2pi/256]: pitch / yaw of from -> to (the DOL's atan2 returns 256 steps per turn; plain atan2 here)
 void OrbitLookAngle(float out[4], const float from[3], const float to[3])
 {
 	const float d[3] = {from[0] - to[0], from[1] - to[1], from[2] - to[2]};
@@ -117,7 +118,7 @@ void Concat(const float a[16], const float b[16], float out[16])
 
 // ---- cOrbitDataMan ---------------------------------------------------------------------------------------------------------------
 
-// DOL 0x801c12dc
+// DOL 0x801c12dc [audited: port also trims trailing blanks of the .emy name]
 void cOrbitDataMan::Load(int nStage)
 {
 	m_Orbit.clear();
@@ -161,7 +162,7 @@ cOrbit* cOrbitDataMan::pOrbit(u32 n)
 
 // ---- cTaskEnemy ------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800e3640: kind 0xb, priority 0x10005
+// DOL 0x800e3640 [audited]: kind 0xb, priority 0x10005
 cTaskEnemy::cTaskEnemy()
 {
 	SetName("g01::cTaskEnemy");
@@ -170,7 +171,7 @@ cTaskEnemy::cTaskEnemy()
 	m_b08 = false;
 }
 
-// DOL 0x800e1ca8: model and clips of the type (light set 1, fog 0, clip rates 1.0; types 12..14 (gate / spike) set a model flag, slot 6)
+// DOL 0x800e1ca8 [audited]: model and clips of the type (light set 1, fog 0, clip rates 1.0; types 12..14 (gate / spike) set a model flag, slot 6)
 void cTaskEnemy::LoadModel(int nType)
 {
 	if (nType < 0 || nType >= 15) return;
@@ -182,6 +183,7 @@ void cTaskEnemy::LoadModel(int nType)
 	if (CLIP[nType][1] != nullptr) { m->RegistAnm(0u, CLIP[nType][1]); m->SetUpdateRateMatClr(0u, 1.0f); }
 	if (CLIP[nType][2] != nullptr) { m->RegistAnm(0u, CLIP[nType][2]); m->SetUpdateRateAnmTexPat(0u, 1.0f); }
 	if (CLIP[nType][3] != nullptr) { m->RegistAnm(0u, CLIP[nType][3]); m->SetUpdateRateAnmTexSrt(0u, 1.0f); }
+	if (nType >= 12 && nType <= 14) m->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800e1e90: only the gate and the spikes cast a depth shadow
 	// CalcAABB (0x801c1780): min / max over the model's position arrays (natively: every vertex of every shape, unskinned)
 	if (const wii::Mdl0* mdl = m->pMdl0())
 	{
@@ -193,7 +195,7 @@ void cTaskEnemy::LoadModel(int nType)
 	}
 }
 
-// DOL 0x800e37a0
+// DOL 0x800e37a0 [audited]
 void cTaskEnemy::StartOrbit()
 {
 	m_fOrbitTime = 0.0f;
@@ -203,13 +205,13 @@ void cTaskEnemy::StartOrbit()
 	m_pNextNode = pOrbitNode(m_nOrbitIdx);
 }
 
-// DOL 0x800e3860
+// DOL 0x800e3860 [audited]
 const sEmyNode* cTaskEnemy::pOrbitNode(u32 n) const
 {
 	return (m_pOrbit != nullptr && n < m_pOrbit->nNumNode()) ? &m_pOrbit->nodes[n] : nullptr;
 }
 
-// DOL 0x800e1f88. The EnemyParam row (0x800e3800: +0x258 kind, life, +0x84, size +0x260, +0x264), the AABB are not ported; the sound actor's velocity reset (0x80026660) has no native effect (no Doppler).
+// DOL 0x800e1f88 [audited: the EnemyParam row, AABB and the sound actor reset are the port's own]. The EnemyParam row (0x800e3800: +0x258 kind, life, +0x84, size +0x260, +0x264), the AABB are not ported; the sound actor's velocity reset (0x80026660) has no native effect (no Doppler).
 void cTaskEnemy::SetupOrbit(const sScnRecord* pRec, int nType, int nOrbit, u32 nGroup)
 {
 	m_nState = 0;
@@ -244,7 +246,7 @@ void cTaskEnemy::SetupOrbit(const sScnRecord* pRec, int nType, int nOrbit, u32 n
 	UpdateModel();
 }
 
-// DOL 0x800e2da8 (the appear sound DAT_8047b518 = m01se_12hirai on the enemy's sound actor)
+// DOL 0x800e2da8 [audited: Start also clears m_bKilled (the DOL does it in SetupOrbit's reset)] (the appear sound DAT_8047b518 = m01se_12hirai on the enemy's sound actor)
 void cTaskEnemy::Start()
 {
 	m_nState = 1;
@@ -253,7 +255,7 @@ void cTaskEnemy::Start()
 	m_SndActor.Play("m01se_12hirai");
 }
 
-// DOL 0x800e22c4 (hand-reversed in the old tree, checked against the DOL structure): false at the end of the orbit
+// DOL 0x800e22c4 [audited] (hand-reversed in the old tree, checked against the DOL structure): false at the end of the orbit
 bool cTaskEnemy::UpdateOrbit(float fStep)
 {
 	cTaskCamera* cam = KingdomGlobal::GalagaSys->pTaskCamera();
@@ -328,10 +330,10 @@ bool cTaskEnemy::UpdateOrbit(float fStep)
 	return true;
 }
 
-// DOL 0x800e2200 (hand-reversed in the old tree): 2 = a random 0 / 1; 3 = a missile
+// DOL 0x800e2200 [audited] (hand-reversed in the old tree): 2 = a random 0 / 1; 3 = a missile
 void cTaskEnemy::UpdateFire()
 {
-	if (m_nFirePattern == 2) m_nFirePattern = (std::rand() & 1) ? 0 : 1;
+	if (m_nFirePattern == 2) m_nFirePattern = (kingdom::MslRand() & 1) ? 0 : 1;
 	switch (m_nFirePattern)
 	{
 	case 0: FireBullet(); break;
@@ -341,7 +343,7 @@ void cTaskEnemy::UpdateFire()
 	}
 }
 
-// DOL 0x800e3888
+// DOL 0x800e3888 [audited]
 void cTaskEnemy::FireBullet()
 {
 	if (cTaskBullet* b = cTaskEnemyMan::s_pInstance->GetBullet(false))
@@ -352,7 +354,7 @@ void cTaskEnemy::FireBullet()
 	m_nFirePattern = -1;
 }
 
-// DOL 0x800e39c0: step 0 the attack sign (PTK_ENEMY_ATTACK_SIGN01, slot 0x13) on the enemy; step 1 it follows him and, once it is gone,
+// DOL 0x800e39c0 [audited]: step 0 the attack sign (PTK_ENEMY_ATTACK_SIGN01, slot 0x13) on the enemy; step 1 it follows him and, once it is gone,
 // a BulletHit flies (sounds DAT_8047b548 m01se_10keikoku / DAT_8047b544 m01se_09shot)
 void cTaskEnemy::FireSignBullet()
 {
@@ -380,7 +382,7 @@ void cTaskEnemy::FireSignBullet()
 	}
 }
 
-// DOL 0x800e3bd4: as 0x800e39c0, the sign first; then a missile (0x800f03e0) with the missile speed along the launch direction
+// DOL 0x800e3bd4 [audited]: as 0x800e39c0, the sign first; then a missile (0x800f03e0) with the missile speed along the launch direction
 void cTaskEnemy::FireMissile()
 {
 	const Vector4 pos(m_vWorldPos[0], m_vWorldPos[1], m_vWorldPos[2], 1.0f);
@@ -408,7 +410,7 @@ void cTaskEnemy::FireMissile()
 	}
 }
 
-// DOL 0x800e271c (the not-shot-down part; shot down, the caller runs the death step +0xa8 first): the attack sign (+0x2a0) is killed if it
+// DOL 0x800e271c [audited] (the not-shot-down part; shot down, the caller runs the death step +0xa8 first): the attack sign (+0x2a0) is killed if it
 // still lives (FUN_8008a508(+0x2a0, 1)); gone; the scene learns that its group is cleared
 void cTaskEnemy::Leave()
 {
@@ -417,7 +419,7 @@ void cTaskEnemy::Leave()
 	if (cTaskScene* scene = cTaskEnemyMan::s_pInstance->pScene()) scene->ClearGroup(m_nGroup);   // 0x800f8480
 }
 
-// DOL 0x800e40cc / 0x800e2ac8: T(pos) * Rz Ry Rx (facing) * Rz Ry Rx (orbit node rotation)
+// DOL 0x800e40cc [audited: the orbit-node rotation product is 0x800e2ac8 (marked there)] / 0x800e2ac8: T(pos) * Rz Ry Rx (facing) * Rz Ry Rx (orbit node rotation)
 void cTaskEnemy::UpdateModel()
 {
 	cKingdomModel* m = pModel(0);
@@ -452,28 +454,28 @@ void cTaskEnemy::UpdateModel()
 	UpdateWorldAABB();   // 0x801c1950 at the end of the exec
 }
 
-// DOL 0x800e431c: the beam spark of a hit: Zako / Goei (type < 2) PTK_BEAM06 (slot 0x43), the others the player's PTK_BEAM0x (0xc + player)
+// DOL 0x800e431c [audited]: the beam spark of a hit: Zako / Goei (type < 2) PTK_BEAM06 (slot 0x43), the others the player's PTK_BEAM0x (0xc + player)
 void cTaskEnemy::HitSpark()
 {
 	const uint slot = m_nType < 2 ? 0x43u : (uint)(0xc + m_nHitPlayer);
 	(new cKingdomPtkHnd())->Generate(slot, true, false, true, 0.0f, Vector4(m_vWorldPos[0], m_vWorldPos[1], m_vWorldPos[2], 1.0f));
 }
 
-// DOL 0x800e46b0
+// DOL 0x800e46b0 [audited]
 void cTaskEnemy::FlashStep()
 {
 	if (0.0f < m_fFlash) m_fFlash -= 1.0f;   // FLOAT_8047b550 / 8047b554
 	else if (cKingdomModel* m = pModel(0)) m->SetFogIdx(0);
 }
 
-// DOL 0x800e4494: the explosion sound by enemy size (2 bak2, 3 bak3, 4 bak4, else bak1; DAT_8047b534..540)
+// DOL 0x800e4494 [audited: the DOL also routes the cue to the player's remote speaker (801c15ac, not ported)]: the explosion sound by enemy size (2 bak2, 3 bak3, 4 bak4, else bak1; DAT_8047b534..540)
 void cTaskEnemy::DeathSound()
 {
 	static const char* const CUE[5] = {"m01se_05bak1", "m01se_05bak1", "m01se_06bak2", "m01se_07bak3", "m01se_08bak4"};
 	snd::Play(CUE[(unsigned)m_nSize < 5 ? m_nSize : 1]);
 }
 
-// DOL 0x800e4220: the explosion by enemy size (EnemyParam column 1): 1 -> PTK_BOMB_SMALL0x, 2 -> PTK_BOMB_MIDDLE0x (x = player + 1),
+// DOL 0x800e4220 [audited]: the explosion by enemy size (EnemyParam column 1): 1 -> PTK_BOMB_SMALL0x, 2 -> PTK_BOMB_MIDDLE0x (x = player + 1),
 // else PTK_BOMB_BIG01; one-shot, clipped, at the model position. The DOL fills a local cKingdomPtkHnd (0x44 bytes) and lets it go.
 void cTaskEnemy::HitEffect(int nPlayer)
 {
@@ -483,7 +485,7 @@ void cTaskEnemy::HitEffect(int nPlayer)
 	h->Generate((uint)slot, true, false, true, 0.0f, pos);
 }
 
-// DOL 0x800e27b4: a player's shot (kind 1) or a bomb (kind 0xc, which hands its player: task vtable +0x54 = 0x800c9d54). The spark (+0x70),
+// DOL 0x800e27b4 [audited]: a player's shot (kind 1) or a bomb (kind 0xc, which hands its player: task vtable +0x54 = 0x800c9d54). The spark (+0x70),
 // the hit flash (fog 1 for FLOAT_8047b524 = 15 frames), type 9 (Queen 2) does not lose life; killed: score, kill count, and an enemy of type
 // 8 or 5 drops a bomb (pool +0x1e4) at its offset to the camera aim point (pTaskCamera +0x220), then the death (+0xc4); else the hit sound (+0x78)
 void cTaskEnemy::HitCallback(cObject* other)
@@ -519,7 +521,7 @@ void cTaskEnemy::HitCallback(cObject* other)
 	}
 }
 
-// DOL 0x800e1eb4: the death clips of the enemy type (0x80372d3c, two CRC32 names per type: bone clip, colour clip; 0 = none), both in
+// DOL 0x800e1eb4 [audited]: the death clips of the enemy type (0x80372d3c, two CRC32 names per type: bone clip, colour clip; 0 = none), both in
 // slot 0 at rate 1 (0x8001cad4 / 0x8001cd4c)
 void cTaskEnemy::DeathClip(int nType)
 {
@@ -554,7 +556,7 @@ void cTaskEnemy::DeathClip(int nType)
 	}
 }
 
-// DOL 0x800e20f0: step 0 the death clips (+0xb0 with the type), the explosion (+0x6c) and its sound (+0x74), the enemy's sound stopped
+// DOL 0x800e20f0 [audited]: step 0 the death clips (+0xb0 with the type), the explosion (+0x6c) and its sound (+0x74), the enemy's sound stopped
 // (+0x34c, no 3D actors natively) and the attack sign detached (+0x2a0); step 1 waits for the colour clip to end (0x8001c804 max < 0x8001c42c
 // frame; natively "<=" since the port's one-time clips stop at max), then inactive
 bool cTaskEnemy::DieStep()
@@ -580,7 +582,7 @@ bool cTaskEnemy::DieStep()
 	return false;
 }
 
-// DOL 0x800e2de0
+// DOL 0x800e2de0 [audited]
 void cTaskEnemy::Dead()
 {
 	m_nState = 2;
@@ -617,7 +619,7 @@ bool cTaskEnemy::Execute(cJetTask* pParam)
 // The small enemy slots, inlined: +0xb4 0x800e2d88 (state / step 0), +0xb8 0x800e2d98 (state == 0), +0xc0 0x800e2dcc (state == 1), +0xc8
 // 0x800e2df8 (state == 2); cTaskEnemyBase's Execute 0x800e4790 (the model task) and Draw 0x800e47e4 (only while shown), Term 0x800e369c (the
 // sound actor +0x344 is released: natively the member's destructor, its cues play on where it was).
-// DOL 0x800e47b8: only while active (+8) and shown (+9; the fighter waits hidden)
+// DOL 0x800e47b8 [audited]: only while active (+8) and shown (+9; the fighter waits hidden)
 void cTaskEnemy::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08 || !m_b09) return;
@@ -626,13 +628,13 @@ void cTaskEnemy::Draw(int nStatus, cJetTask* pParam)
 
 // ---- cTaskEnemyMan ---------------------------------------------------------------------------------------------------------------
 
-// DOL 0x801bb9fc
+// DOL 0x801bb9fc [audited: pools are vectors]
 cTaskEnemyMan::cTaskEnemyMan()
 {
 	SetName("g01::cTaskEnemyMan");
 }
 
-// DOL 0x800e7fa0 (ReleaseStageData)
+// DOL 0x800e7fa0 [audited: pools are vectors, no free] (ReleaseStageData)
 cTaskEnemyMan::~cTaskEnemyMan()
 {
 	if (s_pInstance == this) s_pInstance = nullptr;
@@ -647,7 +649,7 @@ cTaskEnemyMan::~cTaskEnemyMan()
 //   0x800e7e1c / 0x800e811c. cTaskEnemyMan::ResetWork (vtable +0x40) 0x800e6e98 / cTaskBossEnemyMan 0x800e7d84 reset every pool: no caller
 //   found (the apps rebuild the stage on retry). Natively the pools are vectors; bombs / fighters / enemies keep the round-robin start; the shot
 //   and missile pools take the first free entry (the same entry as long as the pool is not full). cEnemyParam's dtor 0x800e5c10.
-// DOL 0x800e6244: the enemy parameters (cEnemyParam, "EnemyParam_s%xp%d.csv") and the pools (enemies, shots, missiles, bombs, fighters).
+// DOL 0x800e6244 [audited]: the enemy parameters (cEnemyParam, "EnemyParam_s%xp%d.csv") and the pools (enemies, shots, missiles, bombs, fighters).
 void cTaskEnemyMan::Init(int nStage, cTaskScene* pScene, cTaskPacman* pPacman)
 {
 	m_pScene = pScene;
@@ -742,7 +744,7 @@ cTaskMissile* cTaskEnemyMan::GetMissile()
 	return nullptr;
 }
 
-// DOL 0x800e2968 (tWorkObject<cTaskBomb> vtable +0x10): the first inactive one from the slot after the last one taken
+// DOL 0x800e2968 [audited] (tWorkObject<cTaskBomb> vtable +0x10): the first inactive one from the slot after the last one taken
 cTaskBomb* cTaskEnemyMan::GetBomb()
 {
 	const u32 n = (u32)m_Bomb.size();
@@ -761,7 +763,7 @@ cTaskBullet* cTaskEnemyMan::GetBullet(bool bHit)
 	return nullptr;
 }
 
-// DOL 0x800e6d24: a free enemy (GetFreeWork 0x8043a458 +0x10: round robin from the last one taken) flies the orbit and starts (+0xbc);
+// DOL 0x800e6d24 [audited]: a free enemy (GetFreeWork 0x8043a458 +0x10: round robin from the last one taken) flies the orbit and starts (+0xbc);
 // p2 bits 9-10: a free fighter (pool +0x1e8, 0x800e6e38) rides along (0x800ea304)
 void cTaskEnemyMan::Spawn(const sScnRecord* pRec, int nType, int nOrbit, u32 nParam2)
 {

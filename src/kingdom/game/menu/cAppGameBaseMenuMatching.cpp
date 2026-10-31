@@ -199,7 +199,7 @@ void cAppGameBaseMenuMatching::RegistData(string PointKey, string AnitaKey, stri
 		ConnectChild(pTaskFade());
 		pParamMessage() = new cParamMessage();
 		CustomKingdomUtil::Assert(pParamMessage() != nullptr);
-		pParamMessage()->RegistData("RESIDENT_MSG_MATCHING");   // DOL 0x801cf8bc: CRC 0x17855010
+		pParamMessage()->RegistData("RESIDENT_MSG_MATCHING");   // DOL 0x801cf8bc [audited: cursors, bg, windows, person/add/confirm scenes compared; Mii scene out of scope (guest names stand in)]: CRC 0x17855010
 		pTaskConsBg() = new cTaskConsBg(0, AnitaKey);
 		CustomKingdomUtil::Assert(pTaskConsBg() != nullptr);
 		pTaskConsBg()->nDrawPriority(65537u);
@@ -286,7 +286,7 @@ void cAppGameBaseMenuMatching::GuestNames()
 	}
 }
 
-// inlined in DOL 0x801d0a78 (ConnectCtrlCheck): the KPAD status of the pad (get_pad1 +0xb0) reports an error (+0x5d not 0 and not -2 = busy) or
+// inlined in DOL 0x801d0a78 [audited: KPAD error test replaced by IsConnectPad] (ConnectCtrlCheck): the KPAD status of the pad (get_pad1 +0xb0) reports an error (+0x5d not 0 and not -2 = busy) or
 // no device (+0x5c dev_type 0xfd): natively = the channel is not connected
 bool cAppGameBaseMenuMatching::_IsConnectError(int nCtrl)
 {
@@ -412,7 +412,7 @@ void cAppGameBaseMenuMatching::ConnectCtrlCheck()
 	nConnectCtrlCt() = num;
 }
 
-// DOL 0x801d0d44 (inlined in Execute after ConnectCtrlCheck 0x801d0a78): cursor i follows controller nConnectCtrl(i) (vtable +0x58 SetPadNo) and is
+// DOL 0x801d0d44 [audited: cursor following compared; the matching state machine's Mii/guest branches out of scope] (inlined in Execute after ConnectCtrlCheck 0x801d0a78): cursor i follows controller nConnectCtrl(i) (vtable +0x58 SetPadNo) and is
 // shown only for i < nConnectCtrlCt
 void cAppGameBaseMenuMatching::ConnectCursor()
 {

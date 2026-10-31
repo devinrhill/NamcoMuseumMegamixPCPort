@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskConsoleResultSingle.hpp"
 
 #include <cstdio>
@@ -18,29 +19,29 @@ namespace
 // rows {appear, wait, out, -1, roulette}; index by the anita's column (0 appear, 1 wait, 2 out, 4 roulette)
 const int DIGIT[10][5] = {{0, 1, 2, -1, 39},    {3, 4, 5, -1, 39},    {6, 7, 8, -1, 39},    {9, 10, 11, -1, 39},  {12, 13, 14, -1, 39},
                           {15, 16, 17, -1, 39}, {18, 19, 20, -1, 39}, {21, 22, 23, -1, 39}, {24, 25, 26, -1, 39}, {27, 28, 29, -1, 39}};   // DOL 0x80372468
-const int FRAME_ANM[5] = {111, 112, 113, -1, -1};                         // DOL 0x80372370 anita 0
-const int TITLE_ANM[2][5] = {{94, 95, 96, -1, -1}, {97, 98, 99, -1, -1}}; // DOL 0x80372388 anita 1 (by +0x224)
-const int KILL_HEAD_ANM[5] = {73, 74, 75, -1, -1};                        // DOL 0x803725f8 anita 2
-const int SCORE_HEAD_ANM[5] = {85, 86, 87, -1, -1};                       // DOL 0x8037260c anita 10
-const int KILL_LABEL_ANM[5] = {76, 77, 78, -1, -1};                       // DOL 0x80372620 anita 3
-const int LIFE_HEAD_ANM[2][5] = {{82, 83, 84, -1, -1}, {91, 92, 93, -1, -1}};   // DOL 0x80372638 anita 0x16
-const int RATE_HEAD_ANM[5] = {79, 80, 81, -1, -1};                        // DOL 0x80372660 anita 0x11
-const int LIFE_BASE_ANM[2][5] = {{52, 64, 54, 53, -1}, {52, 65, 56, 55, -1}};   // DOL 0x803723b0 anita 0x17 (ANT_LIFE)
+const int FRAME_ANM[5] = {111, 112, 113, -1, -1};                         // DOL 0x80372370 [audited] anita 0
+const int TITLE_ANM[2][5] = {{94, 95, 96, -1, -1}, {97, 98, 99, -1, -1}}; // DOL 0x80372388 [audited] anita 1 (by +0x224)
+const int KILL_HEAD_ANM[5] = {73, 74, 75, -1, -1};                        // DOL 0x803725f8 [audited] anita 2
+const int SCORE_HEAD_ANM[5] = {85, 86, 87, -1, -1};                       // DOL 0x8037260c [audited] anita 10
+const int KILL_LABEL_ANM[5] = {76, 77, 78, -1, -1};                       // DOL 0x80372620 [audited] anita 3
+const int LIFE_HEAD_ANM[2][5] = {{82, 83, 84, -1, -1}, {91, 92, 93, -1, -1}};   // DOL 0x80372638 [audited] anita 0x16
+const int RATE_HEAD_ANM[5] = {79, 80, 81, -1, -1};                        // DOL 0x80372660 [audited] anita 0x11
+const int LIFE_BASE_ANM[2][5] = {{52, 64, 54, 53, -1}, {52, 65, 56, 55, -1}};   // DOL 0x803723b0 [audited] anita 0x17 (ANT_LIFE)
 const int LIFE_ICON_ANM[7][5] = {{5, 57, 6, -1, -1},   {12, 58, 13, -1, -1}, {19, 59, 20, -1, -1}, {26, 60, 27, -1, -1},
-                                 {33, 61, 34, -1, -1}, {40, 62, 41, -1, -1}, {47, 63, 48, -1, -1}};   // DOL 0x803723d8 anita 0x18 by life
-const int PERCENT_ANM[3] = {33, 34, 35};   // DOL 0x80372688 anita 0x1b (kinds 0, 1 / 4, 2)
-const int SLASH_ANM[3] = {30, 31, 32};     // DOL 0x8037269c anita 0x19
-const int POINT_ANM[3] = {36, 37, 38};     // DOL 0x803726b0 anita 0x1a
-const uint SCORE_LAYER[6] = {18, 17, 16, 15, 14, 13};   // DOL 0x803726d8 anitas 0xb..0x10
-const uint KILL_LAYER[3] = {2, 1, 0};                   // DOL 0x803726f0 anitas 4..6
-const uint MAX_LAYER[3] = {6, 5, 4};                    // DOL 0x803726fc anitas 7..9
-const uint RATE_LAYER[4] = {11, 9, 8, 7};               // DOL 0x80372708 anitas 0x12..0x15
+                                 {33, 61, 34, -1, -1}, {40, 62, 41, -1, -1}, {47, 63, 48, -1, -1}};   // DOL 0x803723d8 [audited] anita 0x18 by life
+const int PERCENT_ANM[3] = {33, 34, 35};   // DOL 0x80372688 [audited] anita 0x1b (kinds 0, 1 / 4, 2)
+const int SLASH_ANM[3] = {30, 31, 32};     // DOL 0x8037269c [audited] anita 0x19
+const int POINT_ANM[3] = {36, 37, 38};     // DOL 0x803726b0 [audited] anita 0x1a
+const uint SCORE_LAYER[6] = {18, 17, 16, 15, 14, 13};   // DOL 0x803726d8 [audited] anitas 0xb..0x10
+const uint KILL_LAYER[3] = {2, 1, 0};                   // DOL 0x803726f0 [audited] anitas 4..6
+const uint MAX_LAYER[3] = {6, 5, 4};                    // DOL 0x803726fc [audited] anitas 7..9
+const uint RATE_LAYER[4] = {11, 9, 8, 7};               // DOL 0x80372708 [audited] anitas 0x12..0x15
 }
 
 // the console base's "anim over" test used everywhere: hidden (flag 1 off) or ANIM_END (0x10000)
 static bool Done(cKingdomAnita* a) { return !a->IsState(1u) || a->IsState(cJetAnita::JET_ANITA_STATE_ANIM_END); }
 
-// DOL 0x800d7c40 (priority 0x80000004, +0x224 = 0) + Init 0x800d7f78 (console player, life console, the stage's enemy count, the anitas
+// DOL 0x800d7c40 [audited] (priority 0x80000004, +0x224 = 0) + Init 0x800d7f78 (console player, life console, the stage's enemy count, the anitas
 // hidden at their layers)
 cTaskConsoleResultSingle::cTaskConsoleResultSingle(cTaskConsolePlayer* player, cTaskConsoleLife* life)
 {
@@ -74,7 +75,7 @@ cTaskConsoleResultSingle::cTaskConsoleResultSingle(cTaskConsolePlayer* player, c
 	place(0x1b, 12);
 }
 
-// DOL 0x800dfcb0 -> 0x800eb6c4
+// DOL 0x800dfcb0 [audited] -> 0x800eb6c4
 void cTaskConsoleResultSingle::Start()
 {
 	m_nState = 4;
@@ -104,10 +105,10 @@ static void Digits(cTaskAnita* t, uint first, uint count, uint value, int col, u
 static void Roulette(cKingdomAnita* a)
 {
 	a->SetAnimNo(DIGIT[0][4], false);
-	a->SetFrame((float)(std::rand() % 10));
+	a->SetFrame((float)(kingdom::MslRand() % 10));
 }
 
-// DOL 0x800d8908: the headers (title, KILL, its label, HIT RATE, LIFE, SCORE); kind 0 appear (and show), 2 out
+// DOL 0x800d8908 [audited]: the headers (title, KILL, its label, HIT RATE, LIFE, SCORE); kind 0 appear (and show), 2 out
 void cTaskConsoleResultSingle::Headers(int kind)
 {
 	if (kind != 0 && kind != 2) return;
@@ -121,13 +122,13 @@ void cTaskConsoleResultSingle::Headers(int kind)
 		for (uint n : {1u, 2u, 3u, 0x11u, 0x16u, 10u}) pAnita(n)->SetState(1u, true);
 }
 
-// DOL 0x800d8e74: the shown score (+0x23c) on anitas 0xb..0x10; kind 1 wait, 2 out
+// DOL 0x800d8e74 [audited]: the shown score (+0x23c) on anitas 0xb..0x10; kind 1 wait, 2 out
 void cTaskConsoleResultSingle::Score(int kind)
 {
 	if (kind == 1 || kind == 2) Digits(this, 0xb, 6, (uint)m_nScoreShown, kind, 1);
 }
 
-// DOL 0x800d914c: the hit rate (anitas 0x12..0x15, "." 0x1a, "%" 0x1b); 0 zeros appear, 4 roulette, 1 the rate, 2 out
+// DOL 0x800d914c [audited]: the hit rate (anitas 0x12..0x15, "." 0x1a, "%" 0x1b); 0 zeros appear, 4 roulette, 1 the rate, 2 out
 void cTaskConsoleResultSingle::Rate(int kind)
 {
 	if (kind == 0 || kind == 4)
@@ -160,7 +161,7 @@ void cTaskConsoleResultSingle::Rate(int kind)
 	}
 }
 
-// DOL 0x800d999c: kills (anitas 4..6) "/" (0x19) the stage's enemies (7..9, +0x244); 0 appear (kills "000"), 4 roulette, 1 the kills, 2 out
+// DOL 0x800d999c [audited]: kills (anitas 4..6) "/" (0x19) the stage's enemies (7..9, +0x244); 0 appear (kills "000"), 4 roulette, 1 the kills, 2 out
 void cTaskConsoleResultSingle::Kill(int kind)
 {
 	switch (kind)
@@ -189,7 +190,7 @@ void cTaskConsoleResultSingle::Kill(int kind)
 	}
 }
 
-// DOL 0x800da394
+// DOL 0x800da394 [audited]
 bool cTaskConsoleResultSingle::IsKillEnd()
 {
 	for (uint n = 7; n < 10; n++) if (!Done(pAnita(n))) return false;
@@ -197,7 +198,7 @@ bool cTaskConsoleResultSingle::IsKillEnd()
 	return Done(pAnita(0x19));
 }
 
-// DOL 0x800da4a0. Phases: 0 frame + jingle, 1 title / KILL header, 2 kills (roulette 75 frames), 3 hit rate (the same), 4 life, 5 score count
+// DOL 0x800da4a0 [audited: phase machine compared in structure (skip rules, phase order); per-phase anim numbers not re-diffed]. Phases: 0 frame + jingle, 1 title / KILL header, 2 kills (roulette 75 frames), 3 hit rate (the same), 4 life, 5 score count
 // up, 6 skip (A / B / Z in 2..5: everything final at once), 7 wait (> 2 s or A / B / Z), 8 out; 1 = done
 bool cTaskConsoleResultSingle::PhaseExec()
 {

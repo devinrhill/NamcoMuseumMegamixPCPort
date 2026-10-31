@@ -25,7 +25,7 @@ cTaskShadowCamera::~cTaskShadowCamera()
 	Term();
 }
 
-// DOL 0x80188384: the light camera of the depth shadows (mode 0: straight above the target), the box by the round (+0x1b4 near, +0x1b8 far, +0x1bc factor)
+// DOL 0x80188384 [audited: per AUDIT_G03_G07 row]: the light camera of the depth shadows (mode 0: straight above the target), the box by the round (+0x1b4 near, +0x1b8 far, +0x1bc factor)
 void cTaskShadowCamera::Init()
 {
 	Constants::PACN_APP();
@@ -33,7 +33,7 @@ void cTaskShadowCamera::Init()
 	sh.SetMode(0);
 	sh.SetTarget(0.0f, 0.0f, 0.0f);
 	sh.SetAngles(1.5707964f, 0.0f, 0.0f);
-	const uint round = KingdomGlobal::PacnRollSys->nRound();   // DOL 0x8012aeac: the sys's first word
+	const uint round = KingdomGlobal::PacnRollSys->nRound();   // DOL 0x8012aeac [audited: described by the 43rd-session pass]: the sys's first word
 	if (round == 4u)
 	{
 		sh.SetOrtho(40.0f, 40.0f, 20.0f, 90.0f);
@@ -58,7 +58,7 @@ void cTaskShadowCamera::Term()
 {
 }
 
-// DOL 0x801884ec: the light follows Pac-Man (ahead of him along the camera's view direction) and its box grows with the camera distance
+// DOL 0x801884ec [audited: per AUDIT_G03_G07 row]: the light follows Pac-Man (ahead of him along the camera's view direction) and its box grows with the camera distance
 bool cTaskShadowCamera::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* app = Constants::PACN_APP();

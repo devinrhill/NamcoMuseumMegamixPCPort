@@ -8,7 +8,7 @@
 namespace kingdom::game::g04
 {
 
-// DOL 0x80199f64: FUN_800c2404(menu, "WaniWani", 3, table 0x80449340)
+// DOL 0x80199f64 [audited]: FUN_800c2404(menu, "WaniWani", 3, table 0x80449340)
 cAppG04WaniWaniDebugMenu::cAppG04WaniWaniDebugMenu()
 {
 	SetName("WaniWani Debug Menu");

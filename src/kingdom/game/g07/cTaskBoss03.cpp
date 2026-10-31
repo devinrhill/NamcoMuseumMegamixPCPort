@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskBoss03.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -114,6 +115,7 @@ void cTaskBoss03::SetApearScale(float x, float y, float z)
 	::Constants::jetGeoVecCopy(pModel(2u)->vScale(), v);
 }
 
+// DOL 0x800406a8 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss03::Init()
 {
 	m_fTargetRot = 0.0f;
@@ -194,6 +196,7 @@ void cTaskBoss03::Term()
 	cTaskCharBoss::Term();
 }
 
+// DOL 0x80040fcc [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss03::ActionBoth()
 {
 	if (GetMode() != 11 && (float)nHp() < cTaskBoss03::DAMAGE_BASE_HP(this))
@@ -204,6 +207,7 @@ bool cTaskBoss03::ActionBoth()
 	return true;
 }
 
+// DOL 0x8004110c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss03::ActionLocal()
 {
 	if (CustomKingdomUtil::IF(m_nHitFlash))
@@ -249,6 +253,7 @@ bool cTaskBoss03::ActionOther()
 	return true;
 }
 
+// DOL 0x80041280 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss03::AdjustMaxSpeed()
 {
 	float num = ::Constants::jetGeoVecLength(vSpeed());
@@ -259,6 +264,7 @@ void cTaskBoss03::AdjustMaxSpeed()
 	}
 }
 
+// DOL 0x800412f0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss03::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	if (GetMode() != 0)
@@ -384,7 +390,7 @@ bool cTaskBoss03::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (1 == nMes)
 			{
-				vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+				vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 				if (--nTimer() == 0)
 				{
 					int nWait2 = s_ModeTbl[nAction()]->m_nWait;
@@ -412,7 +418,7 @@ bool cTaskBoss03::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (1 == nMes)
 			{
-				vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+				vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 				m_fNowAccel = fRushAccel();
 				m_fNowMaxSpeed = fRushSpeed();
 				if (Constants::motosCharMove(this, s_vPos[nMovePoint()], 0.05f, m_fNowAccel))
@@ -707,6 +713,7 @@ bool cTaskBoss03::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 	return true;
 }
 
+// DOL 0x80042664 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss03::RefAttacked(int nParts, int nGrobalID)
 {
 	bool flag = true;
@@ -770,6 +777,7 @@ void cTaskBoss03::SET_STEP_WAIT(cTaskCharBoss* boss, ushort step, int time)
 	boss->Step(1) = (boss->Step(2) = (boss->Step(3) = 0));
 }
 
+// DOL 0x8004284c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss03::ModeAppear()
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) != 2 || !bTestFlag(4194304u))
@@ -811,10 +819,10 @@ void cTaskBoss03::ModeAppear()
 		}
 		break;
 	case 1:
-		SpawnAppearEffect(this, Constants::VEC3_GET(-5.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.8f);
-		SpawnAppearEffect(this, Constants::VEC3_GET(3.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.8f);
-		SpawnAppearEffect(this, Constants::VEC3_GET(0.3f, 0.0f, -6.0f), 1.4f, 4.0f, 0.8f);
-		SpawnAppearEffect(this, Constants::VEC3_GET(0.3f, 0.0f, 2.0f), 1.4f, 4.0f, 0.8f);
+		SpawnAppearEffect(this, Constants::VEC3_GET(-6.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.5f); // DOL 0x8004284c (positions / space)
+		SpawnAppearEffect(this, Constants::VEC3_GET(2.0f, 0.0f, -0.7f), 4.0f, 1.4f, 0.5f);
+		SpawnAppearEffect(this, Constants::VEC3_GET(-0.7f, 0.0f, -6.0f), 1.4f, 4.0f, 0.5f);
+		SpawnAppearEffect(this, Constants::VEC3_GET(-0.7f, 0.0f, 2.0f), 1.4f, 4.0f, 0.5f);
 		fFogNear() = -30.0f;
 		fFogFar() = 30.0f;
 		cTaskBoss03::SET_STEP(this, 2);
@@ -830,17 +838,17 @@ void cTaskBoss03::ModeAppear()
 		}
 		else
 		{
+			FogStep(2.0f); // DOL 0x80042c80 [audited: described by the 43rd-session pass] (FLOAT_8047a218 = 2)
 			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE038_BOSS_APPEAR2, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
 			cTaskBoss03::SET_STEP_WAIT(this, 3, 40);
 			SetMortion(2u, "ANM_CHAR_BOSS_3_A03");
 		}
 		break;
 	case 3:
-		if (Step(1) != 60)
+		if (Step(1) != 120) // DOL 0x78 (the port had 60)
 		{
 			Step(1)++;
-			float rate = 1.0f - (float)(int)Step(1) / 60.0f;
-			SetFlash(2, rate);
+			FogStep(2.0f); // DOL 0x80042d14 [audited: described by the 43rd-session pass]: the flash fog's end distance grows 2 per frame for 120 frames
 		}
 		else
 		{
@@ -871,13 +879,14 @@ void cTaskBoss03::ModeAppear()
 	}
 }
 
+// DOL 0x80042e3c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss03::ModeDeath()
 {
 	cTaskFade* cTaskFade2 = KingdomGlobal::g_pMotosGame->pTaskFade();
 	switch (Step())
 	{
 	case 0:
-		if (Step(1) < 30)
+		if (Step(1) < 60)
 		{
 			Step(1)++;
 		}
@@ -888,14 +897,14 @@ void cTaskBoss03::ModeDeath()
 		}
 		SoundManager::get_SE()->Stop(ESEKind::MOTOS_SND_SE024_BOSS_ROT1);
 		SoundManager::get_SE()->Stop(ESEKind::MOTOS_SND_SE023_BOSS_MOVE1);
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		break;
 	case 1:
 		SpawnExplodeRandom(this, Constants::VEC3_GET(-5.0f, 0.0f, -0.5f), 3.5f, 1.0f, 0.5f, 240);
 		SpawnExplodeRandom(this, Constants::VEC3_GET(1.0f, 0.0f, -0.5f), 3.5f, 1.0f, 0.5f, 240);
 		SpawnExplodeRandom(this, Constants::VEC3_GET(-0.5f, 0.0f, -5.0f), 1.0f, 3.5f, 0.5f, 240);
 		SpawnExplodeRandom(this, Constants::VEC3_GET(-0.5f, 0.0f, 1.0f), 1.0f, 3.5f, 0.5f, 240);
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		cTaskBoss03::SET_STEP(this, 2);
 		break;
 	case 2:
@@ -903,23 +912,23 @@ void cTaskBoss03::ModeDeath()
 		{
 			cTaskBoss03::SET_STEP(this, 3);
 		}
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		ExplodeSE();
 		break;
 	case 3:
 		switch (Step(2))
 		{
 		case 0:
-			if (++Step(1) > 60)
+			if (++Step(1) > 120)
 			{
 				Step(1) = 0;
 				Step(2)++;
-				cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 1000);
+				cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 2000);
 			}
 			ExplodeSE();
 			break;
 		case 1:
-			if (++Step(1) > 30)
+			if (++Step(1) > 60)
 			{
 				Constants::SpawnEffect(21, vMTrans());
 				KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.2f, 20);
@@ -929,7 +938,7 @@ void cTaskBoss03::ModeDeath()
 			}
 			break;
 		case 2:
-			if (++Step(1) > 10)
+			if (++Step(1) > 20)
 			{
 				Constants::SpawnEffect(21, vMTrans());
 				ExHitParam(0)->m_nKind = 2;
@@ -939,24 +948,27 @@ void cTaskBoss03::ModeDeath()
 			}
 			break;
 		case 3:
-			if (++Step(1) == 20)
+			if (!cTaskFade2->IsEnd()) // DOL 0x80042e3c: the burst ends the death at once when the white-out is still running
 			{
-				Constants::SpawnEffect(21, vMTrans());
-				KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.42f, 30);
-				OnFlag(33u);
-				Step(1)++;
+				if (++Step(1) > 40)
+				{
+					Constants::SpawnEffect(21, vMTrans());
+					KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.42f, 30);
+					cTaskBoss03::SET_STEP(this, 4);
+					OnFlag(33u);
+				}
 			}
-			else if (Step(1) > 20 && cTaskFade2->IsEnd())
+			else
 			{
 				Step(1) = 0;
 				Step(2)++;
 			}
 			break;
 		case 4:
-			if (Step(1)++ > 30)
+			if (Step(1)++ > 60)
 			{
 				OnFlag(33u);
-				cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 1000);
+				cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 2000);
 				Step(2)++;
 				for (uint num = 0u; pModel(num) != nullptr; num++)
 				{
@@ -971,11 +983,11 @@ void cTaskBoss03::ModeDeath()
 			}
 			break;
 		}
-		m_fCenterPosY = (float)((double)Random::Range(0, 10) * 0.02);
-		vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+		m_fCenterPosY = (float)((double)kingdom::MslRandRange(0, 10) * 0.02);
+		vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 		break;
 	case 4:
-		if (++Step(1) > 50)
+		if (++Step(1) > 100)
 		{
 			ChangeTaiki();
 		}
@@ -991,7 +1003,7 @@ void cTaskBoss03::ModeDeath()
 			num2 = 255u;
 		}
 		nCoreFogColor() = 0xFF0000FFu | (num2 << 16) | (num2 << 8);
-		m_fCenterPosY = (float)((double)Random::Range(0, 10) * 0.02 * (double)(1.0f - (float)(nLTimer() / 90)));
+		m_fCenterPosY = (float)((double)kingdom::MslRandRange(0, 10) * 0.02 * (double)(1.0f - (float)(nLTimer() / 90)));
 	}
 }
 

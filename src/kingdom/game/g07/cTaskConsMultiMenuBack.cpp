@@ -16,6 +16,7 @@ cTaskConsMultiMenuBack::~cTaskConsMultiMenuBack()
 {
 }
 
+// DOL 0x801cadf8 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuBack::nGetBackAnmNo(int nAnmState)
 {
 	int obj[4] = {91, 92, 93, 94};
@@ -23,6 +24,7 @@ int cTaskConsMultiMenuBack::nGetBackAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
+// DOL 0x801cae34 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuBack::SetData()
 {
 	nDrawPriority(2147483672u);

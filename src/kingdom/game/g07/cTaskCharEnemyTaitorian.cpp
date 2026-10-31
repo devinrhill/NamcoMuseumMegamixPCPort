@@ -19,6 +19,7 @@ cTaskCharEnemy* cTaskCharEnemyTaitorian::Construct()
 	return new cTaskCharEnemyTaitorian();
 }
 
+// DOL 0x80059c2c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyTaitorian::Init()
 {
 	nChangeMoveFrame() = 12;
@@ -29,6 +30,7 @@ void cTaskCharEnemyTaitorian::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80059c3c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyTaitorian::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -45,6 +47,7 @@ bool cTaskCharEnemyTaitorian::Create(uint no)
 	return true;
 }
 
+// DOL 0x80059d20 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyTaitorian::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -95,6 +98,7 @@ uint cTaskCharEnemyTaitorian::Input()
 	return num2;
 }
 
+// DOL 0x80059fc0 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyTaitorian::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

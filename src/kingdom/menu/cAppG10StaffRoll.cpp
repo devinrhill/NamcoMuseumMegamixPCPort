@@ -9,13 +9,13 @@
 namespace kingdom::menu
 {
 
-// DOL 0x8019b250 (job 139)
+// DOL 0x8019b250 [audited] (job 139)
 void cAppG10StaffRoll::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG10StaffRoll());
 }
 
-// DOL 0x80202ed0: the AttachArcData("staffroll.lzs") and its detach (0x80202f20) are left out natively (as g02 / g01 / g11); RegistCamera = the
+// DOL 0x80202ed0 [audited]: the AttachArcData("staffroll.lzs") and its detach (0x80202f20) are left out natively (as g02 / g01 / g11); RegistCamera = the
 // base RegistData (UNVERIFIED that more is needed)
 cAppG10StaffRoll::cAppG10StaffRoll()
 {

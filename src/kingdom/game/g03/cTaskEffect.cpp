@@ -4,6 +4,7 @@
 #include "cJetTask.hpp"
 #include "CustomKingdomUtil.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g03/Constants.hpp"
 #include "ResNode.hpp"
 #include "ResUserData.hpp"
@@ -119,7 +120,8 @@ void cTaskEffect::Regist(ResNode* nodeEff)
 			::Constants::jetGeoVecSet(v3, vector.x, vector.y, vector.z, 1.0f);
 			v.x *= -1.0f;
 			num5 = GetDelay(childNode2);
-			float fDelay = ((num5 != 0) ? ((float)num5) : ((num4 == 0) ? 0.0f : Random::Range(0.0f, num4)));
+			// DOL 0x801786e0 [audited: described by the 43rd-session pass]: the node's own Delay, else rand() % the group's Delay (an integer in frames; the converted code used Unity's Random.Range(0f, delay))
+			float fDelay = ((num5 != 0) ? ((float)num5) : ((num4 == 0) ? 0.0f : (float)kingdom::MslRandRange(0, (int)num4)));
 			bool flag = false;
 			if (CustomKingdomUtil::strstr(childNode->GetName(), "ef_magma01"))
 			{

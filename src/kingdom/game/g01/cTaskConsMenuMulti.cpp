@@ -9,13 +9,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x803703b8: [single, multi][appear, wait, point, decide]
+// DOL 0x803703b8 [audited]: [single, multi][appear, wait, point, decide]
 const int cTaskConsMenuMulti::ANM_LIST[2][eANM_MAX] = {
 	{0x9a, 0x9b, 0x9c, 0x9d},
 	{0x9e, 0x9f, 0xa0, 0xa1},
 };
 
-// DOL 0x800be9b0: no draw priority; WaitState (vtable +0x64) before the layout is loaded hidden
+// DOL 0x800be9b0 [audited]: no draw priority; WaitState (vtable +0x64) before the layout is loaded hidden
 cTaskConsMenuMulti::cTaskConsMenuMulti(cTaskConsMenuManBase* const& pConsMan, uint bMulti)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -26,7 +26,7 @@ cTaskConsMenuMulti::cTaskConsMenuMulti(cTaskConsMenuManBase* const& pConsMan, ui
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x800bea7c
+// DOL 0x800bea7c [audited]
 cTaskConsMenuMulti::~cTaskConsMenuMulti()
 {
 }
@@ -37,19 +37,19 @@ int cTaskConsMenuMulti::nGetAnm(int nAnm)
 	return ANM_LIST[(m_bMulti != 0u) ? 1 : 0][nAnm];
 }
 
-// DOL 0x800bead4: hit test of anita 0, pattern 12
+// DOL 0x800bead4 [audited]: hit test of anita 0, pattern 12
 bool cTaskConsMenuMulti::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, HIT_PAT);
 }
 
-// DOL 0x800bec0c
+// DOL 0x800bec0c [audited]
 void cTaskConsMenuMulti::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetAnm(eANM_WAIT), false);
 }
 
-// DOL 0x800beca8
+// DOL 0x800beca8 [audited]
 bool cTaskConsMenuMulti::AppearExec()
 {
 	if (nStep() == 0)
@@ -65,13 +65,13 @@ bool cTaskConsMenuMulti::AppearExec()
 	return false;
 }
 
-// DOL 0x800bedb0
+// DOL 0x800bedb0 [audited]
 void cTaskConsMenuMulti::PointExec()
 {
 	pAnita(0u)->SetAnimNo(nGetAnm(eANM_POINT), false);
 }
 
-// DOL 0x800bee4c
+// DOL 0x800bee4c [audited]
 bool cTaskConsMenuMulti::DecideExec()
 {
 	if (nStep() == 0)

@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCharEnemyBomb.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
@@ -44,6 +45,7 @@ bool cTaskCharEnemyBomb::IsFall(float x, float y, float z)
 	return IsFall(Vector4(x, y, z, 0.0f));
 }
 
+// DOL 0x80050eac [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBomb::Init()
 {
 	m_nRotDir = 0;
@@ -61,6 +63,7 @@ void cTaskCharEnemyBomb::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80050f2c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBomb::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -77,6 +80,7 @@ bool cTaskCharEnemyBomb::Create(uint no)
 	return true;
 }
 
+// DOL (inlined in ModeFunc 0x8005155c mode 2)
 uint cTaskCharEnemyBomb::InputLaunch()
 {
 	float num = 1.0f - HereticRate();
@@ -106,6 +110,7 @@ bool cTaskCharEnemyBomb::RATE(int rand, int rate)
 	return true;
 }
 
+// DOL 0x80051010 [audited: described by the 43rd-session pass] (audited 44th: matches; the rand() % 100 is drawn every frame, before the change-frame test)
 uint cTaskCharEnemyBomb::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -134,7 +139,7 @@ uint cTaskCharEnemyBomb::Input()
 	}
 	float fDx = v[0] - vMTrans()[0];
 	float fDz = v[2] - vMTrans()[2];
-	int rand = Random::Range(0, 100);
+	int rand = kingdom::MslRandRange(0, 100);
 	if ((long)Constants::get_GAME_COUNTER() % (long)nChangeMoveFrame() == 0L)
 	{
 		num2 = nTargetDir(fDx, fDz);
@@ -169,6 +174,7 @@ uint cTaskCharEnemyBomb::Input()
 	return num2;
 }
 
+// DOL 0x8005133c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBomb::ActionBoth()
 {
 	if (nLTimer() < 180)
@@ -196,11 +202,13 @@ bool cTaskCharEnemyBomb::ActionBoth()
 	return true;
 }
 
+// DOL 0x800514c4 [audited: ExecModeFunc != 0 vs decomp]
 bool cTaskCharEnemyBomb::ActionLocal()
 {
 	return ExecModeFunc() != 0;
 }
 
+// DOL 0x800514f8 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBomb::ChangeTaiki()
 {
 	cTaskChar::ChangeTaiki();
@@ -211,6 +219,7 @@ void cTaskCharEnemyBomb::ChangeTaiki()
 	SetMode(1);
 }
 
+// DOL 0x8005155c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBomb::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	if (GetMode() != 0)
@@ -360,8 +369,8 @@ bool cTaskCharEnemyBomb::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 				nLTimer() = 30;
 				fHitSize() = 2.5f;
 				OnFlag(1u);
-				Constants::SpawnEffect(19, vMTrans(), nullptr, Random::Range(0, 5), 0.5f);
-				KingdomGlobal::g_pMotosGame->pMap()->pTaskPanelMan()->StrikePanel((int)ID(), 1, 0.4f, vMTrans(), false);
+				Constants::SpawnEffect(19, vMTrans(), nullptr, 0, true);   // DOL 0x80051cc4 [audited: described by the 43rd-session pass]: (0x13, pos, 0, 0, 1) - the C# drew a random 0..4 frame delay
+				KingdomGlobal::g_pMotosGame->pMap()->pTaskPanelMan()->StrikePanel((int)ID(), 1, 0.4f, vMTrans());
 				return true;
 			}
 			if (3 == nMes)
@@ -382,6 +391,7 @@ bool cTaskCharEnemyBomb::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 	return true;
 }
 
+// DOL 0x80051d94 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBomb::RefAttacked(int nParts, int nGrobalID)
 {
 	cTaskChar* cTaskChar2 = KingdomGlobal::g_pMotosGame->pChars((uint)nGrobalID);
@@ -407,6 +417,7 @@ void cTaskCharEnemyBomb::RefAttacked(int nParts, int nGrobalID)
 	}
 }
 
+// DOL 0x80051e74 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBomb::IsFall(Nullable<Vector4> pVec)
 {
 	if (GetMode() == 1 || GetMode() == 2)

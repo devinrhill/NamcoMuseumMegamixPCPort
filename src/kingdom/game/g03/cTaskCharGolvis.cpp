@@ -1,3 +1,6 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
+#include <cstring>
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g03/cTaskCharGolvis.hpp"
 #include "DummyNW4R.hpp"
 #include "kingdom/game/g03/cTaskConsoleMan.hpp"
@@ -34,7 +37,8 @@
 namespace kingdom::game::g03
 {
 
-const cTaskCharGolvis::GOLVIS_NAME2ID* cTaskCharGolvis::s_aAttackName[59] = {[]() { cTaskCharGolvis::GOLVIS_NAME2ID* _o1 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o1->m_nID = 0; _o1->m_pName = "NONE"; return _o1; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o2 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o2->m_nID = 1; _o2->m_pName = "GUITAR_V_S"; _o2->m_num = 1; return _o2; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o3 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o3->m_nID = 2; _o3->m_pName = "GUITAR_V_M"; return _o3; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o4 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o4->m_nID = 3; _o4->m_pName = "GUITAR_V_F"; return _o4; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o5 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o5->m_nID = 4; _o5->m_pName = "GUITAR_H_S"; return _o5; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o6 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o6->m_nID = 5; _o6->m_pName = "GUITAR_H_M"; return _o6; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o7 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o7->m_nID = 6; _o7->m_pName = "GUITAR_H_F"; return _o7; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o8 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o8->m_nID = 7; _o8->m_pName = "BOMB"; return _o8; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o9 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o9->m_nID = 8; _o9->m_pName = "CYCLONE_INHALE"; return _o9; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o10 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o10->m_nID = 9; _o10->m_pName = "CYCLONE_DISGORGE"; return _o10; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o11 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o11->m_nID = 10; _o11->m_pName = "HEADING_S"; return _o11; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o12 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o12->m_nID = 11; _o12->m_pName = "HEADING_M"; return _o12; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o13 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o13->m_nID = 12; _o13->m_pName = "HEADING_F"; return _o13; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o14 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o14->m_nID = 13; _o14->m_pName = "ELEC"; return _o14; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o15 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o15->m_nID = 14; _o15->m_pName = "FAINT"; return _o15; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o16 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o16->m_nID = 15; _o16->m_pName = "BOOT_0"; _o16->m_num = 20; return _o16; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o17 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o17->m_nID = 16; _o17->m_pName = "BOOT_1"; return _o17; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o18 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o18->m_nID = 17; _o18->m_pName = "BOOT_2"; return _o18; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o19 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o19->m_nID = 18; _o19->m_pName = "BOOT_3"; return _o19; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o20 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o20->m_nID = 19; _o20->m_pName = "BOOT_4"; return _o20; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o21 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o21->m_nID = 20; _o21->m_pName = "BOOT_5"; return _o21; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o22 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o22->m_nID = 21; _o22->m_pName = "BOOT_6"; return _o22; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o23 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o23->m_nID = 22; _o23->m_pName = "BOOT_7"; return _o23; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o24 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o24->m_nID = 23; _o24->m_pName = "BOOT_8"; return _o24; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o25 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o25->m_nID = 24; _o25->m_pName = "BOOT_9"; return _o25; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o26 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o26->m_nID = 25; _o26->m_pName = "BOOT_0_1"; return _o26; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o27 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o27->m_nID = 26; _o27->m_pName = "BOOT_2_3"; return _o27; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o28 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o28->m_nID = 27; _o28->m_pName = "BOOT_4_5"; return _o28; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o29 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o29->m_nID = 28; _o29->m_pName = "BOOT_6_7"; return _o29; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o30 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o30->m_nID = 29; _o30->m_pName = "BOOT_8_9"; return _o30; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o31 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o31->m_nID = 30; _o31->m_pName = "BOOT_0_1_2"; return _o31; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o32 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o32->m_nID = 31; _o32->m_pName = "BOOT_3_4_5"; return _o32; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o33 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o33->m_nID = 32; _o33->m_pName = "BOOT_6_7_8"; return _o33; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o34 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o34->m_nID = 33; _o34->m_pName = "LAND_00"; _o34->m_num = 100; return _o34; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o35 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o35->m_nID = 34; _o35->m_pName = "LAND_01"; return _o35; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o36 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o36->m_nID = 35; _o36->m_pName = "LAND_02"; return _o36; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o37 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o37->m_nID = 36; _o37->m_pName = "LAND_03"; return _o37; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o38 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o38->m_nID = 37; _o38->m_pName = "LAND_04"; return _o38; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o39 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o39->m_nID = 38; _o39->m_pName = "LAND_05"; return _o39; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o40 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o40->m_nID = 39; _o40->m_pName = "LAND_06"; return _o40; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o41 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o41->m_nID = 40; _o41->m_pName = "LAND_07"; return _o41; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o42 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o42->m_nID = 41; _o42->m_pName = "LAND_08"; return _o42; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o43 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o43->m_nID = 42; _o43->m_pName = "LAND_09"; return _o43; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o44 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o44->m_nID = 43; _o44->m_pName = "LAND_10"; return _o44; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o45 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o45->m_nID = 44; _o45->m_pName = "LAND_11"; return _o45; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o46 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o46->m_nID = 45; _o46->m_pName = "LAND_12"; return _o46; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o47 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o47->m_nID = 46; _o47->m_pName = "LAND_13"; return _o47; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o48 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o48->m_nID = 47; _o48->m_pName = "LAND_14"; return _o48; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o49 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o49->m_nID = 48; _o49->m_pName = "LAND_15"; return _o49; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o50 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o50->m_nID = 49; _o50->m_pName = "LAND_16"; return _o50; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o51 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o51->m_nID = 50; _o51->m_pName = "LAND_17"; return _o51; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o52 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o52->m_nID = 51; _o52->m_pName = "LAND_18"; return _o52; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o53 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o53->m_nID = 52; _o53->m_pName = "LAND_19"; return _o53; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o54 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o54->m_nID = 53; _o54->m_pName = "LAND_20"; return _o54; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o55 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o55->m_nID = 54; _o55->m_pName = "LAND_21"; return _o55; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o56 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o56->m_nID = 55; _o56->m_pName = "LAND_22"; return _o56; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o57 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o57->m_nID = 56; _o57->m_pName = "LAND_23"; return _o57; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o58 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o58->m_nID = 57; _o58->m_pName = "LAND_24"; return _o58; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o59 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o59->m_nID = 58; _o59->m_pName = "LAND_25"; return _o59; }()};
+// DOL table 0x8043eed8 {id, name}: BOOT_* = 20..37, LAND_* = 100..125 (43rd session: the C# numbered them 15..58)
+const cTaskCharGolvis::GOLVIS_NAME2ID* cTaskCharGolvis::s_aAttackName[59] = {[]() { cTaskCharGolvis::GOLVIS_NAME2ID* _o1 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o1->m_nID = 0; _o1->m_pName = "NONE"; return _o1; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o2 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o2->m_nID = 1; _o2->m_pName = "GUITAR_V_S"; _o2->m_num = 1; return _o2; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o3 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o3->m_nID = 2; _o3->m_pName = "GUITAR_V_M"; return _o3; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o4 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o4->m_nID = 3; _o4->m_pName = "GUITAR_V_F"; return _o4; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o5 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o5->m_nID = 4; _o5->m_pName = "GUITAR_H_S"; return _o5; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o6 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o6->m_nID = 5; _o6->m_pName = "GUITAR_H_M"; return _o6; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o7 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o7->m_nID = 6; _o7->m_pName = "GUITAR_H_F"; return _o7; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o8 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o8->m_nID = 7; _o8->m_pName = "BOMB"; return _o8; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o9 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o9->m_nID = 8; _o9->m_pName = "CYCLONE_INHALE"; return _o9; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o10 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o10->m_nID = 9; _o10->m_pName = "CYCLONE_DISGORGE"; return _o10; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o11 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o11->m_nID = 10; _o11->m_pName = "HEADING_S"; return _o11; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o12 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o12->m_nID = 11; _o12->m_pName = "HEADING_M"; return _o12; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o13 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o13->m_nID = 12; _o13->m_pName = "HEADING_F"; return _o13; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o14 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o14->m_nID = 13; _o14->m_pName = "ELEC"; return _o14; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o15 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o15->m_nID = 14; _o15->m_pName = "FAINT"; return _o15; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o16 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o16->m_nID = 20; _o16->m_pName = "BOOT_0"; _o16->m_num = 20; return _o16; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o17 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o17->m_nID = 21; _o17->m_pName = "BOOT_1"; return _o17; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o18 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o18->m_nID = 22; _o18->m_pName = "BOOT_2"; return _o18; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o19 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o19->m_nID = 23; _o19->m_pName = "BOOT_3"; return _o19; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o20 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o20->m_nID = 24; _o20->m_pName = "BOOT_4"; return _o20; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o21 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o21->m_nID = 25; _o21->m_pName = "BOOT_5"; return _o21; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o22 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o22->m_nID = 26; _o22->m_pName = "BOOT_6"; return _o22; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o23 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o23->m_nID = 27; _o23->m_pName = "BOOT_7"; return _o23; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o24 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o24->m_nID = 28; _o24->m_pName = "BOOT_8"; return _o24; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o25 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o25->m_nID = 29; _o25->m_pName = "BOOT_9"; return _o25; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o26 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o26->m_nID = 30; _o26->m_pName = "BOOT_0_1"; return _o26; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o27 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o27->m_nID = 31; _o27->m_pName = "BOOT_2_3"; return _o27; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o28 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o28->m_nID = 32; _o28->m_pName = "BOOT_4_5"; return _o28; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o29 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o29->m_nID = 33; _o29->m_pName = "BOOT_6_7"; return _o29; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o30 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o30->m_nID = 34; _o30->m_pName = "BOOT_8_9"; return _o30; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o31 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o31->m_nID = 35; _o31->m_pName = "BOOT_0_1_2"; return _o31; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o32 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o32->m_nID = 36; _o32->m_pName = "BOOT_3_4_5"; return _o32; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o33 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o33->m_nID = 37; _o33->m_pName = "BOOT_6_7_8"; return _o33; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o34 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o34->m_nID = 100; _o34->m_pName = "LAND_00"; _o34->m_num = 100; return _o34; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o35 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o35->m_nID = 101; _o35->m_pName = "LAND_01"; return _o35; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o36 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o36->m_nID = 102; _o36->m_pName = "LAND_02"; return _o36; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o37 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o37->m_nID = 103; _o37->m_pName = "LAND_03"; return _o37; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o38 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o38->m_nID = 104; _o38->m_pName = "LAND_04"; return _o38; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o39 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o39->m_nID = 105; _o39->m_pName = "LAND_05"; return _o39; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o40 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o40->m_nID = 106; _o40->m_pName = "LAND_06"; return _o40; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o41 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o41->m_nID = 107; _o41->m_pName = "LAND_07"; return _o41; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o42 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o42->m_nID = 108; _o42->m_pName = "LAND_08"; return _o42; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o43 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o43->m_nID = 109; _o43->m_pName = "LAND_09"; return _o43; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o44 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o44->m_nID = 110; _o44->m_pName = "LAND_10"; return _o44; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o45 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o45->m_nID = 111; _o45->m_pName = "LAND_11"; return _o45; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o46 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o46->m_nID = 112; _o46->m_pName = "LAND_12"; return _o46; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o47 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o47->m_nID = 113; _o47->m_pName = "LAND_13"; return _o47; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o48 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o48->m_nID = 114; _o48->m_pName = "LAND_14"; return _o48; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o49 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o49->m_nID = 115; _o49->m_pName = "LAND_15"; return _o49; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o50 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o50->m_nID = 116; _o50->m_pName = "LAND_16"; return _o50; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o51 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o51->m_nID = 117; _o51->m_pName = "LAND_17"; return _o51; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o52 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o52->m_nID = 118; _o52->m_pName = "LAND_18"; return _o52; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o53 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o53->m_nID = 119; _o53->m_pName = "LAND_19"; return _o53; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o54 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o54->m_nID = 120; _o54->m_pName = "LAND_20"; return _o54; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o55 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o55->m_nID = 121; _o55->m_pName = "LAND_21"; return _o55; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o56 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o56->m_nID = 122; _o56->m_pName = "LAND_22"; return _o56; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o57 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o57->m_nID = 123; _o57->m_pName = "LAND_23"; return _o57; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o58 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o58->m_nID = 124; _o58->m_pName = "LAND_24"; return _o58; }(), []() { cTaskCharGolvis::GOLVIS_NAME2ID* _o59 = new cTaskCharGolvis::GOLVIS_NAME2ID(); _o59->m_nID = 125; _o59->m_pName = "LAND_25"; return _o59; }()};
 
 cTaskCharGolvis::sBossDeathDemo::sBossDeathDemo()
 {
@@ -43,6 +47,7 @@ cTaskCharGolvis::sBossDeathDemo::sBossDeathDemo()
 	bUseDeathDemo = false;
 }
 
+// DOL 0x801184f8 [audited]
 Vector4 cTaskCharGolvis::CalcButtCursorTrans(Vector4 v)
 {
 	return v;
@@ -74,58 +79,70 @@ bool cTaskCharGolvis::IsDeathProcFirstCall()
 	return false;
 }
 
+// DOL 0x801192ac [audited]
 void cTaskCharGolvis::MonsterFrameMove_PreProcess()
 {
 }
 
+// DOL 0x801184f4 [audited]
 void cTaskCharGolvis::MonsterFrameMove_Free()
 {
 }
 
+// DOL 0x801192b0 [audited]
 void cTaskCharGolvis::MonsterFrameMove_Escape()
 {
 }
 
+// DOL 0x801192c0 [audited]
 bool cTaskCharGolvis::MonsterFrameMove_Death()
 {
 	return false;
 }
 
+// DOL 0x80116d34 [audited]
 bool cTaskCharGolvis::IsForceAttack()
 {
 	return false;
 }
 
+// DOL 0x80119b0c [audited]
 cTaskLandAttack* cTaskCharGolvis::pAttackLand()
 {
 	return m_pAttackLand;
 }
 
+// DOL 0x80119b08 [audited]
 void cTaskCharGolvis::InitStateFirst()
 {
 }
 
+// DOL 0x80119b00 [audited]
 Vector4 cTaskCharGolvis::vFirstTrans()
 {
 	return m_vFirstTrans;
 }
 
+// DOL 0x80119af8 [audited]
 Vector4 cTaskCharGolvis::vFirstRotate()
 {
 	return m_vFirstRotate;
 }
 
+// DOL 0x801192b4 [audited]
 void cTaskCharGolvis::InitStateStart()
 {
 	m_iAIMode = 2;
 }
 
+// DOL 0x801160f4 [audited: index formula (eaten*3+level)*8+n checked]
 Constants::gmSGolvisAttack* cTaskCharGolvis::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	CustomKingdomUtil::Assert((nEatNum * 3 + nIjikeLevel) * 8 + nNum < 72, "over tbl");
 	return m_pAttackTBL[(nEatNum * 3 + nIjikeLevel) * 8 + nNum];
 }
 
+// DOL 0x80119298 [audited]
 bool cTaskCharGolvis::IsBossDeath()
 {
 	return m_iEatenNum == 3;
@@ -136,6 +153,7 @@ bool cTaskCharGolvis::IsBijikeMsgCome()
 	return m_bIjikeMsgCome;
 }
 
+// DOL 0x800b8050 [audited]
 void cTaskCharGolvis::IjikeStart()
 {
 	m_bIjikeMsgCome = true;
@@ -178,6 +196,7 @@ cTaskCharGolvis::cTaskCharGolvis(cJetTask* pParent)
 	Init();
 }
 
+// DOL 0x80113f78 [audited: CSV loop, hit chars (0.9 / 0.8, offset 3.0) vs decomp; node callback FUN_801153ac and sound actor not ported]
 void cTaskCharGolvis::Init()
 {
 	m_hPtkStorm = new cKingdomPtkHnd();
@@ -197,7 +216,7 @@ void cTaskCharGolvis::Init()
 	nKind() = cTaskChar::eKIND::eKIND_BOSS;
 	m_fWindGuiterLength = 1.0f;
 	m_bIjikeMsgCome = false;
-	pCurrentModel()->Visible();
+	pModel(nType())->Visible();   // DOL FUN_8009a454(+0x1d0) + FUN_8001a1f4
 	m_pBijikeEyeObj = cTaskCharBEye::Create(this);
 	int num = -1;
 	int num2 = 0;
@@ -252,13 +271,11 @@ void cTaskCharGolvis::Init()
 	cHitChar3->SetRange(0.8f);
 	cHitChar3->SetOfsPos(0.0f, 0.0f, 3.0f);
 	pvecHitChar().push_back(cHitChar3);
-	ResNode* resNode = (new ResMdl(pModel()->pScnMdl()))->GetResNode("ATAMA_jnt");
-	if (resNode->IsValid())
-	{
-		m_headNode = resNode->This;
-	}
+	// (the C# looked up a Unity Transform for ATAMA_jnt here; the DOL takes the head matrix in the node callback FUN_801153ac, Draw reads
+	// the node directly. The DOL then creates the sound actor +0x860 = FUN_800ba17c: the port's SE layer has no actors, engine item E1.)
 }
 
+// DOL 0x80114ec8 [audited: checked (the DOL does not terminate the bijike eye here)]
 void cTaskCharGolvis::Term()
 {
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE026_KAZE);
@@ -269,6 +286,7 @@ void cTaskCharGolvis::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80114f34 [audited: flow checked; EraseConf's model flag FUN_802fac10(resmdl+0x58, 2) not ported]
 bool cTaskCharGolvis::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -287,7 +305,7 @@ bool cTaskCharGolvis::Execute(cJetTask* pParam)
 	{
 		ChangeToRevive();
 	}
-	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE())
+	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE(this))
 	{
 		AnmExecBlend();
 		UpdateFrame();
@@ -295,6 +313,7 @@ bool cTaskCharGolvis::Execute(cJetTask* pParam)
 	return baseExecute(pParam);
 }
 
+// DOL 0x8011510c [audited: matrix build and node pushes checked]
 void cTaskCharGolvis::Draw(int nStatus, cJetTask* pParam)
 {
 	MonsterRender();
@@ -330,7 +349,22 @@ void cTaskCharGolvis::Draw(int nStatus, cJetTask* pParam)
 		Vector4 v = Vector4::zero;
 		::Constants::jetGeoVecSet(v, 0.0f, 2.2f, 0.4f, 1.0f);
 		m_hPtkConf->vSetTrans(v);
-		// TODO(unity): m_PtkConfMtx = Matrix4x4.TRS(m_headNode.position, m_headNode.rotation, m_headNode.localScale);
+		// FUN_8008a324(+0x910, +0x820): +0x820 = the world matrix the node callback FUN_801153ac stores (head joint ATAMA_jnt).
+		// Natively: the drawn model's world * the posed node (43rd session; was a Unity TODO = identity matrix)
+		float w[16], n[12];
+		if (cPBModel->NodeMatrix("ATAMA_jnt", n))
+		{
+			cPBModel->CalcWorld(w);   // column major
+			for (int r = 0; r < 3; r++)
+			{
+				for (int c = 0; c < 4; c++)
+				{
+					m_PtkConfMtx[r][c] = w[r] * n[c] + w[4 + r] * n[4 + c] + w[8 + r] * n[8 + c] + (c == 3 ? w[12 + r] : 0.0f);
+				}
+			}
+			m_PtkConfMtx[3][0] = m_PtkConfMtx[3][1] = m_PtkConfMtx[3][2] = 0.0f;
+			m_PtkConfMtx[3][3] = 1.0f;
+		}
 		m_hPtkConf->UpdateMatrix(m_PtkConfMtx);
 	}
 	if (m_hPtkSweat->IsValid())
@@ -366,6 +400,7 @@ void cTaskCharGolvis::EraseConfEffect()
 	}
 }
 
+// DOL 0x8011560c [audited]
 void cTaskCharGolvis::SetModel()
 {
 	for (int i = 0; i < 5; i++)
@@ -380,6 +415,7 @@ void cTaskCharGolvis::SetModel()
 	pCurrentModel()->Invisible();
 }
 
+// DOL 0x801156cc [audited]
 cTaskModel::cPBModel* cTaskCharGolvis::pCorrectModel()
 {
 	if (!CustomKingdomUtil::IF(m_iDispColor) || nType() == 4)
@@ -389,11 +425,13 @@ cTaskModel::cPBModel* cTaskCharGolvis::pCorrectModel()
 	return pPBModel(nType() + 1);
 }
 
+// DOL 0x801156f4 [audited]
 void cTaskCharGolvis::SetAnmState(const uint& state)
 {
 	SetAnmState(state, 0u);
 }
 
+// DOL 0x80115708 [audited]
 void cTaskCharGolvis::SetAnmState(const uint& state, const uint& nTime)
 {
 	m_nAnmNew = state;
@@ -418,11 +456,13 @@ void cTaskCharGolvis::SetAnmState(const uint& state, const uint& nTime)
 	}
 }
 
+// DOL 0x801157cc [audited]
 uint cTaskCharGolvis::GetAnmState()
 {
 	return m_nAnmNow;
 }
 
+// DOL 0x801157d4 [audited]
 void cTaskCharGolvis::SetAnm(string anime, uint idx)
 {
 	AnimationClip* animationClip = dynamic_cast<AnimationClip*>(ResourceDatabase::Get<Object>(anime));
@@ -435,11 +475,13 @@ void cTaskCharGolvis::SetAnm(string anime, uint idx)
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE073_KAITEN);
 }
 
+// DOL 0x80115888 [audited]
 float cTaskCharGolvis::GetAnmRate(uint idx)
 {
 	return pModel(nType())->GetWeightAnmChr(idx);
 }
 
+// DOL 0x801158c0 [audited]
 void cTaskCharGolvis::AnmExecBlend()
 {
 	if (m_nAnmChgTime != m_nAnmChgCount)
@@ -456,6 +498,7 @@ void cTaskCharGolvis::AnmExecBlend()
 	}
 }
 
+// DOL 0x801159b8 [audited]
 bool cTaskCharGolvis::IsAnmEnd()
 {
 	if (pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw) <= pModel(nType())->GetFrameAnmChr(m_nAnmSw))
@@ -465,6 +508,7 @@ bool cTaskCharGolvis::IsAnmEnd()
 	return false;
 }
 
+// DOL 0x80115a20 [audited]
 cTaskCharGolvis* cTaskCharGolvis::Create(cJetTask* pParent, uint nRound)
 {
 	cTaskCharGolvis* result = nullptr;
@@ -489,6 +533,7 @@ cTaskCharGolvis* cTaskCharGolvis::Create(cJetTask* pParent, uint nRound)
 	return result;
 }
 
+// DOL 0x80115cf4 [audited: CSV names/defaults, constants 1.4/1.45/5/999/200/180 vs decomp]
 void cTaskCharGolvis::Setting(bool bRelocate)
 {
 	if (bRelocate)
@@ -573,6 +618,7 @@ void cTaskCharGolvis::Setting(bool bRelocate)
 	m_fMoveSpeedNow = 0.0f;
 }
 
+// DOL 0x80116028 [audited]
 void cTaskCharGolvis::ChangeToFree()
 {
 	nType() = 0u;
@@ -582,11 +628,12 @@ void cTaskCharGolvis::ChangeToFree()
 	{
 		Constants::gmSGolvisAttack* attackKind = GetAttackKind((uint)m_iEatenNum, (uint)m_iIzikeLevel, i);
 		int max = attackKind->iTimeMax - attackKind->iTimeMin + 1;
-		m_iAttackTime[i] = Random::Range(0, max) + attackKind->iTimeMin + 1;
+		m_iAttackTime[i] = (int)((uint)MslRand() % (uint)max) + attackKind->iTimeMin + 1;   // DOL rand() % range (unsigned)
 	}
 	m_iAIMode = 2;
 }
 
+// DOL 0x80116118 [audited]
 void cTaskCharGolvis::ChangeToEscape()
 {
 	nType() = 2u;
@@ -596,9 +643,10 @@ void cTaskCharGolvis::ChangeToEscape()
 	pHitChar(0)->SetRange(m_fBijikeHitRange);
 	m_iEffectTimer = 0;
 	::Constants::jetGeoVecSet(vScale(), 1.0f, 1.0f, 1.0f, 1.0f);
-	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE086_BOSS_IJIKE_3);
+	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE086_BOSS_IJIKE_3, false, pPBModel(nType())->pScnMdl());
 }
 
+// DOL 0x80116204 [audited]
 void cTaskCharGolvis::ChangeToDamage()
 {
 	nType() = 0u;
@@ -612,7 +660,7 @@ void cTaskCharGolvis::ChangeToDamage()
 	{
 		Constants::gmSGolvisAttack* attackKind = GetAttackKind((uint)m_iEatenNum, (uint)m_iIzikeLevel, i);
 		int max = attackKind->iTimeMax - attackKind->iTimeMin + 1;
-		m_iAttackTime[i] = Random::Range(0, max) + attackKind->iTimeMin + 1;
+		m_iAttackTime[i] = (int)((uint)MslRand() % (uint)max) + attackKind->iTimeMin + 1;   // DOL rand() % range (unsigned)
 	}
 	Constants::PACN_APP()->pTaskConsole()->ButtCursorEnd();
 	if (m_hPtkStorm->IsValid())
@@ -624,7 +672,7 @@ void cTaskCharGolvis::ChangeToDamage()
 		m_hPtkStorm2->Detach(true);
 	}
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE026_KAZE);
-	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE098_TATAKI);
+	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE098_TATAKI, false, pPBModel(nType())->pScnMdl());
 }
 
 void cTaskCharGolvis::ChangeToPossess()
@@ -637,6 +685,7 @@ void cTaskCharGolvis::ChangeToKnock()
 	CustomKingdomUtil::Assert("botsu");
 }
 
+// DOL 0x801163e0 [audited: every kind -> state/time, carry-ghost test, IsGround, aim cursor vs decomp; EraseConf model flag gap as in Execute]
 bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 {
 	uint state = 0u;
@@ -671,7 +720,7 @@ bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 		::Constants::jetGeoVecCopy(m_vPos[0], vTrans());
 		::Constants::jetGeoVecCopy(m_vPos[2], m_vPos[1]);
 		state = 17u;
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE064_AIM_HYOUJI);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE064_AIM_HYOUJI, false, pPBModel(nType())->pScnMdl());
 		Constants::PACN_APP()->pTaskConsole()->ButtCursorStart(v);
 		break;
 	case 14:
@@ -681,16 +730,11 @@ bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 		{
 			SetConfEffect();
 		}
-		if (nullptr == m_hSndPiyori)
+		if (!SoundManager::get_SE()->IsPlaying(m_hSndPiyori))   // DOL: the loop handle +0x9b0 is not playing (was a null test: stopped handles stay non-null)
 		{
-			m_hSndPiyori = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE051_PIYORI, true);
+			if (cPacnRollLoopSndMan::CanPlay()) m_hSndPiyori = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE051_PIYORI, true, pPBModel(nType())->pScnMdl()));
 		}
 		break;
-	case 15:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
 	case 20:
 	case 21:
 	case 22:
@@ -704,8 +748,13 @@ bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 	case 30:
 	case 31:
 	case 32:
+	case 33:
+	case 34:
+	case 35:
+	case 36:
+	case 37:
 		{
-			sbyte* array = Constants::iCarryGhostSet[iAttackKind - 15];
+			sbyte* array = Constants::iCarryGhostSet[iAttackKind - 20];   // DOL 0x8043ee64 [audited: table bytes verified] + (kind - 0x14) * 3
 			int num = ((array[1] != -1) ? 1 : 0);
 			int num2 = ((array[2] != -1) ? 1 : 0);
 			int num3 = 1 + num + num2;
@@ -723,32 +772,32 @@ bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 			state = 12u;
 			break;
 		}
-	case 33:
-	case 34:
-	case 35:
-	case 36:
-	case 37:
-	case 38:
-	case 39:
-	case 40:
-	case 41:
-	case 42:
-	case 43:
-	case 44:
-	case 45:
-	case 46:
-	case 47:
-	case 48:
-	case 49:
-	case 50:
-	case 51:
-	case 52:
-	case 53:
-	case 54:
-	case 55:
-	case 56:
-	case 57:
-	case 58:
+	case 100:
+	case 101:
+	case 102:
+	case 103:
+	case 104:
+	case 105:
+	case 106:
+	case 107:
+	case 108:
+	case 109:
+	case 110:
+	case 111:
+	case 112:
+	case 113:
+	case 114:
+	case 115:
+	case 116:
+	case 117:
+	case 118:
+	case 119:
+	case 120:
+	case 121:
+	case 122:
+	case 123:
+	case 124:
+	case 125:
 		AttackLand(iAttackKind);
 		return true;
 	}
@@ -766,6 +815,7 @@ bool cTaskCharGolvis::ChangeToAttack(int iAttackKind)
 	return true;
 }
 
+// DOL 0x80116778 [audited]
 void cTaskCharGolvis::ChangeToMotion(uint uiMotGID)
 {
 	nType() = 0u;
@@ -773,6 +823,7 @@ void cTaskCharGolvis::ChangeToMotion(uint uiMotGID)
 	m_iAIMode = 8;
 }
 
+// DOL 0x801167c0 [audited]
 void cTaskCharGolvis::ChangeToAppear()
 {
 	nType() = 0u;
@@ -780,7 +831,9 @@ void cTaskCharGolvis::ChangeToAppear()
 	m_iAIMode = 11;
 	pHitChar(0)->SetRange(m_fHitRange);
 	pHitChar(0)->FlagOff(2u);
-	// TODO(unity): new GameObject().AddComponent<CoroutineObject>().ExecCoroutine(WaitOneFramePlaySE());
+	// DOL: m03se_099_Gol_Toujyou starts here, on the boss's sound actor (+0x860) (43rd session: the C# deferred it to a Unity
+	// coroutine that the port never ran, so the sound was missing)
+	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE099_GOL_TOUJYOU, false, pPBModel(nType())->pScnMdl());
 	m_iCount[0] = 0;
 	m_iCount[1] = 0;
 }
@@ -794,6 +847,7 @@ IEnumerator* cTaskCharGolvis::WaitOneFramePlaySE()
 	return nullptr;
 }
 
+// DOL 0x80116898 [audited]
 void cTaskCharGolvis::ChangeToRevive()
 {
 	::Constants::jetGeoVecCopy(vTrans(), m_vFirstTrans);
@@ -810,9 +864,10 @@ void cTaskCharGolvis::ChangeToRevive()
 	m_hPtkSweat->Detach(true);
 	m_iCount[0] = 0;
 	m_iCount[1] = 0;
-	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1);
+	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1, false, pPBModel(nType())->pScnMdl());
 }
 
+// DOL 0x80116a00 [audited]
 void cTaskCharGolvis::ChangeToMedama()
 {
 	::Constants::jetGeoVecSet(vScale(), 0.0f, 0.0f, 0.0f, 1.0f);
@@ -827,6 +882,7 @@ void cTaskCharGolvis::ChangeToMedama()
 	}
 }
 
+// DOL 0x80116a90 [audited: checked in the 43rd session incl. the out-of-table float read]
 bool cTaskCharGolvis::TryChangeToAttack()
 {
 	Vector4 v;
@@ -844,11 +900,28 @@ bool cTaskCharGolvis::TryChangeToAttack()
 		{
 			break;
 		}
-		bool flag = ((attackKind->fRangeMin * attackKind->fRangeMin <= num && num < attackKind->fRangeMax * attackKind->fRangeMax && (20 <= attackKind->uiKind || attackKind->uiKind > (int)std::size(Constants::iAttackPermitSubY) || Constants::iAttackPermitSubY[attackKind->uiKind] == 0.0f || num2 <= Constants::iAttackPermitSubY[attackKind->uiKind])) ? true : false);
+		// DOL: kinds < 0x14 index the 15-float table 0x8043ee28; kinds 15..19 (BOOT_0..4) read past it into the next table
+		// (iCarryGhostSet's bytes as big-endian floats: tiny / NaN / negative values). 43rd session: emulated, was out of bounds / skipped.
+		float permit = 0.0f;
+		if (attackKind->uiKind < 20)
+		{
+			if (attackKind->uiKind < (int)std::size(Constants::iAttackPermitSubY))
+			{
+				permit = Constants::iAttackPermitSubY[attackKind->uiKind];
+			}
+			else
+			{
+				const sbyte* b = &Constants::iCarryGhostSet[0][0] + (attackKind->uiKind - (int)std::size(Constants::iAttackPermitSubY)) * 4;
+				uint32_t w = ((uint32_t)(byte)b[0] << 24) | ((uint32_t)(byte)b[1] << 16) | ((uint32_t)(byte)b[2] << 8) | (uint32_t)(byte)b[3];
+				std::memcpy(&permit, &w, 4);
+			}
+		}
+		bool flag = !(num < attackKind->fRangeMin * attackKind->fRangeMin || attackKind->fRangeMax * attackKind->fRangeMax <= num
+			|| (attackKind->uiKind < 20 && permit != 0.0f && permit < num2));
 		if (m_iAttackTime[i] == 0 && flag)
 		{
 			int max = attackKind->iTimeMax - attackKind->iTimeMin + 1;
-			m_iAttackTime[i] = Random::Range(0, max) + attackKind->iTimeMin + 1;
+			m_iAttackTime[i] = (int)((uint)MslRand() % (uint)max) + attackKind->iTimeMin + 1;   // DOL rand() % range (unsigned)
 		}
 		if (0 < m_iAttackTime[i] || IsForceAttack())
 		{
@@ -867,6 +940,7 @@ bool cTaskCharGolvis::TryChangeToAttack()
 	return false;
 }
 
+// DOL 0x80116d3c [audited]
 bool cTaskCharGolvis::TryChangeToLaugh()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -879,7 +953,7 @@ bool cTaskCharGolvis::TryChangeToLaugh()
 	{
 		return false;
 	}
-	if (Random::Range(0, 2) != 0)
+	if ((MslRand() & 1) != 0)   // DOL: rand() & 1
 	{
 		return false;
 	}
@@ -887,13 +961,14 @@ bool cTaskCharGolvis::TryChangeToLaugh()
 	return true;
 }
 
+// DOL 0x80116de8 [audited: 43rd-session pass only (per-sub-state comments); not re-read line by line]
 void cTaskCharGolvis::AttackProcess()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
 	uint anmState = GetAnmState();
 	float frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 	float frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (the DOL compares raw frames)
 	// frameMaxAnmChr *= 60.0f;  (same)
 	Vector4 v;
 	::Constants::jetGeoVecCopy(v, cTaskCharPacman2->vTrans());
@@ -935,20 +1010,18 @@ void cTaskCharGolvis::AttackProcess()
 			break;
 		}
 		pHitChar(0)->FlagOn(2u);
-		(void)(2.0f);
-		if (frameAnmChr >= 5.0f && !m_bAttackFlag1)
+		// DOL: the hit runs while 5 <= frame <= 5.1 (the C# used a one-shot flag)
+		if (5.0f <= frameAnmChr && frameAnmChr <= 5.1f)
 		{
-			Vector4 pvLocalAttackPos = Vector4(0.5f, 0.0f, 3.5f, 1.0f);
+			Vector4 pvLocalAttackPos = Vector4(0.5f, 0.0f, 3.5f, 1.0f);   // DAT_80378088
 			if (Attack(pvLocalAttackPos, 2.0f, vTrans(), 0.2f, true) == 1)
 			{
 				m_bLaughEnable = true;
 			}
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE080_BOSS_TATAKI);
-			m_bAttackFlag1 = true;
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE080_BOSS_TATAKI, false, pPBModel(nType())->pScnMdl());
 		}
 		if (IsAnmEnd())
 		{
-			m_bAttackFlag1 = false;
 			if (!TryChangeToLaugh())
 			{
 				ChangeToFree();
@@ -992,32 +1065,27 @@ void cTaskCharGolvis::AttackProcess()
 				break;
 			}
 			pHitChar(0)->FlagOn(2u);
-			if (frameAnmChr >= 3.0f && !m_bAttackFlag1)
+			// DOL: the SE on frame == 3, the hit (and a 5x hit range) while 8 <= frame <= 9 (the C# used one-shot flags and also
+			// switched hit 1 off, which the DOL does not)
+			if (frameAnmChr == 3.0f)
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE074_TATAKI);
-				m_bAttackFlag1 = true;
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE074_TATAKI, false, pPBModel(nType())->pScnMdl());
 			}
-			float num7 = 8.0f;
-			CustomKingdomUtil::Assert(frameMaxAnmChr - 1.0f > num7, "error");
-			if (frameAnmChr >= num7 && !m_bAttackFlag2)
+			if (frameAnmChr < 8.0f || 9.0f < frameAnmChr)
 			{
-				Vector4 pvLocalAttackPos2 = Vector4(0.0f, 1.5f, 1.0f);
+				pHitChar(0)->SetRange(m_fHitRange);
+			}
+			else
+			{
+				Vector4 pvLocalAttackPos2 = Vector4(0.0f, 1.5f, 1.0f, 0.0f);   // DAT_80378098
 				if (Attack(pvLocalAttackPos2, 4.0f, vTrans(), 0.4f, true) == 1)
 				{
 					m_bLaughEnable = true;
 				}
-				pHitChar(0)->SetRange(m_fHitRange * 5.0f);
-				pHitChar(1)->FlagOff(2u);
-				m_bAttackFlag2 = true;
-			}
-			else
-			{
-				pHitChar(0)->SetRange(m_fHitRange);
+				pHitChar(0)->SetRange(5.0f * m_fHitRange);
 			}
 			if (IsAnmEnd())
 			{
-				m_bAttackFlag1 = false;
-				m_bAttackFlag2 = false;
 				if (!TryChangeToLaugh())
 				{
 					ChangeToFree();
@@ -1035,7 +1103,7 @@ void cTaskCharGolvis::AttackProcess()
 			if (IsAnmEnd())
 			{
 				SetAnmState(22u);
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE073_KAITEN, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+				if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE073_KAITEN, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pPBModel(nType())->pScnMdl()));
 				m_iCount[0]++;
 			}
 			break;
@@ -1047,7 +1115,7 @@ void cTaskCharGolvis::AttackProcess()
 				Vector4 v2 = Vector4();
 				float x = vTrans()[1] - (v[1] - 0.4f);
 				x = ::Constants::JET_ABS(x);
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE073_KAITEN, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+				if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE073_KAITEN, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pPBModel(nType())->pScnMdl()));
 				Vector4 v4;
 				Vector4 v5;
 				if (m_iSubState == 8)
@@ -1070,7 +1138,7 @@ void cTaskCharGolvis::AttackProcess()
 						m_hPtkStorm2->vSetTrans(v5);
 						m_hPtkStorm2->vSetRotate(v4);
 					}
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+					if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pPBModel(nType())->pScnMdl()));
 				}
 				else
 				{
@@ -1091,7 +1159,7 @@ void cTaskCharGolvis::AttackProcess()
 						m_hPtkStorm->vSetTrans(v5);
 						m_hPtkStorm->vSetRotate(v4);
 					}
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+					if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE026_KAZE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pPBModel(nType())->pScnMdl()));
 				}
 				if (::Constants::bizMathGetRad(vRotate()[1], fAng) <= ::Constants::JET_DEG2RAD(15.0f) && ::Constants::bizGeoVecDistance2XZ(vTrans(), v) <= 225.0f * m_fWindGuiterLength && x <= Constants::iAttackPermitSubY[m_iSubState])
 				{
@@ -1147,7 +1215,7 @@ void cTaskCharGolvis::AttackProcess()
 					}
 					if (frameAnmChr == num3)
 					{
-						SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE076_BOSS_JUMP);
+						SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE076_BOSS_JUMP, false, pPBModel(nType())->pScnMdl());
 					}
 					if (frameAnmChr <= num4)
 					{
@@ -1168,7 +1236,7 @@ void cTaskCharGolvis::AttackProcess()
 					::Constants::jetGeoVecCopy(m_vPos[0], vTrans());
 					m_iCount[0]++;
 					m_iCount[1] = 0;
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE065_AIM_KOTEI);
+					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE065_AIM_KOTEI, false, pPBModel(nType())->pScnMdl());
 					Constants::PACN_APP()->pTaskConsole()->ButtCursorRed();
 				}
 				break;
@@ -1181,7 +1249,7 @@ void cTaskCharGolvis::AttackProcess()
 			{
 				m_iCount[0]++;
 				m_iCount[1] = 0;
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE077_BOSS_RAKKA_1);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE077_BOSS_RAKKA_1, false, pPBModel(nType())->pScnMdl());
 				::Constants::jetGeoVecCopy(m_vPos[1], m_vPos[2]);
 			}
 			break;
@@ -1200,13 +1268,13 @@ void cTaskCharGolvis::AttackProcess()
 					m_iCount[0]++;
 					m_iCount[1] = 0;
 					SetAnmState(18u);
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE078_BOSS_RAKKA_2);
+					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE078_BOSS_RAKKA_2, false, pPBModel(nType())->pScnMdl());
 					Constants::PACN_APP()->pTaskConsole()->ButtCursorEnd();
 				}
 				break;
 			}
 		case 3:
-			if (++m_iCount[1] == 30)
+			if (++m_iCount[1] == 60)   // DOL 0x3c (the C# had 30)
 			{
 				m_iCount[0]++;
 				m_iCount[1] = 0;
@@ -1288,11 +1356,6 @@ void cTaskCharGolvis::AttackProcess()
 			break;
 		}
 		break;
-	case 15:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
 	case 20:
 	case 21:
 	case 22:
@@ -1306,24 +1369,26 @@ void cTaskCharGolvis::AttackProcess()
 	case 30:
 	case 31:
 	case 32:
+	case 33:
+	case 34:
+	case 35:
+	case 36:
+	case 37:
 		if (frameAnmChr < 31.0f)
 		{
 			::Constants::bizMathNearRad(pOut, vRotate()[1], Mathf::Atan2(v[0] - vTrans()[0], v[2] - vTrans()[2]), ::Constants::JET_DEG2RAD(9.0f));
 			vRotate()[1] = pOut;
 		}
-		if (frameAnmChr >= 25.0f && !m_bGhostCreateFlag)
+		if (frameAnmChr == 25.0f)   // DOL FLOAT_8047bc78 (the C# used >= 25 + a one-shot flag)
 		{
-			m_bGhostCreateFlag = true;
-			sbyte* array = Constants::iCarryGhostSet[m_iSubState - 15];
+			sbyte* array = Constants::iCarryGhostSet[m_iSubState - 20];
 			for (int i = 0; i < 3 && array[i] != -1; i++)
 			{
 				Constants::PACN_APP()->EnemyActive((uint)array[i]);
 			}
 		}
-		(void)(28.0f);
 		if (IsAnmEnd())
 		{
-			m_bGhostCreateFlag = false;
 			ChangeToFree();
 		}
 		break;
@@ -1342,6 +1407,7 @@ void cTaskCharGolvis::AttackProcess()
 	}
 }
 
+// DOL 0x80118500 [audited: 43rd-session pass only (case comments); not re-read line by line in the function-level pass]
 void cTaskCharGolvis::MonsterFrameMove()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -1349,9 +1415,9 @@ void cTaskCharGolvis::MonsterFrameMove()
 	::Constants::jetGeoVecCopy(v, cTaskCharPacman2->vTrans());
 	float frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 	float frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+	// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (the DOL compares raw frames)
 	// frameMaxAnmChr *= 60.0f;  (same)
-	if (Constants::IS_NAKAJIMA_PAUSE())
+	if (Constants::IS_NAKAJIMA_PAUSE(this))
 	{
 		return;
 	}
@@ -1395,14 +1461,14 @@ void cTaskCharGolvis::MonsterFrameMove()
 		{
 			m_iIzikeLevel = 0;
 			ChangeToMotion(5u);
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE);
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE, false, pPBModel(nType())->pScnMdl());
 			if (m_iIzikeLevel <= 2)
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE084_BOSS_IJIKE_1, false, pPBModel(nType())->pScnMdl());
 			}
 			else
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE085_BOSS_IJIKE_2);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE085_BOSS_IJIKE_2, false, pPBModel(nType())->pScnMdl());
 			}
 		}
 	}
@@ -1426,7 +1492,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 	case 4:
 		frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
 		frameMaxAnmChr = pModel(nType())->GetFrameMaxAnmChr(m_nAnmSw);
-		// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+		// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (the DOL compares raw frames)
 		// frameMaxAnmChr *= 60.0f;  (same)
 		if (m_iIzikeLevel == 3)
 		{
@@ -1457,7 +1523,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 		{
 			uint anmState = GetAnmState();
 			frameAnmChr = pModel(nType())->GetFrameAnmChr(m_nAnmSw);
-			// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (DOL 0x80118500 compares raw frames)
+			// frameAnmChr *= 60.0f;  C# Unity seconds -> frames; native frames already (the DOL compares raw frames)
 			if (anmState == 6)
 			{
 				float pOut;
@@ -1465,7 +1531,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 				vRotate()[1] = pOut;
 				if (frameAnmChr == 1.0f)
 				{
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE103_GOL_2);
+					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE103_GOL_2, false, pPBModel(nType())->pScnMdl());
 				}
 			}
 			if (IsAnmEnd() && !IsBossDeath())
@@ -1500,7 +1566,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 			}
 			m_iEatenNum++;
 			bool flag = true;
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE017_GHOST);
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE017_GHOST, false, pPBModel(nType())->pScnMdl());
 			if (IsBossDeath())
 			{
 				if (bUseDeathDemo())
@@ -1543,23 +1609,23 @@ void cTaskCharGolvis::MonsterFrameMove()
 		}
 		if (frameAnmChr == 0.0f)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+			if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE075_ENSOU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pPBModel(nType())->pScnMdl()));
 		}
 		if (frameAnmChr == 36.0f && m_bLaughEnable)
 		{
-			switch (Random::Range(0, 4))
+			switch (MslRand() % 4)   // DOL rand() % 4 (signed)
 			{
 			case 0:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE100_GOL_HANYOU);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE100_GOL_HANYOU, false, pPBModel(nType())->pScnMdl());
 				break;
 			case 1:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE102_GOL);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE102_GOL, false, pPBModel(nType())->pScnMdl());
 				break;
 			case 2:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE103_GOL_2);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE103_GOL_2, false, pPBModel(nType())->pScnMdl());
 				break;
 			case 3:
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE101_GOL_IJIKE, false, pPBModel(nType())->pScnMdl());
 				break;
 			}
 		}
@@ -1589,7 +1655,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 		::Constants::jetGeoVecSet(vScale(), 1.0f, 1.0f, 1.0f, 1.0f);
 		if (frameAnmChr == 38.0f)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE100_GOL_HANYOU);
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE100_GOL_HANYOU, false, pPBModel(nType())->pScnMdl());
 		}
 		if (IsAnmEnd())
 		{
@@ -1667,6 +1733,7 @@ void cTaskCharGolvis::MonsterFrameMove()
 	}
 }
 
+// DOL 0x801192c8 [audited]
 void cTaskCharGolvis::MonsterRender()
 {
 	if (Constants::IS_PAC_PAUSE() || Constants::PACMAN_OBJ()->IsMiss())
@@ -1718,13 +1785,13 @@ void cTaskCharGolvis::MonsterRender()
 	}
 }
 
+// DOL 0x801194b8 [audited]
 int cTaskCharGolvis::Attack(Vector4 pvLocalAttackPos, float fAttackR, Vector4 pvFlipCenterPos, float fAttackSpeed, bool bKabutoGuardEnable)
 {
 	pHitChar(1)->SetOfsPos(pvLocalAttackPos);
 	pHitChar(1)->SetRange(fAttackR);
 	pHitChar(1)->SetBoundCenter(pvFlipCenterPos);
-	pHitChar(1)->FlagOn((uint)(0x21 | (bKabutoGuardEnable ? 16 : 0)));
-	pHitChar(1)->FlagOn(2u);
+	pHitChar(1)->FlagOn((uint)(0x21 | (bKabutoGuardEnable ? 16 : 0)));   // (the C# also set flag 2: already on since the ctor, the DOL does not)
 	HitUpdate();
 	if (Constants::PACN_APP()->pTaskCollision()->HitPreCheck(pHitChar(1)))
 	{
@@ -1753,6 +1820,7 @@ void cTaskCharGolvis::RequestEffectAround(int iKind, int iInterval)
 	}
 }
 
+// DOL 0x80119608 [audited]
 bool cTaskCharGolvis::HitCheckPacman()
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -1763,6 +1831,7 @@ bool cTaskCharGolvis::HitCheckPacman()
 	return false;
 }
 
+// DOL 0x8011965c [audited]
 void cTaskCharGolvis::FallProcess()
 {
 	Vector4 v;
@@ -1784,6 +1853,7 @@ void cTaskCharGolvis::FallProcess()
 	}
 }
 
+// DOL 0x80119738 [audited]
 bool cTaskCharGolvis::IsOnFloor()
 {
 	Vector4 v;
@@ -1801,6 +1871,7 @@ bool cTaskCharGolvis::IsOnFloor()
 	return true;
 }
 
+// DOL 0x801197fc [audited: gap: the port zeroes pOut first, the DOL leaves it unchanged on failure]
 bool cTaskCharGolvis::GetFloorHeight(float& pOut, Vector4 vPos)
 {
 	pOut = 0.0f;
@@ -1818,6 +1889,7 @@ bool cTaskCharGolvis::GetFloorHeight(float& pOut, Vector4 vPos)
 	return false;
 }
 
+// DOL 0x801198c0 [audited: gap: same as GetFloorHeight]
 bool cTaskCharGolvis::GetFloor(Vector4& pOut, Vector4 vPos)
 {
 	pOut = Vector4();
@@ -1835,21 +1907,24 @@ bool cTaskCharGolvis::GetFloor(Vector4& pOut, Vector4 vPos)
 	return false;
 }
 
+// DOL 0x80119994 [audited]
 void cTaskCharGolvis::AttackLand(int nKind)
 {
-	CustomKingdomUtil::Assert(nKind >= 33, "min");
-	CustomKingdomUtil::Assert(nKind <= 58, "min");
+	CustomKingdomUtil::Assert(nKind >= 100, "min");
+	CustomKingdomUtil::Assert(nKind <= 125, "min");
 	if (m_pAttackLand != nullptr)
 	{
-		m_pAttackLand->SetAttackKind(nKind - 33);
+		m_pAttackLand->SetAttackKind(nKind - 100);
 	}
 }
 
+// DOL 0x801199b8 [audited]
 void cTaskCharGolvis::AttackLandRegist(cTaskBgGimmick* pGimmick)
 {
 	m_pAttackLand = new cTaskLandAttack(this, pGimmick);
 }
 
+// DOL 0x80119a0c [audited]
 bool cTaskCharGolvis::AttackLandIsEnd()
 {
 	if (m_pAttackLand != nullptr)
@@ -1859,6 +1934,7 @@ bool cTaskCharGolvis::AttackLandIsEnd()
 	return true;
 }
 
+// DOL 0x80119a30 [audited]
 void cTaskCharGolvis::AttackLandPause(bool nFlag)
 {
 	if (m_pAttackLand != nullptr)
@@ -1867,6 +1943,7 @@ void cTaskCharGolvis::AttackLandPause(bool nFlag)
 	}
 }
 
+// DOL 0x80119a50 [audited]
 bool cTaskCharGolvis::AttackLandGetMsg(uint& pMes)
 {
 	if (m_pAttackLand != nullptr)
@@ -1876,6 +1953,7 @@ bool cTaskCharGolvis::AttackLandGetMsg(uint& pMes)
 	return false;
 }
 
+// DOL 0x80119a74 [audited]
 uint cTaskCharGolvis::AttackName2ID(string pName)
 {
 	for (uint num = 0u; (long)num < (long)::Constants::ARRAY_SIZE(s_aAttackName); num++)

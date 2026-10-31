@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "kingdom/game/cTaskConsMenuBase.hpp"
-#include "MotosUIRollHome.hpp"
 #include "kingdom/game/cTaskConsMenuManBase.hpp"
 
 namespace kingdom::game::g03
@@ -26,10 +25,8 @@ private:
 
 	static const int ANM_LIST[4];
 
-	MotosUIRollHome::EButtonType m_buttonType{};
 
 public:
-	MotosUIRollHome* UnityUI{};
 
 	cTaskConsMenuRule(cTaskConsMenuManBase* pConsMan);
 

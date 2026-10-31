@@ -50,6 +50,7 @@ void cTaskConsPlayerNumber::Term()
 {
 }
 
+// DOL 0x801030f0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsPlayerNumber::Execute(cJetTask* pParam)
 {
 	if (m_bExec)

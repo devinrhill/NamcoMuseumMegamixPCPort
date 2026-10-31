@@ -118,6 +118,7 @@ cTaskGimmickBase::cTaskGimmickBase()
 	Init();
 }
 
+// DOL 0x8012c1dc [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskGimmickBase::Init()
 {
 	m_nFlag = 10u;
@@ -167,6 +168,7 @@ void cTaskGimmickBase::PresetEnv()
 {
 }
 
+// DOL 0x8012c310 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickBase::IsStepOnCntW(Vector4 pWTrans)
 {
 	float num = KingdomGlobal::g_pMotosGame->pMap()->fPanelSize() / 2.0f;
@@ -177,6 +179,7 @@ bool cTaskGimmickBase::IsStepOnCntW(Vector4 pWTrans)
 	return false;
 }
 
+// DOL 0x8012c3fc [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickBase::IsStepOnCnt(cTaskChar* pChar)
 {
 	Vector4 vWorld = Vector4();
@@ -184,7 +187,7 @@ bool cTaskGimmickBase::IsStepOnCnt(cTaskChar* pChar)
 	return IsStepOnCntW(vWorld);
 }
 
-// DOL 0x8012c480
+// DOL 0x8012c480 [audited: per AUDIT_G03_G07 row]
 void cTaskGimmickBase::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -201,7 +204,7 @@ void cTaskGimmickBase::Draw(int nStatus, cJetTask* pParam)
 			CustomKingdomUtil::Assert(cPBModel != nullptr, "nullpo");
 			DummyNW4R::SetMtx(cPBModel->pScnMdl(), m);
 			DummyNW4R::SetScale(cPBModel->pScnMdl(), cPBModel->vScale()[0], cPBModel->vScale()[1], cPBModel->vScale()[2]);
-			cPBModel->UpdateMatrix();   // DOL 0x8012c5c0: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
+			cPBModel->UpdateMatrix();   // DOL 0x8012c5c0 [audited: described by the 43rd-session pass]: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 			num++;
 			continue;
 		}
@@ -209,6 +212,7 @@ void cTaskGimmickBase::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x8012c5f0 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskGimmickBase::IsStepOnTrig(cTaskChar* pChar)
 {
 	Vector4 vWorld = Vector4();

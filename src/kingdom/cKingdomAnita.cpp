@@ -188,7 +188,7 @@ bool cKingdomAnita::GetLayerPosPatIntepolate(Vector4& pos, uint lay)
 	return true;
 }
 
-// DOL 0x80013dd0: needs data and the visible bit; pat < 0 uses the animation's current pattern (0x80013f70 when interpolating between two
+// DOL 0x80013dd0 [audited]: needs data and the visible bit; pat < 0 uses the animation's current pattern (0x80013f70 when interpolating between two
 // patterns, else the layers of the pattern at +0x20 / +0x24 of the sequence), otherwise just that pattern (FUN_8001417c per layer).
 bool cKingdomAnita::IsHit(Vector4 trans, int pat)
 {

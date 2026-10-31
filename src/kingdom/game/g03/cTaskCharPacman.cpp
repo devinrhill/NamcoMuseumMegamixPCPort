@@ -1,8 +1,12 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskCharPacman.hpp"
+#include "kingdom/MslRand.hpp"
 #include "GamePad.hpp"
 #include "wii/Anim.hpp"
 #include "kingdom/cKingdomModelBase.hpp"
 #include "platform/devtools.hpp"
+#include "platform/devtools_g03gray.hpp"
+#include "platform/devtools_g03pac.hpp"
 #include "DummyNW4R.hpp"
 
 #include <iterator>
@@ -163,6 +167,7 @@ cTaskCharPacman::cTaskCharPacman()
 	Init();
 }
 
+// DOL 0x80163f90 [audited: per AUDIT_G03_G07 row] (the sound actor +0xa54 and the 3D cue plays on it are not ported: the SEs below play 2D; the Unity dummy-animation objects are not in the DOL)
 void cTaskCharPacman::Init()
 {
 	::Constants::jetGeoMtxIdentity(m_mRoll);
@@ -358,6 +363,7 @@ void cTaskCharPacman::Init()
 	AudioListenerManager::SetPosStalkTarget(pPBModel()->pScnMdl());
 }
 
+// DOL 0x80164e94 [audited: per AUDIT_G03_G07 row] (stops 6 sound handles at once and deletes the sound actor +0xa54; the port stops its own handles)
 void cTaskCharPacman::Term()
 {
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE090_PAC_DASH_DANSA);
@@ -391,7 +397,7 @@ void cTaskCharPacman::Term()
 	cTaskChar::Term();
 }
 
-// DOL 0x80164f3c (Execute, 0x3350 bytes). The port splits it into one function per mode (EProc) and, for ePROC_NORMAL, into the blocks of the
+// DOL 0x80164f3c [audited: described by the 43rd-session pass] (Execute, 0x3350 bytes). The port splits it into one function per mode (EProc) and, for ePROC_NORMAL, into the blocks of the
 // play step (NormalPlay); the statements run in the DOL's / the converted code's order.
 //
 // Terms used below:
@@ -574,16 +580,16 @@ void cTaskCharPacman::ProcNormal()
 	}
 	else if (IsState(STATE_HANG))
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE092_PAC_SIGAMI);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE092_PAC_SIGAMI, false, pCurrentModel()->pScnMdl());
 		NextMode(n, ePROC_HANG);
 	}
 	else if (devtools::G03Fly())
 	{
 		devtools::G03FlyStep(this);   // devtools: --g03-fly replaces control / gravity / collision / the fall-off miss (not 1:1)
 	}
-	else if (devtools::G03ExploreFell(this))
+	else if (devtools::G03ExploreFell(this) || devtools::G03GrayFell(this))
 	{
-		// devtools: --g03-explore put him back at the start (not 1:1)
+		// devtools: --g03-explore / the graybox stage put him back at the start (not 1:1)
 	}
 	else if (CheckFallArea())
 	{
@@ -693,8 +699,7 @@ void cTaskCharPacman::ProcMiss()
 	if (nModeStep(n) == 0u)
 	{
 		nModeStep(n) = 1u;
-		// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454): every looping SE fades out over
-		// 10 frames and no new loops start until the next round. The port has no loop-sound manager.
+		cPacnRollLoopSndMan::StopAll();   // DOL 0x80167688 [audited: described by the 43rd-session pass]: every looping SE stops, no new loops until the next Init
 		if (nullptr != m_SndHndMove)
 		{
 			SoundManager::get_SE()->Stop(m_SndHndMove);
@@ -714,12 +719,12 @@ void cTaskCharPacman::ProcMiss()
 	// update
 	if (IsState(STATE_HELL))
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE, false, pCurrentModel()->pScnMdl());
 		NextMode(n, ePROC_HELL);
 	}
 	else
 	{
-		// DOL 0x80166fa0 (state 4, step 1): the miss clip (m_AnmChrMiss[type], +0x67c) is sampled directly: translate of "root" at frame 0, scale + rotation of
+		// DOL 0x80166fa0 [audited: described by the 43rd-session pass] (state 4, step 1): the miss clip (m_AnmChrMiss[type], +0x67c) is sampled directly: translate of "root" at frame 0, scale + rotation of
 		// "base" at the current frame (+0x6a0, then +1). The base TRANSLATION is dropped (the DOL zeroes it in the 4x4 it builds), unlike the Unity TRS.
 		// The result goes to m_mAnm, which Draw multiplies into the model matrix.
 		Matrix4x4 rootMoveScale;
@@ -746,7 +751,7 @@ void cTaskCharPacman::ProcMiss()
 		{
 			// the clip has played out
 			OnState(STATE_MISS_FINISH);
-			::Constants::jetGeoVecSet(vScale(), 0.0f, 0.0f, 0.0f, 1.0f);   // DOL 0x80167108: +0x220 = (0, 0, 0, 1): the model shrinks away
+			::Constants::jetGeoVecSet(vScale(), 0.0f, 0.0f, 0.0f, 1.0f);   // DOL 0x80167108 [audited: described by the 43rd-session pass]: +0x220 = (0, 0, 0, 1): the model shrinks away
 			NextMode(n, ePROC_RETIRE);
 		}
 	}
@@ -838,13 +843,13 @@ void cTaskCharPacman::ProcHell()
 	{
 		nModeStep(n) = 1u;
 		m_nFreeFallCnt = 0u;
-		// TODO(wii): cPacnRollLoopSndMan::StopAll() here (800ba454), as in the miss state above.
+		cPacnRollLoopSndMan::StopAll();   // DOL 0x80166f4c [audited: class row done in the 43rd session; function not individually re-read]
 		if (nullptr != m_SndHndMove)
 		{
 			SoundManager::get_SE()->Stop(m_SndHndMove);
 		}
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE023_RAKKA);
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE095_RAKKA);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE023_RAKKA, false, pCurrentModel()->pScnMdl());
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE095_RAKKA, false, pCurrentModel()->pScnMdl());
 	}
 
 	// update
@@ -967,7 +972,7 @@ void cTaskCharPacman::NormalIdle()
 		if (m_nAloneCnt == m_ParamCommon->nWaitAnimeTime)
 		{
 			LookCameraRollMatrix();
-			if (Random::Range(0, 2) == 0)
+			if (kingdom::MslRandRange(0, 2) == 0)   // DOL: rand() % 2 (0x80165a98 idle, 0x8016f380 damage voice)
 			{
 				SetAnmState(ANIME_STATE_WAIT_A, 0u, 0u);
 			}
@@ -1009,7 +1014,7 @@ void cTaskCharPacman::NormalWater()
 	// a dash that leaves a ledge upwards
 	if (pHitObj(1) == nullptr && !IsState(STATE_WATER_UP | STATE_WATER_IN) && vMove()[1] >= 0.2f && IsState(STATE_DASH))
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE090_PAC_DASH_DANSA, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE090_PAC_DASH_DANSA, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pCurrentModel()->pScnMdl());
 	}
 
 	// deep water, not the knight: a splash while moving
@@ -1024,7 +1029,7 @@ void cTaskCharPacman::NormalWater()
 			if (nullptr == m_SndHndInWater2)
 			{
 				m_nWaterCount = 0u;
-				m_SndHndInWater2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+				m_SndHndInWater2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER, false, pCurrentModel()->pScnMdl());
 			}
 		}
 	}
@@ -1042,7 +1047,7 @@ void cTaskCharPacman::NormalWater()
 		}
 		if (nullptr == m_SndHndInWater)
 		{
-			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER, false, pCurrentModel()->pScnMdl());
 		}
 	}
 
@@ -1065,7 +1070,7 @@ void cTaskCharPacman::NormalWater()
 		const float flatSpeed = ::Constants::jetGeoVecLength(flatMove);
 		if (nullptr == m_SndHndInWater && flatSpeed >= 0.1f && nullptr == m_SndHndInWater2)
 		{
-			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER);
+			m_SndHndInWater = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE039_WATER, false, pCurrentModel()->pScnMdl());
 		}
 	}
 
@@ -1074,7 +1079,7 @@ void cTaskCharPacman::NormalWater()
 	{
 		if (nullptr == m_SndHndSwim && m_fWaterHeight - vTrans()[1] >= 0.7f && nType() == TYPE_KNIGHT)
 		{
-			m_SndHndSwim = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE038_SUITYUU);
+			m_SndHndSwim = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE038_SUITYUU, false, pCurrentModel()->pScnMdl());
 			app->SetEffect(11u, vTrans(), Vector4());
 		}
 	}
@@ -1103,7 +1108,7 @@ void cTaskCharPacman::NormalAirSound()
 				app->SetEffect(7u, vTrans(), Vector4());
 			}
 		}
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE052_KAKYUU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+		if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE052_KAKYUU, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY, pCurrentModel()->pScnMdl()));
 	}
 	else
 	{
@@ -1114,13 +1119,13 @@ void cTaskCharPacman::NormalAirSound()
 		switch (nType())
 		{
 		case TYPE_NORMAL:
-			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE061_TYAKUTI1);
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE061_TYAKUTI1, false, pCurrentModel()->pScnMdl());
 			break;
 		case TYPE_WING:
-			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE062_TYAKUTI2);
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE062_TYAKUTI2, false, pCurrentModel()->pScnMdl());
 			break;
 		case TYPE_KNIGHT:
-			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE063_TYAKUTI3);
+			m_SndHndOnField = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE063_TYAKUTI3, false, pCurrentModel()->pScnMdl());
 			break;
 		}
 	}
@@ -1134,7 +1139,7 @@ void cTaskCharPacman::NormalDash(bool jumped)
 	cAppG03PacnRollGame* app = Constants::PACN_APP();
 	const bool onGround = pHitObj(1) != nullptr || IsState(STATE_WATER_UP);
 	const bool stickHeld = CustomKingdomUtil::IF(m_fStickX) || CustomKingdomUtil::IF(m_fStickY);
-	// DOL 0x80165b9c: dash = the remote swung faster than PAD_SWING_SPEED_DASH (get_pad1(0) + 0x44 = KPAD acc_speed); the C# used the A button
+	// DOL 0x80165b9c [audited: described by the 43rd-session pass]: dash = the remote swung faster than PAD_SWING_SPEED_DASH (get_pad1(0) + 0x44 = KPAD acc_speed); the C# used the A button
 	const bool swung = m_ParamCommon->fPadSwingSpeedDash < GamePad::Get(0).accSpeed;
 	if (onGround && m_nNoDashCnt == 0 && swung && !IsState(STATE_DASH | STATE_HANG | STATE_BRAKE) && !IsStateOld(STATE_HANG) && Constants::IsVecNormalize(vAccel()) && stickHeld && !IsStateOld(STATE_CLIMB))
 	{
@@ -1142,15 +1147,15 @@ void cTaskCharPacman::NormalDash(bool jumped)
 		m_nDashCnt = 0u;
 		if (m_nHitKindFace == Constants::eFACE_KIND_SWIM)
 		{
-			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH);
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH, false, pCurrentModel()->pScnMdl());
 		}
 		else
 		{
 			// both play; the handle keeps the second
-			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
-			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE093_PAC_DASH2);
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH, false, pCurrentModel()->pScnMdl());
+			m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE093_PAC_DASH2, false, pCurrentModel()->pScnMdl());
 		}
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH, false, pCurrentModel()->pScnMdl());
 		if (m_PtkHndDash->IsValid())
 		{
 			m_PtkHndDash->Detach(true);
@@ -1333,14 +1338,15 @@ void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 	::Constants::jetGeoMtxMult(m, m, m2);
 	Matrix4x4 m3;
 	::Constants::jetGeoMtx44to34(m3, m);
-	// DOL 0x80167978: ScnObj::SetMtx(model, mtx) and then the model's scale fields (+0xdc..+0xe4) = vScale (this + 0x220): (1, 1, 1) normally, (0, 0, 0)
+	// DOL 0x80167978 [audited: described by the 43rd-session pass]: ScnObj::SetMtx(model, mtx) and then the model's scale fields (+0xdc..+0xe4) = vScale (this + 0x220): (1, 1, 1) normally, (0, 0, 0)
 	// once the miss clip has played out (see Execute state 4), which is what makes Pac-Man vanish until the retry.
+	const float devScale = devtools::G03PacModelScale(fRadius());   // devtools: the Pac-Man tab's radius scales the model (not 1:1)
 	for (uint num = 0u; num < 3; num++)
 	{
 		DummyNW4R::SetMtx(pPBModel(num)->pScnMdl(), m);
-		DummyNW4R::SetScale(pPBModel(num)->pScnMdl(), vScale()[0], vScale()[1], vScale()[2]);
+		DummyNW4R::SetScale(pPBModel(num)->pScnMdl(), vScale()[0] * devScale, vScale()[1] * devScale, vScale()[2] * devScale);
 	}
-	// DOL 0x80167dc8: the current form's push-back draws itself (+0xd8 vtable +0x54 = 0x8009abe0: into this frame's scene list) unless Pac-Man
+	// DOL 0x80167dc8 [audited: described by the 43rd-session pass]: the current form's push-back draws itself (+0xd8 vtable +0x54 = 0x8009abe0: into this frame's scene list) unless Pac-Man
 	// blinks (+0x650); paused / HOME held it always draws. (The C# toggled Visible / Invisible here instead.)
 	if (!m_bBrink || Constants::IS_PAC_PAUSE())
 	{
@@ -1423,6 +1429,7 @@ void cTaskCharPacman::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x8016828c [audited: per AUDIT_G03_G07 row] (BIN_CSV_PACMAN_PARAM rows PAC_NORMAL / WING / KNIGHT, 30 named columns; BIN_CSV_PACMAN_COMMON_PARAM row PAC_COMMON, 6 columns: all names / types compared 2026-10-30)
 void cTaskCharPacman::InitParam()
 {
 	cKingdomCSV* cKingdomCSV2 = new cKingdomCSV();
@@ -1663,7 +1670,7 @@ void cTaskCharPacman::PostCollisionWall()
 				// tested `!= null` on a handle that is never set, so the sound never played.
 				if (IsState(STATE_DASH) && nullptr == m_SndHndDash2)
 				{
-					m_SndHndDash2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE089_PAC_DASH);
+					m_SndHndDash2 = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE089_PAC_DASH, false, pCurrentModel()->pScnMdl());
 				}
 				if (!IsState(STATE_DASH))
 				{
@@ -1884,17 +1891,17 @@ void cTaskCharPacman::PostCollisionFloor()
 						}
 					}
 					OnState(STATE_DASH_FLOOR);
-					// DOL 0x8016ab4c: "the dash handle has no sound" (0x80026424), not "the handle is null": a handle from an earlier dash stays set
+					// DOL 0x8016ab4c [audited: described by the 43rd-session pass]: "the dash handle has no sound" (0x80026424), not "the handle is null": a handle from an earlier dash stays set
 					// after its sound ends, which made the first dash pad of a stage silent (it then only played once m_nFloorDashCnt >= 3)
 					if (!SoundManager::get_SE()->IsPlaying(m_SndHndDash))
 					{
 						if (m_nHitKindFace == 5)
 						{
-							m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH);
+							m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE091_PAC_WATER_DASH, false, pCurrentModel()->pScnMdl());
 						}
 						else
 						{
-							m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+							m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH, false, pCurrentModel()->pScnMdl());
 						}
 					}
 					else if (m_nHitKindFace != 5 && m_nFloorDashCnt >= 3)
@@ -1903,7 +1910,7 @@ void cTaskCharPacman::PostCollisionFloor()
 						{
 							SoundManager::get_SE()->Stop(m_SndHndDash);
 						}
-						m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH);
+						m_SndHndDash = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE022_DASH, false, pCurrentModel()->pScnMdl());
 					}
 					m_nFloorDashCnt = 0u;
 				}
@@ -2028,7 +2035,7 @@ void cTaskCharPacman::PostCollisionFloor()
 								{
 									cAppG03PacnRollGame2->SetEffect(2u, v, Vector4(), m_PtkHndBrake);
 								}
-								SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE024_BRAKE);
+								SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE024_BRAKE, false, pCurrentModel()->pScnMdl());
 							}
 						}
 					}
@@ -2063,7 +2070,7 @@ void cTaskCharPacman::PostCollisionFloor()
 					}
 					else if (nullptr == m_SndHndGrass)
 					{
-						m_SndHndGrass = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE048_GRASS);
+						m_SndHndGrass = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE048_GRASS, false, pCurrentModel()->pScnMdl());
 						cAppG03PacnRollGame2->SetEffect(35u, vTrans(), Vector4());
 					}
 				}
@@ -2296,8 +2303,8 @@ void cTaskCharPacman::SetBoundFloor(Constants::sHitParam* const& hitParam, const
 	{
 		cAppG03PacnRollGame2->SetEffect(14u, vTrans(), Vector4(), m_PtkHndFlame);
 		DamageProcess(1u, {}, 0.0f);
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE049_YOUGAN);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE, false, pCurrentModel()->pScnMdl());
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE049_YOUGAN, false, pCurrentModel()->pScnMdl());
 		SetAnmState(ANIME_STATE_DAMAGE, 5u, 40u);
 	}
 	else
@@ -2429,7 +2436,7 @@ bool cTaskCharPacman::Hanging(bool flg, cTaskBgHit* hitObjFloor)
 		::Constants::jetGeoVecSub(vTrans(), vTrans(), v4);
 		if (flg)
 		{
-			// DOL 0x8016c690: no swing (acc_speed <= PAD_SWING_SPEED_ESCAPE_HANG): let go only in the states 0xc20; a swing lets go at once, pushed away from the
+			// DOL 0x8016c690 [audited: described by the 43rd-session pass]: no swing (acc_speed <= PAD_SWING_SPEED_ESCAPE_HANG): let go only in the states 0xc20; a swing lets go at once, pushed away from the
 			// wall (v2 . vAccel <= 0) or along it (the C# only had the first branch)
 			bool flag = true;
 			if (GamePad::Get(0).accSpeed <= m_ParamCommon->fPadSwingSpeedEscapeHang)
@@ -2520,7 +2527,7 @@ void cTaskCharPacman::SetAnmState(const uint& state, const uint& time, const uin
 	case 11u:
 		SetAnmChr(11u, s_AnmChrList[6][nType()], time, keep);
 		SetAnm("BIN_PAC_FACE_02_TPA", 0u);
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE088_AKUBI);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE088_AKUBI, false, pCurrentModel()->pScnMdl());
 		break;
 	case 12u:
 		SetAnmChr(12u, s_AnmChrList[7][nType()], time, keep);
@@ -2585,7 +2592,7 @@ bool cTaskCharPacman::Control()
 {
 	int pad1No = InGamePadManager::GetPad1No();
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
-	// DOL 0x8016d68c: `get_pad1(0)->hold & 0x840` = B (0x40) or Z (0x800) held -> brake (state 0x20); the C# only had B (CROSS)
+	// DOL 0x8016d68c [audited: described by the 43rd-session pass]: `get_pad1(0)->hold & 0x840` = B (0x40) or Z (0x800) held -> brake (state 0x20); the C# only had B (CROSS)
 	if (InGamePadManager::GetKey(pad1No, PadDefine::EPadKeycode::eKEY_CROSS) || InGamePadManager::GetKey(pad1No, PadDefine::EPadKeycode::eKEY_L1))
 	{
 		if (nullptr != m_SndHndMove)
@@ -2637,13 +2644,13 @@ bool cTaskCharPacman::Control()
 				switch (nType())
 				{
 				case TYPE_NORMAL:
-					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE018_KOROGARI1, true);
+					if (cPacnRollLoopSndMan::CanPlay()) m_SndHndMove = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE018_KOROGARI1, true, pCurrentModel()->pScnMdl()));
 					break;
 				case TYPE_WING:
-					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE019_KOROGARI2, true);
+					if (cPacnRollLoopSndMan::CanPlay()) m_SndHndMove = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE019_KOROGARI2, true, pCurrentModel()->pScnMdl()));
 					break;
 				case TYPE_KNIGHT:
-					m_SndHndMove = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE020_KOROGARI3, true);
+					if (cPacnRollLoopSndMan::CanPlay()) m_SndHndMove = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE020_KOROGARI3, true, pCurrentModel()->pScnMdl()));
 					break;
 				}
 			}
@@ -2703,7 +2710,7 @@ void cTaskCharPacman::ChangePacn(uint kind)
 	CustomKingdomUtil::Assert(kind == 0 || 1 == kind || 2 == kind, "error");
 	if (nType() != kind)
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE025_HENNSHINN);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE025_HENNSHINN, false, pCurrentModel()->pScnMdl());
 		cAppG03PacnRollGame2->SetEffect(3u, vTrans(), Vector4(), m_PtkHndChange);
 		m_PtkHndWing->Detach(true);
 		if (nullptr != m_SndHndMove)
@@ -2714,7 +2721,7 @@ void cTaskCharPacman::ChangePacn(uint kind)
 	}
 	else
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE016_FLUIT);
+		SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE016_FLUIT, false, pCurrentModel()->pScnMdl());
 	}
 }
 
@@ -2916,6 +2923,7 @@ bool cTaskCharPacman::IsGround()
 	return false;
 }
 
+// DOL 0x8016efec [audited: per AUDIT_G03_G07 row] (equal; the cues play on the sound actor in the DOL)
 void cTaskCharPacman::Attacked(cHitChar* pRev, cHitChar* pAtk)
 {
 	Vector4 v;
@@ -2944,26 +2952,27 @@ void cTaskCharPacman::Attacked(cHitChar* pRev, cHitChar* pAtk)
 		{
 			if (pAtk->pParent()->nKind() == cTaskChar::eKIND::eKIND_PINKY)
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE105_GH_TORITUKI2);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE105_GH_TORITUKI2, false, pCurrentModel()->pScnMdl());
 			}
 			else if (pAtk->pParent()->nKind() != cTaskChar::eKIND::eKIND_BOSS)
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE104_GH_TORITUKI);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE104_GH_TORITUKI, false, pCurrentModel()->pScnMdl());
 			}
 		}
 		else if (pAtk->pParent()->nKind() != cTaskChar::eKIND::eKIND_BOSS)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST);
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST, false, pCurrentModel()->pScnMdl());
 		}
 		else if (nType() != TYPE_KNIGHT)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST);
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE094_GHOST, false, pCurrentModel()->pScnMdl());
 		}
 		Constants::PACN_APP()->SetEffect(5u, pRev->pParent()->vTrans(), Vector4());
 	}
 	DamageProcess(1u, v, GetParam()->fBoundSpeed, pAtk->bFlagTest(16u) ? 1 : 0);
 }
 
+// DOL 0x8016f28c [audited: per AUDIT_G03_G07 row] (equal; Rumble(0, 1000 / 500) not ported)
 bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, int nKnightDef)
 {
 	if (CustomKingdomUtil::IF(vVec))
@@ -2981,14 +2990,14 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 	{
 		if (!CustomKingdomUtil::IF(nKnightDef) || nType() != TYPE_KNIGHT)
 		{
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE);
-			if (Random::Range(0, 2) == 0)
+			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE021_DAMAGE, false, pCurrentModel()->pScnMdl());
+			if (kingdom::MslRandRange(0, 2) == 0)   // DOL: rand() % 2 (0x80165a98 idle, 0x8016f380 damage voice)
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE096_DAMAGE);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE096_DAMAGE, false, pCurrentModel()->pScnMdl());
 			}
 			else
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE097_DAMAGE2);
+				SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE097_DAMAGE2, false, pCurrentModel()->pScnMdl());
 			}
 			if (devtools::G03NoDamage()) {} // devtools: --g03-no-damage (not 1:1)
 			else if (nHP() >= nDamage)
@@ -3009,7 +3018,7 @@ bool cTaskCharPacman::DamageProcess(uint nDamage, Vector4 vVec, float fSpeed, in
 	return true;
 }
 
-// DOL 0x8016f488 (two phases per clip pair: BrakeOn while hanging on a hit object, BrakeOff afterwards; +0x6a4 on frame, +0x6a8 off frame, +0x6ac bBrakeAnmMax).
+// DOL 0x8016f488 [audited: described by the 43rd-session pass] (two phases per clip pair: BrakeOn while hanging on a hit object, BrakeOff afterwards; +0x6a4 on frame, +0x6a8 off frame, +0x6ac bBrakeAnmMax).
 // The clips (m_AnmChrBrakeOn +0x688 / m_AnmChrBrakeOff +0x694) are sampled directly: translate of "root" at frame 0, scale + rt of "base" at the phase frame.
 void cTaskCharPacman::BrakeAnime()
 {
@@ -3099,6 +3108,7 @@ void cTaskCharPacman::BrakeAnime()
 	}
 }
 
+// DOL 0x8016fd4c [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharPacman::RecoverHp(uint n)
 {
 	if (!IsState(STATE_MISS))
@@ -3130,6 +3140,7 @@ void cTaskCharPacman::GainHpLimit(uint n)
 	}
 }
 
+// DOL 0x8016fdc0 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharPacman::GainLife(uint n)
 {
 	if (!IsState(STATE_MISS))
@@ -3168,6 +3179,7 @@ void cTaskCharPacman::SetMaterialAlpha(byte alpha)
 	}
 }
 
+// DOL 0x8016fdf0 [audited: per AUDIT_G03_G07 row] (equal)
 void cTaskCharPacman::IjikeStart()
 {
 	if (!IsState(STATE_EAT_POWER_COOKIE))
@@ -3187,6 +3199,7 @@ void cTaskCharPacman::IjikeStart()
 	SetAnmState(ANIME_STATE_EAT_POWER_COOKIE, 5u, 0u);
 }
 
+// DOL 0x8016fe98 [audited: per AUDIT_G03_G07 row] (equal)
 void cTaskCharPacman::IjikeEnd()
 {
 	m_PtkHndPowerCookie->Detach(true);

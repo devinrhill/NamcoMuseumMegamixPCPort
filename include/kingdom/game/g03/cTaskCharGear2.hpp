@@ -118,9 +118,7 @@ public:
 
 	void ChangeHeight(int nIndex, int nLevel);
 
-	void Stop(bool flg = false);
 
-	void Pause(bool flg = false);
 
 	bool LimitLargeArea(Vector4& vOut, const Vector4& vPos, const Vector4& vVec);
 

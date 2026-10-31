@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskEffect.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
@@ -72,6 +73,7 @@ void cTaskEffect::Term()
 {
 }
 
+// DOL 0x801f6f34 [audited: described by the 43rd-session pass] (46 ptk CRCs at 0x8044f330 compared)
 void cTaskEffect::SetData()
 {
 	if (KingdomGlobal::MotosSys->IsBossStage())
@@ -96,6 +98,7 @@ void cTaskEffect::AllDetach()
 {
 }
 
+// DOL 0x801f7010 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskEffect::Execute(cJetTask* pParam)
 {
 	if (IsPause())
@@ -129,17 +132,14 @@ bool cTaskEffect::Execute(cJetTask* pParam)
 			aEffInfo[i]->m_nFlag = 0;
 		}
 	}
-	if (KingdomGlobal::g_pMotosGame->IsPause())
+	if (!Constants::SYSTEM_IS_PAUSE()) // DOL 0x801f7010: game pause byte 0 and pad 0 not holding HOME; otherwise no call (the port also advanced while HOME was held)
 	{
-		this->get_KingdomPtkMan()->UpdateFrame(0.0f);
-	}
-	else
-	{
-		this->get_KingdomPtkMan()->UpdateFrame();
+		this->get_KingdomPtkMan()->UpdateFrame(1.0f);
 	}
 	return true;
 }
 
+// DOL 0x801f7114 [audited: described by the 43rd-session pass] (audited 44th: slope-matrix transform, slot search, flags 0x409, custom funcs for kinds 14 / 33, SE kinds 19 / 20 / 21 / 32 match)
 cKingdomPtkHnd* cTaskEffect::SpawnEffect(int nKind, Vector4 pMPos, cJetTask* pParam, int delay, bool bDead, float loadFactor)
 {
 	Vector4 v;
@@ -299,9 +299,10 @@ ESEKind cTaskEffect::nGetColSE(cTaskChar* pCharA, cTaskChar* pCharB)
 	}
 }
 
+// DOL 0x801f7574 [audited: described by the 43rd-session pass] (audited 44th: matches; the per-frame sound debounce flags m_nowFramePlaySE* are C# stand-ins for the RSAR player limits, E1)
 void cTaskEffect::SpawnColEffect(cTaskChar* pChar0, cTaskChar* pChar1)
 {
-	if (pChar0 == nullptr || pChar1 == nullptr || pChar0->bTestFlag(16u) || pChar1->bTestFlag(16u) || (pChar0->nKind() == 25 && pChar1->nKind() == 25))
+	if (pChar0 == nullptr || pChar1 == nullptr || pChar0->bTestFlag(16u) || pChar1->bTestFlag(16u))   // DOL 0x801f7574: no kind 25 / 25 exclusion (C#)
 	{
 		return;
 	}
@@ -319,7 +320,7 @@ void cTaskEffect::SpawnColEffect(cTaskChar* pChar0, cTaskChar* pChar1)
 	SpawnEffect(nKind, v, nullptr);
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())
 	{
-		int nKind2 = 5 + Random::Range(0, 4);
+		int nKind2 = 5 + kingdom::MslRandRange(0, 4);
 		if (!pChar0->bTestFlag(2u))
 		{
 			SpawnEffect(nKind2, v, nullptr);
@@ -335,7 +336,7 @@ void cTaskEffect::SpawnColEffect(cTaskChar* pChar0, cTaskChar* pChar1)
 	}
 	else
 	{
-		int nKind3 = 5 + Random::Range(0, 4);
+		int nKind3 = 5 + kingdom::MslRandRange(0, 4);
 		if (pChar0->bTestFlag(2u))
 		{
 			SpawnEffect(pChar0->nChipColor(), v, nullptr);

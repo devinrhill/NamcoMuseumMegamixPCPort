@@ -31,6 +31,7 @@ cTaskAnita* cTaskConsFade::Construct()
 	return new cTaskConsFade();
 }
 
+// DOL 0x800fd184 [audited: per AUDIT_G03_G07 row] (ctor 0x801f6c78)
 void cTaskConsFade::Init()
 {
 	pAnita(0u)->RegistData(ResourceDatabase::GetPath("ANT_CONSOLE"));
@@ -42,11 +43,13 @@ void cTaskConsFade::Term()
 {
 }
 
+// DOL 0x800fd22c [audited: per AUDIT_G03_G07 row]
 bool cTaskConsFade::Execute(cJetTask* pParam)
 {
 	return BaseExecute(pParam);
 }
 
+// DOL 0x800fd254 [audited: per AUDIT_G03_G07 row]: anim 269 / 272 (step 1), 274 (boss), 283 (step 5), 271
 void cTaskConsFade::Draw(int nStatus, cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) == 1)

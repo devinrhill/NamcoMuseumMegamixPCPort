@@ -1,5 +1,8 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
+#include "kingdom/game/g03/cTaskLight.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 #include "platform/devtools.hpp"
+#include "platform/devtools_g03gray.hpp"
 #include "GamePad.hpp"
 #include "wii/Anim.hpp"
 #include "wii/Brres.hpp"
@@ -69,6 +72,7 @@
 #include <EBGMKind.hpp>
 #include <ESEKind.hpp>
 #include <GameDefine.hpp>
+#include "kingdom/MslRand.hpp"
 #include <GameStateManager.hpp>
 #include <InGamePadManager.hpp>
 #include <PadDefine.hpp>
@@ -288,7 +292,7 @@ cFaceList* cAppG03PacnRollGame::pHitHash(string key)
 	return nullptr;
 }
 
-// C# cAppG03PacnRollGame.Init (coroutine body, kept as a comment in the converted file before): synchronous
+// DOL 0x800b3508 [audited: per AUDIT_G03_G07 row] (the C# coroutine body, synchronous; sys +0xa54 audio / screen setup and cPacnRollLoopSndMan (sound, E1) are not ported)
 void cAppG03PacnRollGame::Init()
 {
 	// the DOL's Init (0x800b3508) does not touch the top-menu flag (sys + 4): the hub (job 138, 0x8019ab28) sets it before the app is built
@@ -332,11 +336,7 @@ void cAppG03PacnRollGame::Init()
 	{
 		m_nGameTimeCnt = KingdomGlobal::PacnRollSys->pRetryData()->nGameTimeCnt;
 	}
-	else
-	{
-		KingdomGlobal::PacnRollSys->ResetDeadEnemyCnt();
-		KingdomGlobal::PacnRollSys->ResetGetItemCnt();
-	}
+	// DOL 0x800b3508 has no else branch: ResetDeadEnemyCnt / ResetGetItemCnt are the C#'s Steam stat counters (not in the DOL)
 	devtools::G03ExploreAttach(); // devtools: --g03-explore (not 1:1)
 	wii::ArchiveStore::Attach(StageArcPath(KingdomGlobal::PacnRollSys->nRound()));
 	kingdom::cKingdomModelBase::ClearAssetCache();
@@ -363,6 +363,7 @@ void cAppG03PacnRollGame::Init()
 			}
 		}
 	}
+	ConnectChild(new cPacnRollLoopSndMan());   // DOL 0x800b3a00 (KingSys +0x60)
 	ConnectChild(m_pTaskPause = new cTaskPause());
 	ConnectChild(new kingdom::cTaskNativeScene());   // replaces the C# cTaskScnRoot: draws every submitted model once per frame
 	m_pTaskStage = new cTaskStage();
@@ -375,21 +376,13 @@ void cAppG03PacnRollGame::Init()
 	m_pGhostCommonParam = new cGhostCommonParam("BIN_CSV_GHOST_COMMON_PARAM");
 	InitStage();
 	ConnectChild(m_pTaskCamera);
-	if (!KingdomGlobal::PacnRollSys->IsRetry())
-	{
-		m_pTaskFade->Fade(EFadeKind::eFADE_TYPE_IN_BLACK);
-	}
-	else
-	{
-		m_pTaskFade->Fade(EFadeKind::eFADE_TYPE_IN_G03);
-	}
 }
 
-// C# cAppG03PacnRollGame.InitStage (coroutine body): builds the stage tasks
+// DOL 0x800b3c2c [audited: per AUDIT_G03_G07 row] (the stage tasks, in the DOL's order)
 void cAppG03PacnRollGame::InitStage()
 {
 	CustomKingdomUtil::Assert(m_pTaskStage != nullptr, "nullpo");
-	kingdom::NativeScene::SetShadow(true);   // DOL 0x800b3c50: cTaskScnRoot +0x1f8 = 1, then the shadow camera task
+	kingdom::NativeScene::SetShadow(true);   // DOL 0x800b3c50 [audited: described by the 43rd-session pass]: cTaskScnRoot +0x1f8 = 1, then the shadow camera task
 	cTaskShadowCamera* pTaskShadowCamera = new cTaskShadowCamera();
 	m_pTaskCamera = new cTaskCamera();
 	m_pTaskCamera->nDrawPriority(65540u);
@@ -397,7 +390,9 @@ void cAppG03PacnRollGame::InitStage()
 	m_pTaskFade = new cTaskPacFade();
 	m_pTaskStage->ConnectChild(m_pTaskFade);
 	m_pTaskFade->nDrawPriority(2415919087u);
-	m_pTaskFade->Fade(65538u, 1);
+	// DOL 0x800b3c2c: the one fade-in, slot +0x48 (Fade) with kind 2 (black) or, on a retry (sys +7), kind 5 (g03), 500 ms; the converted code first
+	// faded OUT to black for 1 ms and faded in at the end of Init
+	m_pTaskFade->Fade(KingdomGlobal::PacnRollSys->IsRetry() ? EFadeKind::eFADE_TYPE_IN_G03 : EFadeKind::eFADE_TYPE_IN_BLACK, 500);
 	m_pTaskWater = new cTaskWater();
 	m_pTaskStage->ConnectChild(m_pTaskWater);
 	m_pTaskFallArea = new cTaskFallArea();
@@ -433,6 +428,18 @@ void cAppG03PacnRollGame::InitStage()
 	}
 	m_pTaskStage->ConnectChild(m_pTaskGhostMan = new cTaskGhostMan());
 	m_pTaskBoss = cTaskCharGolvis::Create(m_pTaskStage, nRound());
+	// DOL 0x800b5864 [audited: described by the 43rd-session pass] (light sets 0..3): a light whose SCN0 user data has "follow" stays at Pac-Man + its authored position
+	for (int nSet = 0; nSet < 4; nSet++)
+	{
+		const wii::LightResult* pLight = kingdom::NativeScene::Light(nSet);
+		for (int nRig = 0; pLight != nullptr && nRig < pLight->numRig; nRig++)
+		{
+			if (pLight->rig[nRig].follow)
+			{
+				m_pTaskStage->ConnectChild(new cTaskLight(nSet, nRig, &m_pTaskCharPacman->vTrans()));
+			}
+		}
+	}
 	m_pTaskStage->ConnectChild(pTaskPtkMan());
 	if (!KingdomGlobal::PacnRollSys->IsTopMenuMode())
 	{
@@ -452,7 +459,7 @@ void cAppG03PacnRollGame::InitStage()
 	m_pTaskStage->ConnectChild(m_pTaskCameraSet);
 	m_pTaskCameraSet->LoadData(KingdomGlobal::PacnRollSys->nWorld(), KingdomGlobal::PacnRollSys->nStage());
 	m_pTaskStage->ConnectChild(pTaskShadowCamera);
-	// DOL 0x800b3bb8: the sound listener: interior size 120.1, unit distance 10.2, max volume distance 15.5 (0x801378d0 / d4 / d8)
+	// DOL 0x800b3bb8 [audited: described by the 43rd-session pass]: the sound listener: interior size 120.1, unit distance 10.2, max volume distance 15.5 (0x801378d0 / d4 / d8)
 	SoundManager::get_SE()->SetListenerParam(120.1f, 15.5f, 10.2f);
 }
 
@@ -485,6 +492,7 @@ void cAppG03PacnRollGame::WaitOneFramePlayBGM()
 	SoundManager::get_BGM()->Play(kind, 0.5f, true, false, true, 0.1f);
 }
 
+// DOL 0x8001398c [audited: described by the 43rd-session pass] -> 0x800b475c (3D actor, light holders, DetachArcData, ScnRoot shadow flag off, ghost params, retry flag sys +7 / InitRetryData unless round 25)
 void cAppG03PacnRollGame::Term()
 {
 	kingdom::NativeScene::Reset();   // the stage's models go away with it
@@ -584,6 +592,7 @@ void cAppG03PacnRollGame::Term()
 	}
 }
 
+// DOL 0x800b4aa4 [audited: per AUDIT_G03_G07 row] (modes 0..8 at +0x34, previous mode +0x3c, sub step +0x40; every transition, pacman callee 0x8016efb8 IsMiss / 0x8016efc4 IsMissFinish / 0x8016efd0 IsGameOver and the job numbers checked)
 bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 {
 	if (m_initCoObj != nullptr)
@@ -602,7 +611,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 	{
 		if (!IsPause())
 		{
-			KingdomGlobal::PacnRollSys->IsBossStage();
+			cPacnRollLoopSndMan::PauseAll();   // DOL 0x800b4b28 [audited: described by the 43rd-session pass] (the 0x8012a8a8 call before it discards its result)
 		}
 		m_pTaskPause->Start();
 	}
@@ -612,7 +621,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 	{
 		return true;
 	}
-	if (GamePad::Get(0).hold & GamePad::PAD_HOME)   // DOL 0x800b4b24: hold & 0x400 (the Home Button Menu is open) freezes the game logic
+	if (GamePad::Get(0).hold & GamePad::PAD_HOME)   // DOL 0x800b4b24 [audited: described by the 43rd-session pass]: hold & 0x400 (the Home Button Menu is open) freezes the game logic
 	{
 		return true;
 	}
@@ -693,7 +702,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			m_pTaskConsole->StartStart();
 			if (KingdomGlobal::PacnRollSys->nWorld() == 1 && KingdomGlobal::PacnRollSys->nStage() == 0)
 			{
-				// DOL 0x800b4d8c: ONE river sound at (158, -206, -115) through the app's 3D actor (+0x3ac), handle +0x388 (the C# placed three
+				// DOL 0x800b4d8c [audited: described by the 43rd-session pass]: ONE river sound at (158, -206, -115) through the app's 3D actor (+0x3ac), handle +0x388 (the C# placed three
 				// Unity objects at other points instead)
 				Vector4 v = Vector4::zero;
 				::Constants::jetGeoVecSet(v, 158.0f, -206.0f, -115.0f, 1.0f);
@@ -733,7 +742,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 				if (m_nIjikeCount == 60)
 				{
 					SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE032_IJIKE);
-					SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE033_IJIKE_OWARI, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+					if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE033_IJIKE_OWARI, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY));
 				}
 				if (!CustomKingdomUtil::IF(--m_nIjikeCount))
 				{
@@ -813,12 +822,8 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			{
 				nModeStep(n) = 1u;
 				m_pTaskConsRetry->Start();
-				SoundManager::get_SE()->Stop();
-				SGameRecordInfo& record = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACNROLL);
-				record.m_totalEatGhost += KingdomGlobal::PacnRollSys->DeadEnemyCnt;
-				KingdomGlobal::PacnRollSys->ResetDeadEnemyCnt();
-				record.m_totalEatItem += KingdomGlobal::PacnRollSys->GetItemCnt;
-				KingdomGlobal::PacnRollSys->ResetGetItemCnt();
+				// DOL 0x800b5128 [audited: described by the 43rd-session pass]: only the loop-sound manager's stop (0x800ba454), no stat records (the C#'s GameStateManager totals / Steam counters are not in the DOL)
+				cPacnRollLoopSndMan::StopAll();
 				goto _switch5_1u;
 			}
 		case 1u:
@@ -829,11 +834,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			}
 			else if (m_pTaskConsRetry->IsNo() && !m_pTaskConsRetry->IsVisible())
 			{
-				SGameRecordInfo& record2 = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACNROLL);
-				record2.m_totalEatGhost += KingdomGlobal::PacnRollSys->DeadEnemyCnt;
-				record2.m_totalEatItem += KingdomGlobal::PacnRollSys->GetItemCnt;
-				GameStateManager::GetResult()->AddScore(GameDefine::scGAMEOVER_TIME, (int)(KingdomGlobal::PacnRollSys->nWorld(m_nRound) + 1), (int)(KingdomGlobal::PacnRollSys->nStage() + 1));
-				NextMode(n, 8u);
+				NextMode(n, 8u);   // DOL 0x800b512c [audited: described by the 43rd-session pass]: result 2 (no) leaves the same way as 1; the C#'s AddScore(GAMEOVER_TIME) is not in the DOL
 			}
 			if (nOldState(n) == nModeState(n))
 			{
@@ -962,8 +963,7 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 		case 0u:
 		_switch9_0u:
 			nModeStep(n) = 1u;
-			m_pTaskFade->Fade(EFadeKind::eFADE_TYPE_OUT_G03);
-			SoundManager::get_BGM()->Stop();
+			m_pTaskFade->Fade(EFadeKind::eFADE_TYPE_OUT_G03);   // DOL 0x800b55c0 [audited: described by the 43rd-session pass]: only the fade (500 ms); the BGM runs on under it and stops with the app (Term)
 			goto _switch9_1u;
 		case 1u:
 		_switch9_1u:
@@ -1028,11 +1028,12 @@ bool cAppG03PacnRollGame::Execute(cJetTask* pParam)
 			break;
 		}
 	}
-	// DOL 0x800b57dc: the sound listener (app +0x2cc) follows the camera: look-at (camera +0x1d0 eye, +0x1f0 target, up (0, 1, 0)) -> 0x80137824
+	// DOL 0x800b57dc [audited: described by the 43rd-session pass]: the sound listener (app +0x2cc) follows the camera: look-at (camera +0x1d0 eye, +0x1f0 target, up (0, 1, 0)) -> 0x80137824
 	SoundManager::get_SE()->SetListener(m_pTaskCamera->vPos(), m_pTaskCamera->vTarget(), Vector4(0.0f, 1.0f, 0.0f, 1.0f));
 	return true;
 }
 
+// DOL 0x800b5860 [audited: blr] (blr)
 void cAppG03PacnRollGame::Draw(int nStatus, cJetTask* pParam)
 {
 }
@@ -1052,6 +1053,7 @@ bool cAppG03PacnRollGame::IsBossStage()
 	}
 }
 
+// DOL 0x800b5b90 [audited: per AUDIT_G03_G07 row] (time = 1000 * frames / 60 FLOAT_8047b07c / b080; round 25 sets sys bAllClear 0x8012a994 + the save's +0x14; round < 25 opens the next stage 0x8012a9a4)
 void cAppG03PacnRollGame::SaveData()
 {
 	SSaveDataPacnRoll::sStageRecord _out = SSaveDataPacnRoll::sStageRecord();
@@ -1078,12 +1080,6 @@ void cAppG03PacnRollGame::SaveData()
 		}
 		if (_out.nCookie < m_pTaskItem->GetAteCookie())
 		{
-			uint num2 = KingdomGlobal::PacnRollSys->nWorld(m_nRound);
-			if (num2 < 5)
-			{
-				int b = (int)(m_pTaskItem->GetAteCookie() - _out.nCookie);
-				GameStateManager::GetRecord(GameDefine::EGameTitle::ePACNROLL).m_eatCookieByWorld[num2] += Mathf::Max(0, b);
-			}
 			_out.nCookie = m_pTaskItem->GetAteCookie();
 		}
 		if (!_out.bCookieNew && _out.nCookie >= _out.nCookieMax)
@@ -1125,35 +1121,16 @@ void cAppG03PacnRollGame::SaveData()
 		KingdomGlobal::PacnRollSys->pSaveLoadMan()->SetStageRecord(_out, num3);
 	}
 	KingdomGlobal::PacnRollSys->pSaveLoadMan()->SaveData();
-	SGameRecordInfo& record = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACNROLL);
-	int num4 = (int)m_nRound;
-	int value = (int)nGameTime();
-	value = Mathf::Clamp(value, 0, 599999);
-	record.SetClearTime(num4, value);
-	record.m_maxArrivalRound = Mathf::Max(record->m_maxArrivalRound, num4 + 2);
-	record.m_totalEatGhost += KingdomGlobal::PacnRollSys->DeadEnemyCnt;
-	KingdomGlobal::PacnRollSys->ResetDeadEnemyCnt();
-	record.m_totalEatItem += KingdomGlobal::PacnRollSys->GetItemCnt;
-	KingdomGlobal::PacnRollSys->ResetGetItemCnt();
-	GameStateManager::GetResult()->AddScore(value, (int)(KingdomGlobal::PacnRollSys->nWorld(m_nRound) + 1), (int)(KingdomGlobal::PacnRollSys->nStage() + 1));
-	if (KingdomGlobal::PacnRollSys->IsAllClear())
-	{
-		int num5 = 0;
-		for (uint num6 = 0u; num6 < 26; num6++)
-		{
-			KingdomGlobal::PacnRollSys->pSaveLoadMan()->GetStageRecord(_out, num6);
-			num5 += (int)_out.nTime;
-		}
-		record.SetHighScoreTime(0, num5);
-	}
+	// DOL 0x800b5b90 ends here: the C#'s GameStateManager records (clear time, max round, eaten ghosts / items, result AddScore, all-clear total) are not in the DOL
 }
 
-// C# Dispose (coroutine body): builds the stage from the placement model: "effect" (particles), "bg" (drawn models), "hit" (collision models), "obj" (gimmicks)
+// DOL 0x800b5e6c [audited: per AUDIT_G03_G07 row] (placement model nodes effect / bg / hit / obj in that order); builds the stage from the placement model: "effect" (particles), "bg" (drawn models), "hit" (collision models), "obj" (gimmicks)
 void cAppG03PacnRollGame::Dispose(string key)
 {
 	pTaskPtkMan() = new cTaskEffect();
 	// the placement model: only its node tree is used
 	if (devtools::G03Explore()) { ((cTaskEffect*)pTaskPtkMan())->Regist(); devtools::G03ExploreStage(m_pTaskStage, m_pTaskBgList, m_pTaskBgHitList); return; } // devtools: --g03-explore (not 1:1)
+	if (devtools::G03GrayOnly()) { ((cTaskEffect*)pTaskPtkMan())->Regist(); devtools::G03GrayStage(m_pTaskStage, m_pTaskBgHitList); return; } // devtools: graybox stage only (not 1:1)
 	ResMdl* resMdl = new ResMdl(kingdom::LoadModelObject(key));
 	ResNode* resNode0 = resMdl->GetResNode("effect");
 	if (resNode0->IsValid())
@@ -1202,6 +1179,7 @@ void cAppG03PacnRollGame::Dispose(string key)
 			resNode1 = resNode0->GetChildNode(childIdx);
 		}
 	}
+	devtools::G03GrayStage(m_pTaskStage, m_pTaskBgHitList); // devtools: the editor's graybox primitives (not 1:1)
 	resNode0 = resMdl->GetResNode("obj");
 	if (!resNode0->IsValid())
 	{
@@ -1231,6 +1209,7 @@ void cAppG03PacnRollGame::Dispose(string key)
 	}
 }
 
+// DOL: the retry block of Execute mode 8 (0x800b563c..0x800b5668): InitRetryData, then point / item / gate / box / ghost man unless a boss stage, then Pac-Man, then sys +0x14 = game time
 void cAppG03PacnRollGame::SetRetryData()
 {
 	KingdomGlobal::PacnRollSys->InitRetryData();
@@ -1249,6 +1228,7 @@ void cAppG03PacnRollGame::SetRetryData()
 	KingdomGlobal::PacnRollSys->pRetryData()->nGameTimeCnt = m_nGameTimeCnt;
 }
 
+// DOL 0x800b6700 [audited: per AUDIT_G03_G07 row] (strstr chain over the node name: _si _je _ya _ka _sw _fa|_do _wa|_hi|_ro _wo _el _ca _bo01 _bo02 _di01 _di02 _ws _wm _wl _ne _hu _pi _me, same order and constructors)
 cTaskBgGimmick* cAppG03PacnRollGame::SetGimmick(ResNode* node0, ResNode* node1)
 {
 	CustomKingdomUtil::Assert(node0 != nullptr, "nullpo");
@@ -1346,6 +1326,7 @@ cTaskBgGimmick* cAppG03PacnRollGame::SetGimmick(ResNode* node0, ResNode* node1)
 	return new cTaskBgGimmick(node0, node1);
 }
 
+// DOL 0x800b737c [audited: per AUDIT_G03_G07 row] (38 kinds -> particle slot, onetime / depend / clipping flags, rotation or not, fog 0 / -1: all rows compared equal; kinds 31 / 32 = two splashes 4.0 / 2.0 wide)
 void cAppG03PacnRollGame::SetEffect(const uint& kind, const Vector4& trans, const Vector4& rotate, cKingdomPtkHnd* hnd, float param)
 {
 	CustomKingdomUtil::Assert(38 > kind, "error");
@@ -1468,11 +1449,11 @@ void cAppG03PacnRollGame::SetEffect(const uint& kind, const Vector4& trans, cons
 			{
 				v[0] = (0.0f - num) / 2.0f + num / (float)num2 * (float)num3;
 				v[1] = 0.0f;
-				v[2] = (float)Random::Range(0, 300) / 100.0f - 1.5f;
+				v[2] = (float)kingdom::MslRandRange(0, 300) / 100.0f - 1.5f;   // DOL 0x800b737c: rand() % 300 (PtkSim::Rand15)
 				v[3] = 1.0f;
 				::Constants::jetGeoVecRotY(v, v, param);
 				::Constants::jetGeoVecAdd(v, v, trans);
-				float fDelay = Random::Range(0, 45);
+				float fDelay = (float)kingdom::MslRandRange(0, 45);   // rand() % 45
 				cKingdomPtkHnd3->Generate(24u, true, false, false, fDelay, v, nullptr, nullptr, 0, 0);
 			}
 			break;
@@ -1537,6 +1518,7 @@ IEnumerator* cAppG03PacnRollGame::MoveNext(IEnumerator* task)
 	return nullptr;
 }
 
+// DOL 0x800b7f44 [audited: class row done in the 43rd session; function not individually re-read]
 void cAppG03PacnRollGame::IjikeRegist(int nTime)
 {
 	if (nTime != 0)
@@ -1549,7 +1531,7 @@ void cAppG03PacnRollGame::IjikeRegist(int nTime)
 	}
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE032_IJIKE);
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE033_IJIKE_OWARI);
-	SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE032_IJIKE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY);
+	if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE032_IJIKE, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eEARLY));
 	if (m_pTaskCharPacman != nullptr)
 	{
 		m_pTaskCharPacman->IjikeStart();
@@ -1564,6 +1546,7 @@ void cAppG03PacnRollGame::IjikeRegist(int nTime)
 	}
 }
 
+// DOL 0x800b805c [audited: described by the 43rd-session pass] (the first paused task keeps running, every other one is paused)
 bool cAppG03PacnRollGame::IsNakajimaPause(cTaskKingdom* pChar)
 {
 	if ((int)m_pvecNakajimaCaliph.size() == 0)
@@ -1577,12 +1560,14 @@ bool cAppG03PacnRollGame::IsNakajimaPause(cTaskKingdom* pChar)
 	return true;
 }
 
+// DOL 0x800b808c [audited: class row done in the 43rd session; function not individually re-read] (push_back)
 bool cAppG03PacnRollGame::NakajimaPause(cTaskKingdom* pChar)
 {
 	m_pvecNakajimaCaliph.push_back(pChar);
 	return true;
 }
 
+// DOL 0x800b8384 [audited: described by the 43rd-session pass] (erases the first match)
 bool cAppG03PacnRollGame::NakajimaPlay(cTaskKingdom* pChar)
 {
 	for (cTaskKingdom* item : m_pvecNakajimaCaliph)
@@ -1596,6 +1581,7 @@ bool cAppG03PacnRollGame::NakajimaPlay(cTaskKingdom* pChar)
 	return false;
 }
 
+// DOL 0x800b841c [audited: class row done in the 43rd session; function not individually re-read]
 uint cAppG03PacnRollGame::EnemyGetNum()
 {
 	return m_pTaskGhostMan->GetGhostNum();
@@ -1606,6 +1592,7 @@ bool cAppG03PacnRollGame::EnemyIsActive(uint no)
 	return m_pTaskGhostMan->GhostIsActive(no);
 }
 
+// DOL 0x800b8424 [audited: class row done in the 43rd session; function not individually re-read]
 uint cAppG03PacnRollGame::EnemyGetActiveNum()
 {
 	uint num = 0u;
@@ -1620,6 +1607,7 @@ uint cAppG03PacnRollGame::EnemyGetActiveNum()
 	return num;
 }
 
+// DOL 0x800b84a0 [audited: class row done in the 43rd session; function not individually re-read]
 bool cAppG03PacnRollGame::EnemyActive(uint no)
 {
 	if (!EnemyIsActive(no))
@@ -1629,6 +1617,7 @@ bool cAppG03PacnRollGame::EnemyActive(uint no)
 	return true;
 }
 
+// DOL 0x800b84f8 [audited: class row done in the 43rd session; function not individually re-read]
 void cAppG03PacnRollGame::StopIjikeSnd()
 {
 	SoundManager::get_SE()->Stop(ESEKind::PACN_ROLL_SND_SE033_IJIKE_OWARI);

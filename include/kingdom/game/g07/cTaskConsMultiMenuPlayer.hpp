@@ -55,6 +55,11 @@ private:
 
 	sMatchingData::InfoData* m_pInfo{};
 
+	// kingdom::cTaskFontWriter child (DOL 0x801cdb44): drawn natively in Draw; position = anita 0 layer + half the screen, visible byte +0x268
+	float m_fFontX{};
+	float m_fFontY{};
+	bool m_bFontVisible{};
+
 protected:
 	uint& nPlayerNo();
 

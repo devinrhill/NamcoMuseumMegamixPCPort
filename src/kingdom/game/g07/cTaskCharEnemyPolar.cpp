@@ -19,6 +19,7 @@ cTaskCharEnemy* cTaskCharEnemyPolar::Construct()
 	return new cTaskCharEnemyPolar();
 }
 
+// DOL 0x80058320 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyPolar::Init()
 {
 	nChangeMoveFrame() = 16;
@@ -29,6 +30,7 @@ void cTaskCharEnemyPolar::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80058330 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPolar::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -45,6 +47,7 @@ bool cTaskCharEnemyPolar::Create(uint no)
 	return true;
 }
 
+// DOL 0x80058414 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyPolar::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -92,6 +95,7 @@ uint cTaskCharEnemyPolar::Input()
 	return num2;
 }
 
+// DOL 0x800586a8 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPolar::ActionBoth()
 {
 	if (IsFall())
@@ -105,6 +109,7 @@ bool cTaskCharEnemyPolar::ActionBoth()
 	return true;
 }
 
+// DOL 0x8005872c [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyPolar::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

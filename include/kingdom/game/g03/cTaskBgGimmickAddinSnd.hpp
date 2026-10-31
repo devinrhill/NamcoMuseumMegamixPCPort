@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "kingdom/cKingdomSndActor.hpp"
 #include "kingdom/game/g03/cTaskBgGimmick.hpp"
 #include <ESEKind.hpp>
 #include "ResNode.hpp"
@@ -18,7 +19,7 @@ private:
 
 	GameObject* m_SndHnd{};
 
-	GameObject* m_pendulumSEPosObj{};
+	kingdom::cKingdomSndActor* m_pSndActor{};   // DOL +0x520
 
 public:
 	cTaskBgGimmickAddinSnd(ResNode* const& node0, ResNode* const& node1, const ESEKind& sndName);

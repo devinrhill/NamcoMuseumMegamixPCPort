@@ -28,7 +28,7 @@ namespace kingdom::game::g03
 {
 namespace
 {
-// DOL 0x8001014c: where Pac-Man appears depending on the job the hub is entered from (Jbc_GetProcNoOld): x, y, z (Wii), facing angle
+// DOL 0x8001014c [audited: per AUDIT_G03_G07 row]: where Pac-Man appears depending on the job the hub is entered from (Jbc_GetProcNoOld): x, y, z (Wii), facing angle
 struct Arrival { uint prevJob; float x, y, z, angle; };
 const Arrival kArrivals[] = {
 	{job::PACNROLL_TERM, 0.0f, 4.35f, -38.05f, 0.269f},  // Pac-N-Roll left (job 223)
@@ -39,24 +39,24 @@ const Arrival kArrivals[] = {
 	{job::MENU_CLASSIC, 0.0f, 0.55f, 35.0f, -3.141f},    // classic menu
 	{job::GROBDA_TERM, -25.0f, 0.4f, 0.0f, 1.4f},        // Grobda
 };
-// the nodes of BIN_SET_MDL (DOL 0x80012d80 string table 0x80368c98): door and "_center" node per game
+// the nodes of BIN_SET_MDL (DOL 0x80012d80 [audited: per AUDIT_G03_G07 row] string table 0x80368c98): door and "_center" node per game
 const char* const kNodes[7][2] = {{"waniwani", "waniwani_center"}, {"rallyx", "rallyx_center"}, {"pacnroll", "pacnroll_center"}, {"galaga", "galaga_center"},
                                   {"motos", "motos_center"}, {"arcade", "arcade_center"}, {"grobda", "grobda_center"}};
-// DOL 0x80012204 switch: focus index -> row of CSV_MENU_PARAM holding the camera offset of that door (POINT_*)
+// DOL 0x80012204 [audited: per AUDIT_G03_G07 row] switch: focus index -> row of CSV_MENU_PARAM holding the camera offset of that door (POINT_*)
 const int kPointRow[7] = {15, 14, 13, 16, 17, 18, 19};
-// DOL 0x80010eb4 mode 2: selection -> job
+// DOL 0x80010eb4 [audited: per AUDIT_G03_G07 row] mode 2: selection -> job
 const uint kSelJob[9] = {0, job::GALAGA_INIT, job::RALLYX_INIT, job::PACNROLL_INIT, job::WANIWANI_INIT, job::MOTOS_INIT, job::MENU, job::MENU_CLASSIC, job::GROBDA_INIT};
 
 // DOL 0x80012d80 table 0x80368bc0: the cabinet nodes of the classic hall (index = the arcade game index of jobs 141..143: 0..8 vol 1, 9..17 vol 2)
 const char* const kCabinets[18] = {"dig_dug", "xevious", "super_pac_man", "pac_pal", "mappy", "gaplus", "galaxian", "cutie_q", "pacmania",
                                    "pacman", "rally", "new_rally", "king", "garaga", "bosconian", "dig_two", "grobda", "motos"};
-// DOL 0x803689d0: MAIN_MENU_ANITA_OLDGAME anims of each game's name plate: appear, decided, disappear
+// DOL 0x803689d0 [audited: described by the 43rd-session pass]: MAIN_MENU_ANITA_OLDGAME anims of each game's name plate: appear, decided, disappear
 const int kGameAnim[18][3] = {{37, 38, 39}, {43, 44, 45}, {52, 53, 54}, {55, 56, 57}, {40, 41, 42}, {49, 50, 51}, {34, 35, 36}, {61, 62, 63},
                               {58, 59, 60}, {64, 65, 66}, {67, 68, 69}, {70, 71, 72}, {73, 74, 75}, {76, 77, 78}, {79, 80, 81}, {82, 83, 84},
                               {85, 86, 87}, {88, 89, 90}};
-// DOL 0x80368aa8: digit d = anims 3d (appear), 3d + 1 (decided), 3d + 2 (disappear)
+// DOL 0x80368aa8 [audited: described by the 43rd-session pass]: digit d = anims 3d (appear), 3d + 1 (decided), 3d + 2 (disappear)
 int DigitAnim(uint d, int kind) { return (int)d * 3 + kind; }
-// DOL 0x80368b38: the hi scores shown while a volume has no save data (or the game's score is 0)
+// DOL 0x80368b38 [audited: described by the 43rd-session pass]: the hi scores shown while a volume has no save data (or the game's score is 0)
 const uint kDefaultHiScore[18] = {10000, 40000, 40000, 30000, 20000, 50000, 0, 0, 100000, 0, 15000, 20000, 0, 20000, 20000, 20000, 10000, 10000};
 const char* const kOldGameAnita = "MAIN_MENU_ANITA_OLDGAME";   // CRC 0xde39e57a
 
@@ -100,6 +100,7 @@ cAppMenu::cAppMenu()
 	pac->RotateYPacMan(m_fSavedAngle);
 	pac->GetParamCommon()->fHangHeight = 1.5f;   // DOL 0x8001014c end: +0x4e8 = 1.5
 	Copy3(m_vTarget, m_vSaved);
+	Copy3(m_vFocus, m_vSaved);   // DOL 0x8001014c: +0xc10 = a copy of +0xbf0 (the Pac-Man follow point starts at Pac-Man, not at the origin)
 	Copy3(m_vMenuCam, m_vSaved);
 	// the base Init (DOL 0x800b3c2c) started the round's BGM (round 27 -> m03bgm_World1) on the same BGM player; the Wii's BGM player plays one
 	// sound at a time, so this start replaces it (UNVERIFIED: player max-playable-count 1 assumed, see NOTES "Hub BGM overlap")
@@ -209,7 +210,7 @@ void cAppMenu::ToMode(uint mode)
 	m_nStep = 0;
 }
 
-// DOL 0x80012a1c. Hub: the kind of the face under Pac-Man (+0x544) -> door number. Classic hall: 6 (back to the hub) inside the exit area
+// DOL 0x80012a1c [audited: per AUDIT_G03_G07 row]. Hub: the kind of the face under Pac-Man (+0x544) -> door number. Classic hall: 6 (back to the hub) inside the exit area
 // (EXIT_X_AREA < x, z > EXIT_Z_LIMIT), else 9 + the nearest cabinet on the ground plane within VALID_LENGTH (and 3.0), else 0
 int cAppMenu::Select()
 {
@@ -325,7 +326,10 @@ void cAppMenu::Focus(int idx)
 		for (int i = 0; i < 3; i++) m_vTarget[i] += q * (m_vDoor[idx][i] - m_vTarget[i]);
 		for (int i = 0; i < 3; i++) m_vMenuCam[i] += q * (m_vFocusOffset[i] - m_vMenuCam[i]);
 	}
-	cam->vMenuCamera() = Vector4(m_vMenuCam[0], m_vMenuCam[1], m_vMenuCam[2], 1.0f);
+	// DOL 0x80012204 writes only +0x430 / +0x434 / +0x438 here (w stays as it is; the classic branch above sets w = 0)
+	cam->vMenuCamera()[0] = m_vMenuCam[0];
+	cam->vMenuCamera()[1] = m_vMenuCam[1];
+	cam->vMenuCamera()[2] = m_vMenuCam[2];
 }
 
 // DOL 0x80010eb4 (hub branch)
@@ -333,7 +337,7 @@ bool cAppMenu::Execute(cJetTask* pParam)
 {
 	const bool home = (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;   // the Home Button Menu freezes the logic
 	if (home) return true;
-	pTaskCollision()->ClearEntry();   // (the DOL's cAppG03PacnRollGame::Execute does this; the hub Execute does not call it, UNVERIFIED who does)
+	pTaskCollision()->ClearEntry();   // DOL 0x80010eb4 calls 0x8017267c (the collision task's per-frame reset) itself
 	m_bPanel = false;
 	cTaskCharPacman* pac = pTaskCharPacman();
 	uint& mode = nModeState(0u);
@@ -348,9 +352,15 @@ bool cAppMenu::Execute(cJetTask* pParam)
 			m_fFocusProgress = 1.0f;
 			Focus(8);
 		}
-		if (m_pFade->IsEnd()) ToMode(MODE_RUN);
 		m_fFocusProgress = 1.0f;
 		Focus(NearestPoint());
+		if (m_pFade->IsEnd())
+		{
+			ToMode(MODE_RUN);
+			// DOL 0x80010ff4 [audited: described by the 43rd-session pass]: the mode change sends the step through the exit path (2 -> 0), which repeats the progress = 1 / Focus(nearest) once more
+			m_fFocusProgress = 1.0f;
+			Focus(NearestPoint());
+		}
 		break;
 	case MODE_RUN:
 		if (m_nStep == 0)
@@ -466,7 +476,7 @@ void cAppMenu::ClassicDecide()
 	ToMode(MODE_SELECTED);
 }
 
-// DOL 0x80011c9c: after 21 frames on the same cabinet the panel appears (name plate, "HI-SCORE" 0x1e then its loop 0x1f, the digits);
+// DOL 0x80011c9c [audited: per AUDIT_G03_G07 row]: after 21 frames on the same cabinet the panel appears (name plate, "HI-SCORE" 0x1e then its loop 0x1f, the digits);
 // leaving it plays the disappear anims from the mirrored frame of the current one (so a half-shown panel closes from where it is)
 void cAppMenu::ClassicPanel()
 {
@@ -534,7 +544,7 @@ void cAppMenu::ClassicPanel()
 	}
 }
 
-// DOL 0x80011ac8: the description of the shown game (CSV_MSG_OLD_INFO row game + 1, the language column), its alpha follows the name
+// DOL 0x80011ac8 [audited: per AUDIT_G03_G07 row]: the description of the shown game (CSV_MSG_OLD_INFO row game + 1, the language column), its alpha follows the name
 // plate's anim: fading in while it appears, out while it disappears, full once decided
 void cAppMenu::ClassicText()
 {
@@ -550,7 +560,7 @@ void cAppMenu::ClassicText()
 	else m_nTextAlpha = (std::uint8_t)(int)(255.0f * frame / n);
 }
 
-// DOL 0x8001292c: the classic text is queued first, then (in an orthographic 640 x 480 projection) the anitas and the font writer draw
+// DOL 0x8001292c [audited: per AUDIT_G03_G07 row]: the classic text is queued first, then (in an orthographic 640 x 480 projection) the anitas and the font writer draw
 void cAppMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus; (void)pParam;

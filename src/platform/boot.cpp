@@ -95,8 +95,8 @@ constexpr uint JOB_COUNT = job::COUNT;
 
 std::array<JBC_Element, JOB_COUNT> g_table{};
 JBC_Element& Slot(uint jobNo) { return g_table[job::Index(jobNo)]; }
-uint g_entryJob = 0;   // test hook (--job)
-uint g_nextJob = 0;    // test hook (--next)
+uint g_entryJob = boot::NO_JOB;   // test hook (--job)
+uint g_nextJob = boot::NO_JOB;    // test hook (--next)
 bool g_g03StandIn = false;
 int g_g03Round = 0;    // --round: stage of Pac-N-Roll (0..25), see docs/OPTIONS.md
 
@@ -181,8 +181,8 @@ void Job340_Init() { kingdom::Kingdom_SetJobNo(job::GROBDA_GAME, false, 0); }
 // 0x8000e414: Jbc_SetProcNo(SysCore, 0x08400000)
 void Job130_Init()
 {
-	if (g_nextJob) KingdomGlobal::KingSys->nNextJob() = g_nextJob;
-	KingdomGlobal::SysCore->SetJobNo(g_entryJob ? g_entryJob : job::BOOT);
+	if (g_nextJob != boot::NO_JOB) KingdomGlobal::KingSys->nNextJob() = g_nextJob;
+	KingdomGlobal::SysCore->SetJobNo(g_entryJob != boot::NO_JOB ? g_entryJob : job::BOOT);
 }
 
 // 0x8000e1f8: new kingdom::cAppDebugTopMenu -> RegistMainTask (term 0x8000e3b4)
@@ -192,8 +192,11 @@ void Job131_Init() { WiiPad::SetUprightOverride(false); KingdomGlobal::SysCore->
 void Job132_Init() { WiiPad::SetUprightOverride(false); KingdomGlobal::SysCore->RegistMainTask(new kingdom::boot::cAppBoot()); }
 
 // 0x8000e420 (job 133, force = 1) / 0x8000e5dc (job 134, force = 0): new kingdom::cAppSaveLoad -> RegistMainTask
-void Job133_Init() { WiiPad::SetUprightOverride(false); KingdomGlobal::SysCore->RegistMainTask(new kingdom::cAppSaveLoad(true)); }
-void Job134_Init() { WiiPad::SetUprightOverride(false); KingdomGlobal::SysCore->RegistMainTask(new kingdom::cAppSaveLoad(false)); }
+// Upright while the dialog is up (user, 2026-10-30): its Yes / No sit side by side and read the raw LEFT / RIGHT bits (0x80009598), so the Left / Right
+// bindings pick them; the game bits are the DOL's. Port-only: the DOL has no orientation setting. Later jobs start sideways as before (the term).
+void Job133_Init() { WiiPad::SetUprightOverride(true); KingdomGlobal::SysCore->RegistMainTask(new kingdom::cAppSaveLoad(true)); }
+void Job134_Init() { WiiPad::SetUprightOverride(true); KingdomGlobal::SysCore->RegistMainTask(new kingdom::cAppSaveLoad(false)); }
+void SaveLoad_Term() { WiiPad::SetUprightOverride(false); KingdomGlobal::SysCore->ReleaseMainTask(); }
 
 // Pac-N-Roll. 0x8012b18c (job 208): new cG03PacnRollSys (stored in the global at r13-0x5678), then job 210 (0x0d200000);
 // 0x8012b378 (job 210): new cAppG03PacnRollMenu -> RegistMainTask; 0x8012b4b4 (job 211): new cAppG03PacnRollGame -> RegistMainTask;
@@ -603,8 +606,8 @@ void Init()
 	Slot(job::MOTOS_STAFFROLL) = {Job286_Init, ReleaseMainTask};
 	Slot(job::MOTOS_TERM).init = Job287_Init;
 	Slot(job::BOOT) = {Job132_Init, ReleaseMainTask};
-	Slot(job::LOAD) = {Job133_Init, ReleaseMainTask};
-	Slot(job::SAVE) = {Job134_Init, ReleaseMainTask};
+	Slot(job::LOAD) = {Job133_Init, SaveLoad_Term};
+	Slot(job::SAVE) = {Job134_Init, SaveLoad_Term};
 	Slot(job::ATTRACT) = {Job136_Init, ReleaseMainTask};
 	Slot(job::TITLE) = {Job137_Init, ReleaseMainTask};
 

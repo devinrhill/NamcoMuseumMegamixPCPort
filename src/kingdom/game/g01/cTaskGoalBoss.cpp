@@ -33,7 +33,7 @@ cTaskGoalBoss::cTaskGoalBoss()
 	SetName("g01::cTaskGoalBoss");
 }
 
-// DOL 0x800efd6c: the stage (+0x224), the placements (+0x6c = 0x800ef130: every skeleton node containing m01g_g09_ (DAT_8047790c), its
+// DOL 0x800efd6c [audited]: the stage (+0x224), the placements (+0x6c = 0x800ef130: every skeleton node containing m01g_g09_ (DAT_8047790c), its
 // translate, rotate (deg -> rad) and scale); stage 9: the goal demo object (cDemoGoalW3S3 0x801bdde0) registered with cDemoMan; the game
 // clips (+0x78)
 void cTaskGoalBoss::Setup(int nStage, const wii::Mdl0& skel)
@@ -77,7 +77,7 @@ void cTaskGoalBoss::Setup(int nStage, const wii::Mdl0& skel)
 	LoadGame();
 }
 
-// DOL 0x800ef8d4: model slot i = m01g_g09.brres (DAT_80477910) at its placement, light set 0, fog 3
+// DOL 0x800ef8d4 [audited]: model slot i = m01g_g09.brres (DAT_80477910) at its placement, light set 0, fog 3
 void cTaskGoalBoss::LoadModels()
 {
 	for (std::size_t i = 0; i < m_Place.size(); i++)
@@ -92,7 +92,7 @@ void cTaskGoalBoss::LoadModels()
 	}
 }
 
-// DOL 0x800efa00: the models (+0x70), then the a01 clips {cha 0.1, cla 1, tsa 0.1, tpa 1, via 1} (PTR_s_m01g_g09_a01_cha_brres_80374970 ..)
+// DOL 0x800efa00 [audited]: the models (+0x70), then the a01 clips {cha 0.1, cla 1, tsa 0.1, tpa 1, via 1} (PTR_s_m01g_g09_a01_cha_brres_80374970 ..)
 void cTaskGoalBoss::LoadGame()
 {
 	static const char* const A01[5] = {"m01g_g09_a01_cha.brres", "m01g_g09_a01_cla.brres", "m01g_g09_a01_tsa.brres", "m01g_g09_a01_tpa.brres",
@@ -117,7 +117,7 @@ void cTaskGoalBoss::LoadGame()
 	}
 }
 
-// DOL 0x800efb88: the models again, the a40 clips at 1.0; the longest one is timed (cAnmCheck)
+// DOL 0x800efb88 [audited]: the models again, the a40 clips at 1.0; the longest one is timed (cAnmCheck)
 void cTaskGoalBoss::LoadDemo()
 {
 	static const char* const A40[5] = {"m01g_g09_a40_cha.brres", "m01g_g09_a40_cla.brres", "m01g_g09_a40_tsa.brres", "m01g_g09_a40_tpa.brres",
@@ -184,7 +184,7 @@ bool cTaskGoalBoss::GoalCheck()
 	return true;
 }
 
-// DOL 0x800efe1c (not paused): the model task; state 0 / 1 = the demo object's start / goal paths; the clips advance (FUN_8009a478)
+// DOL 0x800efe1c [audited: state 0 (the demo object's start tick 0x801bce00) and the goal tick 0x801bce94 live in cDemoMan / GoalInit and were not compared] (not paused): the model task; state 0 / 1 = the demo object's start / goal paths; the clips advance (FUN_8009a478)
 bool cTaskGoalBoss::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused

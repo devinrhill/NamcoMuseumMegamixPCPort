@@ -16,8 +16,9 @@ public:
 	bool Execute(cJetTask* pParam) override;   // the console base Execute -> 0x800d4ea8 (states 1 heal / 2 damage) and the appear 0x800d4d9c
 	void Draw(int nStatus, cJetTask* pParam) override;   // cTaskGameConsoleBase::Draw 0x800eb548: only while active (+8) and shown (+9)
 	void Appear() { m_bAppear = true; m_nAppearStep = 0; }   // console vtable slot 1 (READY)
-	bool Damage();                             // DOL 0x800eb6b0 + state 2 (+0x21c = 2) when idle
-	bool Heal();                               // DOL 0x800eb6b0 + state 1 (+0x21c = 1) when idle (Pac-Man ate a cookie)
+	bool Damage();                             // DOL 0x800eb6b0 (console state == 3) + state 2 (+0x21c = 2)
+	bool Heal();                               // DOL 0x800eb6b0 (console state == 3) + state 1 (+0x21c = 1) (Pac-Man ate a cookie)
+	void SetGame(bool b) { m_bGameState = b; } // console base state 3 (vtable +0x7c: GAME starts) / 4 (+0x80 result) / 6 (+0x84 retry)
 	bool IsMiss() const { return m_bMiss; }    // +0x22c
 	int nLife() const { return m_nLife; }
 	void StartResult();                        // DOL 0x800d54a4: vtable +0x8c (0x800d54e4, the life bonus) + 0x800eb6c4 (state 4)
@@ -32,6 +33,7 @@ private:
 	int m_nLife{6};                            // +0x224
 	int m_nBonus{};                            // +0x228 (0 from 0x800d4b5c; (life + 1) * 1000 at the result)
 	bool m_bMiss{};                            // +0x22c
+	bool m_bGameState{};                       // the console base state == 3 (the test of 0x800eb6b0)
 	bool m_bResult{};                          // console state 4 (result) not yet handled
 	bool m_bAppear{};
 	int m_nAppearStep{};

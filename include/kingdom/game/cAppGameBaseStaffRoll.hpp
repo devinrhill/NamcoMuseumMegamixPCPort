@@ -79,14 +79,8 @@ private:
 
 	Light* m_light{};
 
-	// native camera (DOL 0x80144348 / Execute 0x80144ec0): an nw4r rotate-around-target camera, orthographic, looking at Pac-Man's root node
-	float m_camTarget[3]{};
-	float m_camRot[3]{};        // radians (+0xc0 of the camera work)
-	float m_camDist{};          // +0xdc
-	float m_camFar{};
 	string m_pacRootNode;
 
-	void UpdateNativeCamera();
 
 	void Init();
 

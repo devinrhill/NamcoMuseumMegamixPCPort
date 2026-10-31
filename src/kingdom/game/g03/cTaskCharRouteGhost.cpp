@@ -1,3 +1,4 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskCharRouteGhost.hpp"
 #include "DummyNW4R.hpp"
 
@@ -126,6 +127,7 @@ uint cTaskCharRouteGhost::GetEffectType1()
 	return 0u;
 }
 
+// DOL 0x80160624 [audited: described by the 43rd-session pass] (vtable +0x5c: stat > 5)
 bool cTaskCharRouteGhost::IsDead()
 {
 	if (nStat() <= 5)
@@ -158,6 +160,7 @@ cTaskCharRouteGhost::cTaskCharRouteGhost()
 	Init();
 }
 
+// DOL 0x8015eaa4 [audited: described by the 43rd-session pass] (+0x2e0 = a cKingdomSndActor 0x800ba17c; natively the engine sound follows model 2)
 void cTaskCharRouteGhost::Init()
 {
 	for (int i = 0; i < (int)std::size(m_PtkHndEffect); i++)
@@ -191,6 +194,7 @@ void cTaskCharRouteGhost::Init()
 	SetState(0u);
 }
 
+// DOL 0x8015eb8c [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::Term()
 {
 	m_PtkHndEffect[0]->Detach(true);
@@ -198,6 +202,7 @@ void cTaskCharRouteGhost::Term()
 	cTaskCharGhost::Term();
 }
 
+// DOL 0x8015ebf8 [audited: described by the 43rd-session pass] (engine sound: actor +0x2e0, Engine1 fade 0 / Engine2 fade-in 300 ms; the SE layer has no fade-in)
 bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 {
 	InGamePadManager::GetPad1No();
@@ -496,15 +501,8 @@ bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 	}
 	if (nKind() == cTaskChar::eKIND::eKIND_RIDE_HOVER)
 	{
-		float num3 = vRotate()[1];
-		if (num3 > (float)std::numbers::pi)
-		{
-			float num4 = num3 - (float)std::numbers::pi;
-			num3 *= -1.0f;
-			num3 += num4 * 2.0f;
-		}
-		float num5 = Mathf::Abs(num3);
-		vRotate()[0] = num5 / (float)std::numbers::pi * 0.508966f - 0.254483f;
+		// DOL 0x8015ebf8: rot.x = 0.508966 * (|rot.y| / pi) - 0.254483 (43rd: the C# folded rot.y > pi back first; the DOL does not)
+		vRotate()[0] = 0.508966f * (Mathf::Abs(vRotate()[1]) / (float)std::numbers::pi) - 0.254483f;
 	}
 	Vector4 v;
 	::Constants::jetGeoVecCopy(v, vTrans());
@@ -607,22 +605,22 @@ bool cTaskCharRouteGhost::Execute(cJetTask* pParam)
 	{
 		pHitChar(0)->SetOfsPos(0.0f, 1.0f, 0.0f);
 	}
-	if (nStat() < 9 && !m_bSndEngineStop && Constants::PACN_APP()->pTaskConsRetry() != nullptr && !Constants::PACN_APP()->pTaskConsRetry()->IsVisible() && !SoundManager::get_SE()->IsPlaying(m_SndHndEngine))   // DOL 0x80160538: the handle has no sound (0x80026424), not a null test
+	if (nStat() < 9 && !m_bSndEngineStop && Constants::PACN_APP()->pTaskConsRetry() != nullptr && !Constants::PACN_APP()->pTaskConsRetry()->IsVisible() && !SoundManager::get_SE()->IsPlaying(m_SndHndEngine))   // DOL 0x80160538 [audited: described by the 43rd-session pass]: the handle has no sound (0x80026424), not a null test
 	{
 		switch (m_nSndType)
 		{
 		case 1u:
-			m_SndHndEngine = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE044_ENGINE1, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eNONE, SoundSeObject::ESeGroup::eNORMAL, pPBModel(2u)->pScnMdl(), Constants::scAudioMinDistance, Constants::scAudioMaxDistance);
+			if (cPacnRollLoopSndMan::CanPlay()) m_SndHndEngine = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE044_ENGINE1, 0.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eNONE, SoundSeObject::ESeGroup::eNORMAL, pPBModel(2u)->pScnMdl(), Constants::scAudioMinDistance, Constants::scAudioMaxDistance));
 			break;
 		case 2u:
-			m_SndHndEngine = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE045_ENGINE2, 5.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eNONE, SoundSeObject::ESeGroup::eNORMAL, pPBModel(2u)->pScnMdl(), Constants::scAudioMinDistance, Constants::scAudioMaxDistance);
+			if (cPacnRollLoopSndMan::CanPlay()) m_SndHndEngine = cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE045_ENGINE2, 5.0f, 1.0f, SoundSe::EMixerType::eNORMAL, SoundSeObject::ESeType::eNORMAL, 1.0f, SoundSe::ESameKindCheck::eNONE, SoundSeObject::ESeGroup::eNORMAL, pPBModel(2u)->pScnMdl(), Constants::scAudioMinDistance, Constants::scAudioMaxDistance));
 			break;
 		}
 	}
 	return cTaskCharEnemy::Execute(pParam);
 }
 
-// DOL 0x80160640 (the Visible / Invisible toggles are the C#'s; the DOL only submits the models)
+// DOL 0x80160640 [audited: described by the 43rd-session pass] (the Visible / Invisible toggles are the C#'s; the DOL only submits the models)
 void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = nType();
@@ -640,7 +638,7 @@ void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 		::Constants::jetGeoMtx44to34(m2, m);
 		DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 		DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
-		pCurrentModel()->UpdateMatrix();   // DOL 0x80160814: the vehicle (model 2) into this frame's scene list (0x8009c3f4)
+		pCurrentModel()->UpdateMatrix();   // DOL 0x80160814 [audited: described by the 43rd-session pass]: the vehicle (model 2) into this frame's scene list (0x8009c3f4)
 		if (nStat() != 9 && !pPBModel(2u)->IsVisible())
 		{
 			pPBModel(2u)->Visible();
@@ -657,7 +655,7 @@ void cTaskCharRouteGhost::Draw(int nStatus, cJetTask* pParam)
 	::Constants::jetGeoMtx44to34(m2, m);
 	DummyNW4R::SetMtx(pCurrentModel()->pScnMdl(), m);
 	DummyNW4R::SetScale(pCurrentModel()->pScnMdl(), pCurrentModel()->vScale()[0], pCurrentModel()->vScale()[1], pCurrentModel()->vScale()[2]);
-	pCurrentModel()->UpdateMatrix();   // DOL 0x8016098c: the current model into this frame's scene list
+	pCurrentModel()->UpdateMatrix();   // DOL 0x8016098c [audited: described by the 43rd-session pass]: the current model into this frame's scene list
 	if (nStat() != 9)
 	{
 		if (nType() == 0)
@@ -741,6 +739,7 @@ void cTaskCharRouteGhost::SetAnm(string anime, uint idx)
 	}
 }
 
+// DOL 0x80160a10 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::SetModel()
 {
 	nKind() = GetKind();
@@ -900,6 +899,7 @@ void cTaskCharRouteGhost::FastDead()
 	nStat() = 9;
 }
 
+// DOL 0x80161b30 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::CheckStatus()
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -959,6 +959,7 @@ void cTaskCharRouteGhost::CheckStatus()
 	}
 }
 
+// DOL 0x80161ea8 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::Move()
 {
 	(void)(static_cast<cTaskGhostRoute*>(pParent()));
@@ -1037,6 +1038,7 @@ void cTaskCharRouteGhost::Move()
 	}
 }
 
+// DOL 0x8016213c [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::Attacked(cHitChar* pRev, cHitChar* pAtk)
 {
 	if (Constants::IS_PAC_PAUSE() || Constants::PACN_APP()->IsNakajimaPause(this))
@@ -1053,7 +1055,7 @@ void cTaskCharRouteGhost::Attacked(cHitChar* pRev, cHitChar* pAtk)
 			m_bPackAttack = true;
 			nStat() = 5;
 			m_nCount = 0;
-			KingdomGlobal::PacnRollSys->AddDeadEnemyCnt();
+			// (43rd: the C#'s AddDeadEnemyCnt, a Steam statistic, removed here and below; the DOL has none)
 		}
 	}
 	else if (Constants::PACN_APP()->pTaskGhostMan()->IsIjike() && Constants::PACN_APP()->pTaskCharPacman()->IsState(1u))
@@ -1069,10 +1071,10 @@ void cTaskCharRouteGhost::Attacked(cHitChar* pRev, cHitChar* pAtk)
 			SoundManager::get_SE()->Stop(m_SndHndEngine);
 		}
 		m_bSndEngineStop = true;
-		KingdomGlobal::PacnRollSys->AddDeadEnemyCnt();
 	}
 }
 
+// DOL 0x80162444 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskCharRouteGhost::HitPushOut(Vector4 vVec, cTaskChar* pChar)
 {
 	if (pChar->nKind() != cTaskChar::eKIND::eKIND_BOSS && pChar->nKind() != cTaskChar::eKIND::eKIND_BOSS_IJIKE && pChar->nKind() != nKind())

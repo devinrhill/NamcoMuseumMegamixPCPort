@@ -211,7 +211,7 @@ void cG07MotosSys::Init()
 {
 	CustomKingdomUtil::Assert(m_nInstance++ == 0, "fatal error");
 	KingdomGlobal::KingSys->AttachArcData(ARC_NAME_RESIDENT, true);
-	KingdomGlobal::KingSys->AttachArcData(ARC_NAME_ENEMY, true);   // UNVERIFIED where the DOL attaches the shared enemy models   // DOL 0x800a0178 (sys constructor): the shared g07 data (CSV params, ...)
+	KingdomGlobal::KingSys->AttachArcData(ARC_NAME_ENEMY, true);   // UNVERIFIED where the DOL attaches the shared enemy models   // DOL 0x800a0178 [audited] (sys constructor): the shared g07 data (CSV params, ...)
 	Constants::Motos_Game_System_Init();
 	m_nStageIdx = 0u;
 	m_bNewStageApear = false;
@@ -245,7 +245,7 @@ void cG07MotosSys::Free()
 	Term();
 }
 
-// DOL 0x800a0280: game data block 4 into the save data; another version than 3 starts over (stage 1 open, record times 0) and is written back
+// DOL 0x800a0280 [audited]: game data block 4 into the save data; another version than 3 starts over (stage 1 open, record times 0) and is written back
 bool cG07MotosSys::SaveDataLoad()
 {
 	u8 b[SAVE_SIZE] = {};
@@ -273,7 +273,7 @@ bool cG07MotosSys::SaveDataLoad()
 	return false;
 }
 
-// DOL 0x800a0438
+// DOL 0x800a0438 [audited]
 uint cG07MotosSys::SaveDataSave(uint nScore, uint nTime, bool bClear, bool bDataWrite)
 {
 	uint num = WriteMemoryToSaveData(bDataWrite);
@@ -313,7 +313,7 @@ uint cG07MotosSys::SaveDataSave(uint nScore, uint nTime, bool bClear, bool bData
 	return num;
 }
 
-// DOL 0x800a06a4: the item stock into the save data; bSave = also into block 4
+// DOL 0x800a06a4 [audited]: the item stock into the save data; bSave = also into block 4
 uint cG07MotosSys::WriteMemoryToSaveData(bool bSave, bool bDataWrite)
 {
 	uint result = 0u;

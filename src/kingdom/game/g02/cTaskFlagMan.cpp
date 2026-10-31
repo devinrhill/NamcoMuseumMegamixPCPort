@@ -17,7 +17,7 @@ cTaskFlagMan::cTaskFlagMan()
 	Init();
 }
 
-// DOL 0x80070040 (only caller: cTaskMap Init 0x80076cb0, right after the ctor)
+// DOL 0x80070040 [audited] (only caller: cTaskMap Init 0x80076cb0, right after the ctor)
 void cTaskFlagMan::Init()
 {
 	m_bNumbered = false;
@@ -28,7 +28,7 @@ void cTaskFlagMan::Init()
 	m_pCurrent = nullptr;
 }
 
-// DOL 0x800700a0. Not gated by the pause (the DOL does not test it). Natively a missing number (the hash lookup returns nothing) stops the
+// DOL 0x800700a0 [audited]. Not gated by the pause (the DOL does not test it). Natively a missing number (the hash lookup returns nothing) stops the
 // chain; the DOL would call through the null pointer (UNVERIFIED what cJetHash Find returns for a missing key).
 bool cTaskFlagMan::Execute(cJetTask* pParam)
 {
@@ -48,7 +48,7 @@ bool cTaskFlagMan::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8007013c. The DOL dynamic_casts g to cTaskItemFlag (null for a non-flag) and reads the type of the cast result; natively "a flag" is
+// DOL 0x8007013c [audited]. The DOL dynamic_casts g to cTaskItemFlag (null for a non-flag) and reads the type of the cast result; natively "a flag" is
 // a gimmick of type 11..33 (UNVERIFIED that the lucky / special flags are cTaskItemFlag subclasses; the factory 0x80391f48 suggests so).
 // A second flag with the same number replaces the first in the hash (UNVERIFIED: cJetHash Insert with a used key).
 bool cTaskFlagMan::Add(kingdom::cTaskModel* g)
@@ -71,7 +71,7 @@ bool cTaskFlagMan::Add(kingdom::cTaskModel* g)
 	return true;
 }
 
-// DOL 0x800704c0 (the DOL's cntlzw: returns n == 0 afterwards; n == 0 on entry returns true without a call)
+// DOL 0x800704c0 [audited] (the DOL's cntlzw: returns n == 0 afterwards; n == 0 on entry returns true without a call)
 bool cTaskFlagMan::Drop(u32 n, const float* pos, const float* from)
 {
 	if (n != 0)
@@ -80,7 +80,7 @@ bool cTaskFlagMan::Drop(u32 n, const float* pos, const float* from)
 	return n == 0;
 }
 
-// DOL 0x80070554
+// DOL 0x80070554 [audited]
 bool cTaskFlagMan::IsDroppedAt(const float* pos) const
 {
 	for (kingdom::cTaskModel* g : m_vFlag)
@@ -88,7 +88,7 @@ bool cTaskFlagMan::IsDroppedAt(const float* pos) const
 	return false;
 }
 
-// DOL 0x800705f4 (kingdom::cTaskModel::pModel(flag, 0) 0x8009a430; nullptr past the end, like the DOL)
+// DOL 0x800705f4 [audited] (kingdom::cTaskModel::pModel(flag, 0) 0x8009a430; nullptr past the end, like the DOL)
 kingdom::cKingdomModel* cTaskFlagMan::pFlagModel(u32 n) const
 {
 	kingdom::cTaskModel* g = pFlag(n);

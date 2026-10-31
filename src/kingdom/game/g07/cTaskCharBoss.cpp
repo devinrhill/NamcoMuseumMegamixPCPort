@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCharBoss.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
@@ -148,6 +149,7 @@ bool& cTaskCharBoss::bApearDemoEnd()
 	return m_bAppearDemoEnd;
 }
 
+// DOL 0x801e7254 [audited: described by the 43rd-session pass] (the fog-slot-3 backup into +0xa40 / +0xa58 is not ported: see NOTES 2026-10-30 boss fog gap)
 void cTaskCharBoss::Init()
 {
 	m_bAppearDemoEnd = false;
@@ -178,6 +180,7 @@ void cTaskCharBoss::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x801e7350 [audited: HP bookkeeping (stage 35 / kind 26), quake, flag 0x400000 branch vs decomp]
 bool cTaskCharBoss::Execute(cJetTask* pParam)
 {
 	m_nowFramePlaySEHitZako01 = false;
@@ -211,7 +214,7 @@ bool cTaskCharBoss::Execute(cJetTask* pParam)
 	}
 	if (m_nHitQuakeTime > 0)
 	{
-		m_fHitQuake = (float)Random::Range(0, 10) * 0.02f;
+		m_fHitQuake = (float)kingdom::MslRandRange(0, 10) * 0.02f;
 		m_nHitQuakeTime--;
 	}
 	else
@@ -406,9 +409,9 @@ void cTaskCharBoss::SpawnAppearEffect(cTaskChar* pchar, Vector4 porg, float lx, 
 	{
 		for (int j = 0; j < num3; j++)
 		{
-			v[0] = porg[0] + space * (float)i + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] + space * (float)i + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			v[1] = 0.0f;
-			v[2] = porg[2] + space * (float)j + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[2] = porg[2] + space * (float)j + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			::Constants::jetGeoVecUnit(v2);
 			Constants::VEC3_SUB(v2, v2, v);
 			num = (int)Mathf::Floor(::Constants::jetGeoVecLength(v2) * 1.5f);
@@ -428,6 +431,7 @@ void cTaskCharBoss::SpawnAppearEffect(cTaskChar* pchar, Vector4 porg, float lx, 
 	}
 }
 
+// DOL 0x801e860c [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cTaskCharBoss::SpawnAppearEffectCircle(cTaskChar* pchar, Vector4 porg, float lr, float space)
 {
 	Vector4 v = Vector4();
@@ -437,16 +441,16 @@ void cTaskCharBoss::SpawnAppearEffectCircle(cTaskChar* pchar, Vector4 porg, floa
 	{
 		for (int j = 0; j < num2; j++)
 		{
-			v[0] = porg[0] - lr + space * (float)i + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] - lr + space * (float)i + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			v[1] = 0.0f;
-			v[2] = porg[2] - lr + space * (float)j + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[2] = porg[2] - lr + space * (float)j + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			Vector4 _out;
 			Constants::VEC3_SUB(_out, porg, v);
 			if (::Constants::jetGeoVecLength(_out) <= lr)
 			{
 				Constants::tspVector3RotZYX(v, v, pchar->vRotate());
 				Constants::VEC3_ADD(v, v, pchar->vMTrans());
-				Constants::SpawnEffect(24, v, this, Random::Range(0, 15));
+				Constants::SpawnEffect(24, v, this, kingdom::MslRandRange(0, 15));
 			}
 		}
 	}
@@ -462,12 +466,12 @@ void cTaskCharBoss::SpawnExplode(Vector4 trans, Vector4 rot, Vector4 porg, float
 	{
 		for (int j = 0; j < num3; j++)
 		{
-			v[0] = porg[0] + space * (float)i + 0.15f * (float)(Random::Range(0, 10) - 5);
-			v[1] = porg[1] + num * 0.15f * (float)(Random::Range(0, 10) - 5);
-			v[2] = porg[2] + space * (float)j + 0.15f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] + space * (float)i + 0.15f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[1] = porg[1] + num * 0.15f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[2] = porg[2] + space * (float)j + 0.15f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			::Constants::jetGeoVecRotZYX(v, v, rot);
 			Constants::VEC3_ADD(v, v, trans);
-			Constants::SpawnEffect(22, v, nullptr, Random::Range(0, 20) + delay, 0.3f);
+			Constants::SpawnEffect(22, v, nullptr, kingdom::MslRandRange(0, 20) + delay, 0.3f);
 		}
 	}
 }
@@ -487,12 +491,12 @@ void cTaskCharBoss::SpawnExplodeRandom(Vector4 trans, Vector4 rot, Vector4 porg,
 	{
 		for (int j = 0; j < num3; j++)
 		{
-			v[0] = porg[0] + space * (float)i + 0.1f * (float)(Random::Range(0, 10) - 5);
-			v[1] = porg[1] + num * 0.1f * (float)(Random::Range(0, 10) - 5);
-			v[2] = porg[2] + space * (float)j + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] + space * (float)i + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[1] = porg[1] + num * 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[2] = porg[2] + space * (float)j + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			Constants::tspVector3RotZYX(v, v, rot);
 			Constants::VEC3_ADD(v, v, trans);
-			Constants::SpawnEffect(22, v, nullptr, Random::Range(0, rand_span) + delay);
+			Constants::SpawnEffect(22, v, nullptr, kingdom::MslRandRange(0, rand_span) + delay);
 		}
 	}
 }
@@ -511,12 +515,12 @@ void cTaskCharBoss::SpawnExplode2(Vector4 trans, Vector4 rot, Vector4 porg, floa
 	{
 		for (int j = 0; j < num2; j++)
 		{
-			v[0] = porg[0] + space * (float)i + 0.1f * (float)(Random::Range(0, 10) - 5);
-			v[1] = porg[1] + space * (float)j + 0.1f * (float)(Random::Range(0, 10) - 5);
-			v[2] = porg[2] + 0.1f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] + space * (float)i + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[1] = porg[1] + space * (float)j + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[2] = porg[2] + 0.1f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			Constants::tspVector3RotZYX(v, v, rot);
 			Constants::VEC3_ADD(v, v, trans);
-			Constants::SpawnEffect(22, v, nullptr, Random::Range(0, 20) + delay);
+			Constants::SpawnEffect(22, v, nullptr, kingdom::MslRandRange(0, 20) + delay);
 		}
 	}
 }
@@ -535,12 +539,12 @@ void cTaskCharBoss::SpawnExplode2Random(Vector4 trans, Vector4 rot, Vector4 porg
 	{
 		for (int j = 0; j < num2; j++)
 		{
-			v[0] = porg[0] + space * (float)i + 0.02f * (float)(Random::Range(0, 10) - 5);
-			v[1] = porg[1] + space * (float)j + 0.02f * (float)(Random::Range(0, 10) - 5);
-			v[2] = porg[2] + 0.02f * (float)(Random::Range(0, 10) - 5);
+			v[0] = porg[0] + space * (float)i + 0.02f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[1] = porg[1] + space * (float)j + 0.02f * (float)(kingdom::MslRandRange(0, 10) - 5);
+			v[2] = porg[2] + 0.02f * (float)(kingdom::MslRandRange(0, 10) - 5);
 			Constants::tspVector3RotZYX(v, v, rot);
 			Constants::VEC3_ADD(v, v, trans);
-			Constants::SpawnEffect(22, v, nullptr, Random::Range(0, rand_span) + delay);
+			Constants::SpawnEffect(22, v, nullptr, kingdom::MslRandRange(0, rand_span) + delay);
 		}
 	}
 }
@@ -598,7 +602,7 @@ void cTaskCharBoss::ExplodeSE(uint nRandMin, uint nRandMax)
 	{
 		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE047_BOSS_FALL);
 	}
-	nExplodeTimer() = (int)((float)nRandMin + Random::Range(0.0f, nRandMax - nRandMin));
+	nExplodeTimer() = (int)((float)nRandMin + kingdom::MslRandRange(0.0f, nRandMax - nRandMin));
 }
 
 bool cTaskCharBoss::BossFadeAnitaDraw(cJetTask* pTask, cJetTask* pList, cJetTask* pScene)
@@ -611,12 +615,49 @@ void cTaskCharBoss::SetHitQuake(int time)
 	m_nHitQuakeTime = time;
 }
 
+// DOL 0x801e7254 (cTaskCharBoss::Init tail): fog slot 3 is read into +0xa40 (type, start, end, near, far, colour) and copied to the backup +0xa58
 void cTaskCharBoss::GetFogData()
 {
+	if (const kingdom::NativeScene::FogSlot* f = kingdom::NativeScene::GetFogSlot(3))
+	{
+		m_fogLive = *f;
+	}
+	m_fogBack = m_fogLive;
 }
 
+// DOL 0x801ea560 [audited: described by the 43rd-session pass]: slot 3's start / end / colour come back from the backup (the type stays whatever FogStep made it), the live copy = the backup
 void cTaskCharBoss::InitFogData()
 {
+	if (kingdom::NativeScene::FogSlot* f = kingdom::NativeScene::GetFogSlot(3))
+	{
+		f->start = m_fogBack.start;
+		f->end = m_fogBack.end;
+		for (int i = 0; i < 3; i++) f->color[i] = m_fogBack.color[i];
+	}
+	m_fogLive = m_fogBack;
+}
+
+// DOL 0x801ea3c8 [audited: per AUDIT_G03_G07 row]
+void cTaskCharBoss::FogStep(float speed)
+{
+	m_fogLive.end += speed;
+	if (kingdom::NativeScene::FogSlot* f = kingdom::NativeScene::GetFogSlot(3))
+	{
+		f->type = 2;
+		f->start = m_fogLive.start;
+		f->end = m_fogLive.end;
+	}
+}
+
+// DOL 0x801ea4b0 [audited: end -= speed, fog slot 3 start/end vs decomp]
+void cTaskCharBoss::FogStepBack(float speed)
+{
+	m_fogLive.end -= speed;
+	if (kingdom::NativeScene::FogSlot* f = kingdom::NativeScene::GetFogSlot(3))
+	{
+		f->start = m_fogLive.start;
+		f->end = m_fogLive.end;
+	}
 }
 
 void cTaskCharBoss::SetFlash(int modelIdx, float rate)

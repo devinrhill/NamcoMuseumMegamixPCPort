@@ -1,4 +1,6 @@
 #include "kingdom/game/g01/cTaskFighter.hpp"
+#include "kingdom/game/g01/IntersectionSegment3Sphere.hpp"
+#include "kingdom/game/g01/cTaskScene.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -24,19 +26,11 @@ constexpr float COOKIE_RADIUS = 0.15f;   // FLOAT_8047b59c
 constexpr float ROT_LIMIT_ADD = 0.02f;   // FLOAT_8047b5a4
 constexpr float OUT_DIST2 = 22500.0f;    // FLOAT_8047b5a8: 150 units from the camera
 
-// nw4r::math::IntersectionSegment3Sphere: does the segment a -> b touch the sphere (c, r)
+// nw4r::math::IntersectionSegment3Sphere (0x80302150): the segment must cross the sphere's surface
 bool SegmentSphere(const float a[3], const float b[3], const float c[3], float r)
 {
-	float d[3], m[3];
-	for (int i = 0; i < 3; i++) { d[i] = b[i] - a[i]; m[i] = a[i] - c[i]; }
-	const float dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
-	float t = 0.0f;
-	if (dd > 0.0f) t = std::clamp(-(m[0] * d[0] + m[1] * d[1] + m[2] * d[2]) / dd, 0.0f, 1.0f);
-	float q = 0.0f;
-	for (int i = 0; i < 3; i++) { const float e = m[i] + d[i] * t; q += e * e; }
-	return q <= r * r;
+	return IntersectionSegment3Sphere(a, b, c, r);
 }
-
 void Normalize(float v[3])
 {
 	const float l = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -55,7 +49,7 @@ void RotateZYX(const float r[3], const float in[3], float out[3])
 
 // ---- cTaskCookie --------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x800e9f60 (the 0x370-byte cookie: CHAR_COOKIE_MDL 0x5fa8d58c, fighter +0x328) + 0x800e9c04: kind 4, no target, fall speed 0,
+// DOL 0x800e9f60 [audited] (the 0x370-byte cookie: CHAR_COOKIE_MDL 0x5fa8d58c, fighter +0x328) + 0x800e9c04: kind 4, no target, fall speed 0,
 // attached, inactive, last Pac-Man position 0 (w 1). The fighter's ctor registers it for collision.
 cTaskCookie::cTaskCookie(cTaskFighter* pFighter) : m_pFighter(pFighter)
 {
@@ -78,7 +72,7 @@ void cTaskCookie::Attach(float fFallSpeed)
 	m_b09 = false;
 }
 
-// DOL 0x800e9d4c (active, not paused): attached it sits at the fighter's ef_cooky; let go it falls toward Pac-Man and moves along with him;
+// DOL 0x800e9d4c [audited] (active, not paused): attached it sits at the fighter's ef_cooky; let go it falls toward Pac-Man and moves along with him;
 // the segment of the step (+0x350); gone while Pac-Man runs to the goal (0x800f3e94)
 bool cTaskCookie::Execute(cJetTask* pParam)
 {
@@ -114,7 +108,7 @@ void cTaskCookie::Draw(int nStatus, cJetTask* pParam)
 	cTaskModel::Draw(nStatus, pParam);
 }
 
-// DOL 0x800e9c48: Pac-Man (kind 3): the step's segment against his 0.35 sphere, else the 0.15 sphere against it (FUN_80302600)
+// DOL 0x800e9c48 [audited]: Pac-Man (kind 3): the step's segment against his 0.35 sphere, else the 0.15 sphere against it (FUN_80302600)
 bool cTaskCookie::HitCheck(cObject* other)
 {
 	if (other->nKind() != 3) return false;
@@ -125,7 +119,7 @@ bool cTaskCookie::HitCheck(cObject* other)
 	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
 }
 
-// DOL 0x800e9d0c: eaten
+// DOL 0x800e9d0c [audited]: eaten
 void cTaskCookie::HitCallback(cObject* other)
 {
 	if (other->nKind() == 3) m_b08 = false;
@@ -176,13 +170,15 @@ bool cTaskFighter::NodeWorld(const char* node, float out[3])
 	return true;
 }
 
-// DOL 0x800ea304: the leader's orbit as an enemy of type 10 (group 0), its start position, wait 0, SPEED / ROT_LIMIT_INIT, riding, not let
+// DOL 0x800ea304 [audited]: the leader's orbit as an enemy of type 10 (group 0), its start position, wait 0, SPEED / ROT_LIMIT_INIT, riding, not let
 // go, collidable, the AABB of the model (+0x14), the boost effects bound to ef_l_boost / ef_r_boost and started (slot 0x14, looping,
 // dependent, clipped), hidden, active; the cookie: Pac-Man, COOKIE_FALL_SPEED, attached, collidable, active, hidden
 void cTaskFighter::Setup(const sScnRecord* pRec, int nOrbit, cTaskEnemy* pLeader)
 {
 	SetupOrbit(pRec, 10, nOrbit, 0);   // 0x800e1f88
-	for (int i = 0; i < 3; i++) m_vPrev[i] = m_vWorldPos[i];
+	// the DOL copies the record's first vector (its parent position) to +0x380 (previous position) and +0x20 (the position) after SetupOrbit
+	for (int i = 0; i < 3; i++) m_vWorldPos[i] = m_vPrev[i] = pRec->vParent[i];
+	m_v20 = Vector4(pRec->vParent[0], pRec->vParent[1], pRec->vParent[2], 1.0f);
 	m_pLeader = pLeader;
 	m_fWait = 0.0f;
 	m_fSpeed = m_Param.fSpeed;
@@ -198,7 +194,7 @@ void cTaskFighter::Setup(const sScnRecord* pRec, int nOrbit, cTaskEnemy* pLeader
 	if (std::getenv("MEGAMIX_G01DBG")) std::fprintf(stderr, "g01 fighter spawned (frame %d)\n", devtools::FrameNo()); // devtools: frame number
 }
 
-// DOL 0x800ea614: turn the flight direction toward `to` by at most the rotation limit (acos of the dot product, about their cross product,
+// DOL 0x800ea614 [audited]: turn the flight direction toward `to` by at most the rotation limit (acos of the dot product, about their cross product,
 // PSMTXRotAxisRad), move SPEED along it, face it (0x801c1ccc), the limit grows by 0.02, the orbit time by fStep
 void cTaskFighter::Turn(float fStep, const float to[3])
 {
@@ -225,7 +221,7 @@ void cTaskFighter::Turn(float fStep, const float to[3])
 	m_fRotLimit += ROT_LIMIT_ADD;
 }
 
-// DOL 0x800ea9a8 (state 2): not shot down -> the boost effects stop and it is gone; shot down -> the death step (0x800ea8b8: death clip,
+// DOL 0x800ea9a8 [audited] (state 2): not shot down -> the boost effects stop and it is gone; shot down -> the death step (0x800ea8b8: death clip,
 // explosion, sound, the boosts stop; gone when the clip ran out). Gone: the scene learns its group (0) is cleared (0x800f8480).
 // Natively the death path is the enemy's (0x800e20f0, unreachable: the fighter's hit callback never sets +0x348).
 void cTaskFighter::LeaveStep()
@@ -242,7 +238,7 @@ void cTaskFighter::LeaveStep()
 	}
 }
 
-// DOL 0x800eaa3c (through 0x800e4704: active, not paused, Pac-Man has not missed)
+// DOL 0x800eaa3c [audited: the cookie point (ef_cooky) is the model's node through its world matrix, the DOL builds T(pos) Rz Ry Rx(rot) itself; the delivered Turn step argument is whatever f1 held (1.0 assumed)] (through 0x800e4704: active, not paused, Pac-Man has not missed)
 bool cTaskFighter::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -300,8 +296,7 @@ bool cTaskFighter::Execute(cJetTask* pParam)
 	}
 	else if (m_nState == 2)
 	{
-		LeaveStep();   // +0x84
-		if (!m_b08) return true;
+		LeaveStep();   // +0x84 (the flash step, the clips and the model update still follow in the DOL)
 	}
 	FlashStep();   // +0x88
 	if (m_nState != 0) UpdateFrame();   // 0x8009a478
@@ -313,14 +308,14 @@ bool cTaskFighter::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800ea4c4: Pac-Man (kind 3): the step's segment against a 0.35 sphere at his +0x290
+// DOL 0x800ea4c4 [audited]: Pac-Man (kind 3): the step's segment against a 0.35 sphere at his +0x290
 bool cTaskFighter::HitCheck(cObject* other)
 {
 	if (other->nKind() != 3 || cTaskPacman::s_pInstance == nullptr) return false;
 	return SegmentSphere(m_vSeg, m_vSeg + 3, cTaskPacman::s_pInstance->vBite(), HIT_RADIUS);
 }
 
-// DOL 0x800ea550: Pac-Man -> the cookie is let go (+0x334 = 0, shown), CHAR_FIGHTER_ANM_CHA_01 (0xcbd91d7b) in slot 0, climb away (+0x369),
+// DOL 0x800ea550 [audited]: Pac-Man -> the cookie is let go (+0x334 = 0, shown), CHAR_FIGHTER_ANM_CHA_01 (0xcbd91d7b) in slot 0, climb away (+0x369),
 // the rotation limit from ROT_LIMIT_INIT again, not collidable; a player's shot (kind 1) -> leave, not collidable
 void cTaskFighter::HitCallback(cObject* other)
 {

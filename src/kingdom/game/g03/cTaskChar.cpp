@@ -75,6 +75,7 @@ uint& cTaskChar::nPushOutLevel()
 	return m_nPushOutLevel;
 }
 
+// DOL 0x8015b248 [audited: constant getter vs disassembly] (return 0)
 uint cTaskChar::GetAnmState()
 {
 	return 0u;
@@ -161,6 +162,7 @@ cHitChar* cTaskChar::pHitChar(int n)
 	return m_vecHitChar[n];
 }
 
+// DOL 0x80119aec [audited: described by the 43rd-session pass] (position += vector)
 void cTaskChar::HitPushOut(Vector4 vVec, cTaskChar* pChar)
 {
 	::Constants::jetGeoVecAdd(vTrans(), vTrans(), vVec);
@@ -180,6 +182,7 @@ cTaskChar::cTaskChar()
 	Init();
 }
 
+// DOL 0x8015a61c [audited: described by the 43rd-session pass] (+0x1cc kind, +0x1d0 type, +0x1d4 / +0x1d8 states, +0x1dc radius, +0x1e0 push-out level, +0x1f0 position, +0x200 old, +0x210 rotation (0,0,0,1), +0x220 scale (1,1,1,1), +0x230 move, +0x240 accel zero)
 void cTaskChar::Init()
 {
 	m_nKind = cTaskChar::eKIND::eKIND_PACMAN;
@@ -196,6 +199,7 @@ void cTaskChar::Init()
 	::Constants::jetGeoVecZero(m_vAccel);
 }
 
+// DOL 0x8015a6a4 [audited: blr] (blr)
 void cTaskChar::Term()
 {
 	cTaskModel::Term();
@@ -218,10 +222,12 @@ void cTaskChar::SetMaterialAlpha(uint n, byte alpha)
 	pModel(n);
 }
 
+// DOL 0x8015addc [audited: blr] (blr)
 void cTaskChar::Attacked(cHitChar* pRev, cHitChar* pAtk)
 {
 }
 
+// DOL 0x8015ade0 [audited: described by the 43rd-session pass] (translate, then Z, Y, X rotations when non-zero; every hit sphere with flag 1 updates its matrix)
 void cTaskChar::HitUpdate()
 {
 	Matrix4x4 m;
@@ -237,6 +243,7 @@ void cTaskChar::HitUpdate()
 	}
 }
 
+// DOL 0x8015af28 [audited: described by the 43rd-session pass] (side -1 = any; flag 0 -> flag bit 1, else (flag | 1) all set)
 void cTaskChar::HitListup(std::vector<cHitChar*>& pVec, const int& nSide, const uint& nFlag)
 {
 	for (cHitChar* item : m_vecHitChar)

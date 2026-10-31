@@ -4,13 +4,13 @@
 
 namespace kingdom
 {
-// DOL 0x800241e0: camera 0 (later 4), mode 1, target (0, 0, 0), radius 0
+// DOL 0x800241e0 [audited]: camera 0 (later 4), mode 1, target (0, 0, 0), radius 0
 void cKingdomShadow::Reset()
 {
 	*this = cKingdomShadow();
 }
 
-// DOL 0x800244dc, mode 0
+// DOL 0x800244dc [audited: mode 1 and the twist are not ported], mode 0
 bool cKingdomShadow::GetCamera(float eye[3], float target[3], float box[4], float& zNear, float& zFar) const
 {
 	if (!m_bOrtho || m_nMode != 0) return false;

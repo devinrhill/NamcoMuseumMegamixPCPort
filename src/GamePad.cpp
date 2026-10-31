@@ -102,7 +102,7 @@ void Update()
 	}
 }
 
-// DOL 0x80021a14
+// DOL 0x80021a14 [audited]
 bool Rumble(int n, int nMSec)
 {
 	if (n < 0 || n >= WiiPad::MAX_CHANNELS) return false;

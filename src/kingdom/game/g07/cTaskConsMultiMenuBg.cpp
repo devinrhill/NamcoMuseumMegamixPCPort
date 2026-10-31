@@ -16,6 +16,7 @@ cTaskConsMultiMenuBg::~cTaskConsMultiMenuBg()
 {
 }
 
+// DOL 0x801caf7c [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuBg::SetData()
 {
 	nDrawPriority(65537u);
@@ -23,6 +24,7 @@ void cTaskConsMultiMenuBg::SetData()
 	pAnita(0u)->SetAnimNo(nGetBgAnmNo());
 }
 
+// DOL 0x801cb03c [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuBg::nGetBgAnmNo()
 {
 	CustomKingdomUtil::Assert(nWorldNo() < 10, "error");

@@ -5,6 +5,8 @@
 // where they run (one-line "devtools:" hooks) and drawn in the same frame.
 #include "platform/devtools.hpp"
 #include "platform/devtools_g01edit.hpp"
+#include "platform/devtools_g03gray.hpp"
+#include "platform/devtools_g03pac.hpp"
 #include "platform/devtools_g07edit.hpp"
 
 #include <algorithm>
@@ -164,6 +166,8 @@ void G03HitSphere(const float c[3], float r, unsigned rgba)
 void DrawOverlay3D()
 {
 	G03EditDraw3D();
+	G03GrayDraw3D();
+	G03PacDraw3D();
 	G07EditDraw3D();
 	G01EditDraw3D();
 	const bool hit = G03ShowHit(), gim = G03ShowGimmickHit();
@@ -375,7 +379,6 @@ bool FillFace(Constants::sFace* f, const FaceSrc& src, const std::vector<float>&
 	const Vector4* v = f->vVrt;
 	f->aabb = AABB(Vector3(Mathf::Min(v[0].x, v[1].x, v[2].x), Mathf::Min(v[0].y, v[1].y, v[2].y), Mathf::Min(v[0].z, v[1].z, v[2].z)),
 		Vector3(Mathf::Max(v[0].x, v[1].x, v[2].x), Mathf::Max(v[0].y, v[1].y, v[2].y), Mathf::Max(v[0].z, v[1].z, v[2].z)), false);
-	f->calcedAABB = AABB();
 	return true;
 }
 
@@ -492,7 +495,6 @@ void G03BgCollisionRefresh(cTaskBgHit* obj)
 			for (int l = 1; l < 3; l++) bf.faces[i]->vVrt[l] = bf.faces[i]->vVrt[0];
 		}
 	obj->pFaceList()->ReadOnlyAABB() = FacesAABB(bf.faces);
-	obj->pFaceList()->CalcedAABB() = AABB();
 }
 
 // ---- --g03-explore: Pac-Man in arbitrary models -------------------------------------------------------------------------------------------------
@@ -543,7 +545,7 @@ void G03ExploreAttach()
 
 bool G03ExploreHidesData(const std::string& key)
 {
-	if (!G03Explore() || key == "BIN_START_SET_DAT") return false;   // the start entry stays: --g03-start / the explore start replace its position
+	if ((!G03Explore() && !G03GrayOnly()) || key == "BIN_START_SET_DAT") return false;   // the start entry stays: --g03-start / the explore start replace its position
 	const auto ends = [&](const char* t) { const size_t n = std::strlen(t); return key.size() >= n && key.compare(key.size() - n, n, t) == 0; };
 	return ends("_SET_DAT") || ends(".cam") || key.rfind("BIN_GHOST_", 0) == 0 || key.rfind("BIN_BOSS_COOKIE_", 0) == 0;
 }

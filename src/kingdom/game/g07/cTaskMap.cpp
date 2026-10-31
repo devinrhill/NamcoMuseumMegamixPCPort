@@ -104,6 +104,7 @@ void cTaskMap::pGimmicks(uint num, cTaskGimmickBase* p)
 	m_pGimmicks[num] = p;
 }
 
+// DOL 0x801fb1a0 [audited: described by the 43rd-session pass] (order: players, enemies + SetFormation + stack enemies, items, gimmicks) (compared 2026-10-30)
 void cTaskMap::Init()
 {
 	Mapoo = new cMotosMapoo();
@@ -153,6 +154,7 @@ void cTaskMap::SetupPlayer()
 	Mapoo->SearchObj(524288u, cTaskMap::SetupPlayerCB, this);
 }
 
+// DOL 0x801fb6bc [audited: described by the 43rd-session pass] (audited 44th: matches; start rotation 180 / 0 / 270 / 90 degrees by param, position = cell * panel size / 16, multi: only players that joined)
 bool cTaskMap::SetupPlayerCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	CustomKingdomUtil::Assert(args != nullptr, "nullpo");
@@ -208,6 +210,7 @@ void cTaskMap::SetupEnemy()
 	}
 }
 
+// DOL 0x801fb95c [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskMap::SetupEnemyFormCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	cTaskCharEnemy* cTaskCharEnemy2 = static_cast<cTaskCharEnemy*>(args);
@@ -268,6 +271,7 @@ bool cTaskMap::SetupEnemyFormCB(DObjParam::sObj* obj, cJetTask* args)
 	return true;
 }
 
+// DOL 0x801fba54 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 void cTaskMap::SetFormation()
 {
 	for (uint num = 0u; num < 32; num++)
@@ -312,6 +316,7 @@ void cTaskMap::SetFormation()
 	}
 }
 
+// DOL 0x801fbcd0 [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskMap::SetupEnemyCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	CustomKingdomUtil::Assert(args != nullptr, "nullpo");
@@ -322,11 +327,11 @@ bool cTaskMap::SetupEnemyCB(DObjParam::sObj* obj, cJetTask* args)
 	{
 		return true;
 	}
-	if (num > num2)
+	if (num >= num2 + 1) // DOL 0x801fbcd0: kind < 0x1c (the DOL table has 28 slots, the last one empty)
 	{
 		return true;
 	}
-	if (s_enemy_task_tbl[num] == nullptr)
+	if (num >= num2 || s_enemy_task_tbl[num] == nullptr)
 	{
 		return true;
 	}
@@ -407,6 +412,7 @@ void cTaskMap::SetupItem()
 	Mapoo->SearchObj(262144u, cTaskMap::SetupItemCB, this);
 }
 
+// DOL 0x801fc02c [audited: described by the 43rd-session pass] (compared 2026-10-30)
 bool cTaskMap::SetupItemCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	CustomKingdomUtil::Assert(args != nullptr, "nullpo");
@@ -452,16 +458,13 @@ void cTaskMap::SetupGimmick()
 	Mapoo->SearchObj(131072u, cTaskMap::SetupGimmickCB, this);
 }
 
+// DOL 0x801fc230 [audited: described by the 43rd-session pass] (gimmick kinds 1..3 only; the C# mapped 5 / 6 to 1) (compared 2026-10-30)
 bool cTaskMap::SetupGimmickCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	CustomKingdomUtil::Assert(args != nullptr, "nullpo");
 	cTaskMap* cTaskMap2 = static_cast<cTaskMap*>(args);
 	uint num = (uint)((long)obj->m_type & (long)(-131073));
 	uint num2 = (uint)::Constants::ARRAY_SIZE(s_gimmick_task_tbl);
-	if (num == 5 || num == 6)
-	{
-		num = 1u;
-	}
 	if (num == 0)
 	{
 		return true;

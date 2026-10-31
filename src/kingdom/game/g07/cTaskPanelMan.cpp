@@ -1,3 +1,5 @@
+#include "GamePad.hpp"
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskPanelMan.hpp"
 #include "platform/devtools_g07edit.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -100,9 +102,9 @@ MAP_HIT_RESULT* cTaskPanelMan::HitResult(int n)
 	return m_HitResult[n];
 }
 
-int cTaskPanelMan::StrikePanel(int id, int level, float range, Vector4 vec, bool spawnEffect)
+int cTaskPanelMan::StrikePanel(int id, int level, float range, Vector4 vec)
 {
-	return StrikePanel(id, level, range, vec[0], vec[2], spawnEffect);
+	return StrikePanel(id, level, range, vec[0], vec[2]);
 }
 
 int cTaskPanelMan::StrikePanel(int id, int level, int PanelID)
@@ -110,6 +112,9 @@ int cTaskPanelMan::StrikePanel(int id, int level, int PanelID)
 	return StrikePanel(id, level, SearchPanelID(PanelID));
 }
 
+// DOL ctor 0x801fdcd4: 16 x 16 panels of size 1, no meteor task yet (+0x7e0 = 0: MeteoSpawn 0x80202028 creates it on the first shot; the C# made one
+// up front), panel pattern word (first map object with 0x200000, else 0x200001), stage CSV outside LAN play (cParamStage::LoadValue), the panels
+// (every map object with 0x30000: SetupPanelCB 0x801fea04, stops at the first failure), then stage rect w / h + 1.
 void cTaskPanelMan::Init()
 {
 	Mapoo = new cMotosMapoo();
@@ -132,32 +137,18 @@ void cTaskPanelMan::Init()
 		cParamStage* cParamStage2 = new cParamStage(devtools::G07LevelCsv("CSV_STAGE_PARAM_NORMAL_PARAM"), stageNum); // devtools: dev window difficulty (not 1:1)
 		m_MeteoInfo = cParamStage2->pMeteoInfo();
 		m_SlopeInfo = cParamStage2->pSlopeInfo();
-		m_pMeteoTask = new cTaskCharMeteo();
-		m_pMeteoTask->Create(0u);
-		ConnectChild(m_pMeteoTask);
-		m_pMeteoTask->vMTrans() = Vector4::one * 100.0f;
-		m_pMeteoTask->vSpeed() = Vector4(0.0f, 0.01f, 0.0f, 1.0f);
 	}
 	SetupPanel();
 	m_sStageRect.w++;
 	m_sStageRect.h++;
 }
 
+// DOL dtor 0x80202d64 only detaches the two cMotosSound handles: the child panels / meteor run their own Term on release (audit E4)
 void cTaskPanelMan::Term()
 {
-	for (int i = 0; i < (int)std::size(m_pTaskPanels); i++)
-	{
-		if (m_pTaskPanels[i] != nullptr)
-		{
-			m_pTaskPanels[i]->TermOnce();
-		}
-	}
-	if (m_pMeteoTask != nullptr)
-	{
-		m_pMeteoTask->TermOnce();
-	}
 }
 
+// DOL 0x801fe4a4 [audited: per AUDIT_G03_G07 row] (re-checked 45th: pattern pick, sign, ramps, +60 frame look-ahead for the console)
 void cTaskPanelMan::SlopeMan()
 {
 	if (m_SlopeInfo->m_nPatNum == 0 || KingdomGlobal::g_pMotosGame->nStep(0) != 8)
@@ -259,6 +250,7 @@ void cTaskPanelMan::SetupPanel()
 	Mapoo->SearchObj(196608u, cMotosMapoo::SearchCB([this](DObjParam::sObj* o, cJetTask* a) { return SetupPanelCB(o, a); }), this);
 }
 
+// DOL 0x801fea04 [audited: per AUDIT_G03_G07 row] (type -> panel kind / angle switch checked case by case; 0x10008 / 0x1000a / 0x10010..0x10012 make no panel)
 bool cTaskPanelMan::SetupPanelCB(DObjParam::sObj* obj, cJetTask* args)
 {
 	int kind = -1;
@@ -392,6 +384,7 @@ bool cTaskPanelMan::SetupPanelCB(DObjParam::sObj* obj, cJetTask* args)
 	return true;
 }
 
+// DOL 0x801fed10 [audited: per AUDIT_G03_G07 row] (frame = table 0x8044f900[pattern & 0x1fffff](x, z, 240, w, d), the 19 FrameSet_* equal 0x801ff1ac..0x801ff448)
 bool cTaskPanelMan::SetupPanel(Constants::ePANEL type, int kind, int x, int z, float r)
 {
 	if (x < 0 || (long)x >= (long)m_nWidth || z < 0 || (long)z >= (long)m_nDepth)
@@ -465,6 +458,7 @@ bool cTaskPanelMan::PanelPatternCB(DObjParam::sObj* obj, Ref<uint>* args)
 	return false;
 }
 
+// DOL 0x801ff010 [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 Constants::PANEL_INFO* cTaskPanelMan::pPanel(uint no)
 {
 	CustomKingdomUtil::Assert(no < 256, "array over!");
@@ -475,13 +469,15 @@ Constants::PANEL_INFO* cTaskPanelMan::pPanel(uint no)
 	return nullptr;
 }
 
+// DOL 0x801ff034 [audited: per AUDIT_G03_G07 row]: game pause -> return; MOTOS_IS_PAUSE (app pause +0x1b4, game start +0xd04, game pause) or the HBM bit
+// (get_pad1(0)->hold & 0x400) skips both managers. The meteor part (0x801ff0b0..0x801ff184) is inlined in the DOL = MeteoMan.
 bool cTaskPanelMan::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->IsPause())
 	{
 		return true;
 	}
-	if (!Constants::MOTOS_IS_PAUSE())
+	if (!Constants::MOTOS_IS_PAUSE() && (GamePad::Get(0).hold & GamePad::PAD_HOME) == 0)
 	{
 		MeteoMan();
 		SlopeMan();
@@ -509,7 +505,7 @@ cTaskPanel* cTaskPanelMan::pTaskPanel(int id)
 
 int cTaskPanelMan::FrameSet_random(int x, int z, int max, int w, int d)
 {
-	return Random::Range(0, max);
+	return kingdom::MslRandRange(0, max);
 }
 
 int cTaskPanelMan::FrameSet_sync(int x, int z, int max, int w, int d)
@@ -658,6 +654,7 @@ float cTaskPanelMan::PSP_PanelFrameSet(int x, int z, uint nPatern)
 	return (float)funcs[nPatern](x, z, max, (int)m_nWidth, (int)m_nDepth);
 }
 
+// meteor part of cTaskPanelMan::Execute (inlined there in the DOL; interval = rand() % (max - min) + min)
 void cTaskPanelMan::MeteoMan()
 {
 	if (Constants::IS_LANPLAY() || Constants::IS_LANPLAY() || !Constants::IS_MASTER() || KingdomGlobal::g_pMotosGame->nStep(0) != 8 || KingdomGlobal::g_pMotosGame->pPlayers(0u)->bTestFlag(16448u) || m_MeteoInfo->m_nLimit <= 0)
@@ -671,7 +668,7 @@ void cTaskPanelMan::MeteoMan()
 		num = m_MeteoInfo->m_nInterval_Max - m_MeteoInfo->m_nInterval_Min;
 		if (num != 0)
 		{
-			num = Random::Range(0, num);
+			num = kingdom::MslRandRange(0, num);
 		}
 		m_MeteoInfo->m_nLimit = KingdomGlobal::g_pMotosGame->nMeteoTimer() + m_MeteoInfo->m_nInterval_Min + num;
 	}
@@ -691,17 +688,17 @@ void cTaskPanelMan::MeteoShoot()
 	Vector4 v = Vector4();
 	int num = -1;
 	int num2 = -1;
-	if (Random::Range(0, 100) < 25)
+	if (kingdom::MslRandRange(0, 100) < 25)
 	{
 		int num3 = 0;
 		int num4 = 0;
-		int value = Random::Range(0, 2);
-		switch (Random::Range(0, 4))
+		int value = kingdom::MslRandRange(0, 2);
+		switch (kingdom::MslRandRange(0, 4))
 		{
 		case 0:
 			if (num3 == 0)
 			{
-				num4 = (int)Random::Range(0.0f, nWidth());
+				num4 = (int)kingdom::MslRandRange(0.0f, nWidth());
 			}
 			while (num3 < (int)nWidth())
 			{
@@ -722,7 +719,7 @@ void cTaskPanelMan::MeteoShoot()
 		case 1:
 			if (num3 == 0)
 			{
-				num4 = (int)Random::Range(0.0f, nWidth());
+				num4 = (int)kingdom::MslRandRange(0.0f, nWidth());
 			}
 			while (num3 < (int)nWidth())
 			{
@@ -743,7 +740,7 @@ void cTaskPanelMan::MeteoShoot()
 		case 2:
 			if (num3 == 0)
 			{
-				num4 = (int)Random::Range(0.0f, nDepth());
+				num4 = (int)kingdom::MslRandRange(0.0f, nDepth());
 			}
 			while (num3 < (int)nDepth())
 			{
@@ -764,7 +761,7 @@ void cTaskPanelMan::MeteoShoot()
 		default:
 			if (num3 == 0)
 			{
-				num4 = (int)Random::Range(0.0f, nDepth());
+				num4 = (int)kingdom::MslRandRange(0.0f, nDepth());
 			}
 			while (num3 < (int)nDepth())
 			{
@@ -858,6 +855,7 @@ void cTaskPanelMan::World2Map(Vector4 pMap, const Vector4& pWorld)
 	::Constants::jetGeoVecCopy(pMap, pWorld);
 }
 
+// DOL 0x801fff3c [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 bool cTaskPanelMan::IsFall(float fx, float fy, float fz)
 {
 	Vector4 v = Vector4::zero;
@@ -868,6 +866,7 @@ bool cTaskPanelMan::IsFall(float fx, float fy, float fz)
 	return IsFall(v);
 }
 
+// DOL 0x802000ac [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 bool cTaskPanelMan::IsFall(Vector4 pPos)
 {
 	Constants::PANEL_INFO* pANEL_INFO = SearchPanel(pPos[0], pPos[2]);
@@ -881,6 +880,7 @@ bool cTaskPanelMan::IsFall(Vector4 pPos)
 	}
 }
 
+// DOL 0x80200204 [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 bool cTaskPanelMan::IsMove(Vector4 pPos)
 {
 	Constants::PANEL_INFO* pANEL_INFO = SearchPanel(pPos);
@@ -891,6 +891,7 @@ bool cTaskPanelMan::IsMove(Vector4 pPos)
 	return true;
 }
 
+// DOL 0x802002fc [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 Constants::PANEL_INFO* cTaskPanelMan::SearchPanel(float mx, float mz)
 {
 	CustomKingdomUtil::Assert(m_fPanelSize != 0.0f, "error!");
@@ -899,6 +900,7 @@ Constants::PANEL_INFO* cTaskPanelMan::SearchPanel(float mx, float mz)
 	return SearchPanelNo(x, z);
 }
 
+// DOL 0x802003d0 [audited: panel flag tests (1,2,8 with timer < 15; 0x20), bounds and lookup vs decomp]
 Constants::PANEL_INFO* cTaskPanelMan::SearchPanelNo(int x, int z)
 {
 	if (x < 0 || (long)x >= (long)m_nWidth || z < 0 || (long)z >= (long)m_nDepth)
@@ -908,6 +910,7 @@ Constants::PANEL_INFO* cTaskPanelMan::SearchPanelNo(int x, int z)
 	return pPanel((uint)(x + (long)z * (long)m_nWidth));
 }
 
+// DOL 0x8020042c [audited: per AUDIT_G03_G07 row] (up to 4 results, panels with flag 0x20)
 int cTaskPanelMan::HitCheck(Vector4 pPos, Vector4 pVec, float fRange)
 {
 	int num = 0;
@@ -975,6 +978,7 @@ void cTaskPanelMan::SetItem()
 	Constants::MOTOS_NO_SOURCE("SetItem");
 }
 
+// DOL 0x80200728 [audited: per AUDIT_G03_G07 row]
 int cTaskPanelMan::AvoidPingBall(cTaskChar* pChar0, cTaskChar* pChar1, int axis)
 {
 	if (pChar0 != nullptr && pChar1 != nullptr)
@@ -1019,6 +1023,7 @@ int cTaskPanelMan::AvoidPingBall(cTaskChar* pChar0, cTaskChar* pChar1, int axis)
 	return axis;
 }
 
+// DOL 0x80200bd0 [audited: per AUDIT_G03_G07 row]
 int cTaskPanelMan::HitCheckSubRect(Vector4 pP0, Vector4 pP1, float fRange, Vector4 pPoint)
 {
 	Vector4 v;
@@ -1074,9 +1079,9 @@ int cTaskPanelMan::HitCheckSubRect(Vector4 pP0, Vector4 pP1, float fRange, Vecto
 	return 5;
 }
 
+// DOL 0x80200e1c [audited: per AUDIT_G03_G07 row]: exact == on the edge ends (the C# used Mathf.Approximately); pOut is written only on a hit
 bool cTaskPanelMan::HitCheckSubCrsLine(Vector4& pOut, const Vector4& pP0, const Vector4& pP1, const Vector4& pV0, const Vector4& pV1)
 {
-	pOut = Vector4();
 	bool flag = false;
 	Vector4 v = Vector4::zero;
 	::Constants::jetGeoVecUnit(v);
@@ -1084,7 +1089,7 @@ bool cTaskPanelMan::HitCheckSubCrsLine(Vector4& pOut, const Vector4& pP0, const 
 	Vector4 v3;
 	Vector4 v4;
 	Vector4 v5;
-	if (Mathf::Approximately(pV0[0], pV1[0]))
+	if (pV0[0] == pV1[0])
 	{
 		if ((pP0[0] <= pV0[0] && pP1[0] >= pV0[0]) || (pP1[0] <= pV0[0] && pP0[0] >= pV0[0]))
 		{
@@ -1145,7 +1150,7 @@ bool cTaskPanelMan::HitCheckSubCrsLine(Vector4& pOut, const Vector4& pP0, const 
 			}
 		}
 	}
-	else if (Mathf::Approximately(pV0[2], pV1[2]) && ((pP0[2] <= pV0[2] && pP1[2] >= pV0[2]) || (pP1[2] <= pV0[2] && pP0[2] >= pV0[2])))
+	else if (pV0[2] == pV1[2] && ((pP0[2] <= pV0[2] && pP1[2] >= pV0[2]) || (pP1[2] <= pV0[2] && pP0[2] >= pV0[2])))
 	{
 		if (pP0[0] < pP1[0])
 		{
@@ -1378,7 +1383,8 @@ int cTaskPanelMan::HitCheckSub(Constants::PANEL_INFO* pPanel, Vector4 pos, Vecto
 	return 0;
 }
 
-int cTaskPanelMan::StrikePanel(int id, int level, float range, float mx, float mz, bool spawnEffect)
+// DOL 0x80201cd8 [audited: per AUDIT_G03_G07 row] (four corners at range * 0.70710677, duplicates dropped)
+int cTaskPanelMan::StrikePanel(int id, int level, float range, float mx, float mz)
 {
 	float num = 0.70710677f;
 	Constants::PANEL_INFO* array[4] = {};
@@ -1421,12 +1427,13 @@ int cTaskPanelMan::StrikePanel(int id, int level, float range, float mx, float m
 	}
 	for (int i = 0; i < num2; i++)
 	{
-		num3 |= StrikePanel(id, level, array[i], spawnEffect);
+		num3 |= StrikePanel(id, level, array[i]);
 	}
 	return num3;
 }
 
-int cTaskPanelMan::StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel, bool spawnEffect)
+// DOL 0x80201ec8 [audited: per AUDIT_G03_G07 row] (always spawns effect 0x12; the C#'s spawnEffect flag is gone)
+int cTaskPanelMan::StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel)
 {
 	if (pPanel != nullptr && level != 0)
 	{
@@ -1449,20 +1456,14 @@ int cTaskPanelMan::StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel,
 				if (nStep == 1)
 				{
 					cTaskPanel2->StepChange(Constants::ePANEL_STEP::ePANEL_STEP_FALLING);
-					if (spawnEffect)
-					{
-						Constants::SpawnEffect(18, pPanel->m_vWTrans);
-					}
+					Constants::SpawnEffect(18, pPanel->m_vWTrans);
 					result = 4u;
 				}
 				result = 1u;
 			}
 			else
 			{
-				if (spawnEffect)
-				{
-					Constants::SpawnEffect(18, pPanel->m_vWTrans);
-				}
+				Constants::SpawnEffect(18, pPanel->m_vWTrans);
 				cTaskPanel2->StepChange(Constants::ePANEL_STEP::ePANEL_STEP_CRACK);
 			}
 		}
@@ -1472,10 +1473,7 @@ int cTaskPanelMan::StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel,
 			if ((uint)nStep <= 1u)
 			{
 				cTaskPanel2->StepChange(Constants::ePANEL_STEP::ePANEL_STEP_FALLING);
-				if (spawnEffect)
-				{
-					Constants::SpawnEffect(18, pPanel->m_vWTrans);
-				}
+				Constants::SpawnEffect(18, pPanel->m_vWTrans);
 			}
 			else
 			{
@@ -1495,6 +1493,7 @@ Constants::PANEL_INFO* cTaskPanelMan::SearchPanelID(int PanelID)
 	return SearchPanelNo(x, z);
 }
 
+// DOL 0x80202028 [audited: per AUDIT_G03_G07 row] (creates the meteor task on the first shot)
 bool cTaskPanelMan::MeteoSpawn(Vector4 pTarget, float speed, Vector4 pShootPos, float yuragi, int seid)
 {
 	if (CustomKingdomUtil::IF(speed))
@@ -1510,8 +1509,8 @@ bool cTaskPanelMan::MeteoSpawn(Vector4 pTarget, float speed, Vector4 pShootPos, 
 		::Constants::jetGeoVecCopy(v, pTarget);
 		if (seid != 0)
 		{
-			v[0] += yuragi * ((float)(Random::Range(0, seid) * 2 - seid) / (float)seid);
-			v[2] += yuragi * ((float)(Random::Range(0, seid) * 2 - seid) / (float)seid);
+			v[0] += yuragi * ((float)(kingdom::MslRandRange(0, seid) * 2 - seid) / (float)seid);
+			v[2] += yuragi * ((float)(kingdom::MslRandRange(0, seid) * 2 - seid) / (float)seid);
 		}
 		::Constants::jetGeoVecCopy(m_pMeteoTask->vMTrans(), pShootPos);
 		::Constants::jetGeoVecCopy(m_pMeteoTask->vTarget(), v);
@@ -1523,9 +1522,10 @@ bool cTaskPanelMan::MeteoSpawn(Vector4 pTarget, float speed, Vector4 pShootPos, 
 	return true;
 }
 
+// DOL 0x802022cc [audited: per AUDIT_G03_G07 row]: neighbour table 0x8044fb70 (z-1, z+1, x-1, x+1, the four corners, centre); plain < / > edge tests (the C# added
+// Mathf.Approximately); pOut is written only when a direction survives (the C# cleared it first)
 int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _base)
 {
-	pOut = Vector4();
 	int num = 0;
 	Vector4 _out = Vector4();
 	Constants::PANEL_INFO* pANEL_INFO = nullptr;
@@ -1678,7 +1678,7 @@ int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _b
 			Constants::VEC3_SET(_out, Mathf::Floor(pPos[0] / fPanelSize()) * fPanelSize(), pPos[1], Mathf::Floor(pPos[2] / fPanelSize()) * fPanelSize());
 		}
 		::Constants::jetGeoVecCopy(pOut, pPos);
-		if (CustomKingdomUtil::IF(num & 1) && pPos[2] < _out[2] + fRange && !Mathf::Approximately(pPos[2], _out[2] + fRange))
+		if (CustomKingdomUtil::IF(num & 1) && pPos[2] < _out[2] + fRange)
 		{
 			pOut[2] = _out[2] + fRange;
 		}
@@ -1686,7 +1686,7 @@ int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _b
 		{
 			num &= -2;
 		}
-		if (CustomKingdomUtil::IF(num & 2) && pPos[2] > _out[2] + fPanelSize() - fRange && !Mathf::Approximately(pPos[2], _out[2] + fPanelSize() - fRange))
+		if (CustomKingdomUtil::IF(num & 2) && pPos[2] > _out[2] + fPanelSize() - fRange)
 		{
 			pOut[2] = _out[2] + fPanelSize() - fRange;
 		}
@@ -1694,7 +1694,7 @@ int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _b
 		{
 			num &= -3;
 		}
-		if (CustomKingdomUtil::IF(num & 4) && pPos[0] < _out[0] + fRange && !Mathf::Approximately(pPos[0], _out[0] + fRange))
+		if (CustomKingdomUtil::IF(num & 4) && pPos[0] < _out[0] + fRange)
 		{
 			pOut[0] = _out[0] + fRange;
 		}
@@ -1702,7 +1702,7 @@ int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _b
 		{
 			num &= -5;
 		}
-		if (CustomKingdomUtil::IF(num & 8) && pPos[0] > _out[0] + fPanelSize() - fRange && !Mathf::Approximately(pPos[0], _out[0] + fPanelSize() - fRange))
+		if (CustomKingdomUtil::IF(num & 8) && pPos[0] > _out[0] + fPanelSize() - fRange)
 		{
 			pOut[0] = _out[0] + fPanelSize() - fRange;
 		}
@@ -1714,6 +1714,7 @@ int cTaskPanelMan::AdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int _b
 	return num;
 }
 
+// DOL 0x802028a0 [audited: per AUDIT_G03_G07 row] (four sides + centre; nearest open side wins unless the pad asks for one; missing side = 65536)
 int cTaskPanelMan::ForceAdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, int input_dir)
 {
 	int num = 0;
@@ -1749,7 +1750,6 @@ int cTaskPanelMan::ForceAdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, i
 			break;
 		}
 		pANEL_INFO = SearchPanelNo(x, z);
-		(void)(4);
 		if (pANEL_INFO == nullptr)
 		{
 			level[i] = -1;
@@ -1804,12 +1804,12 @@ int cTaskPanelMan::ForceAdjustPanel(Vector4& pOut, Vector4 pPos, float fRange, i
 			num |= 1 << j;
 		}
 	}
-	if (num != 0 && CustomKingdomUtil::IF(pOut))
+	if (num != 0)   // DOL: pOut != NULL (always, a reference here); the C# tested the VECTOR for non-zero, and every caller passes (0, 0, 0)
 	{
 		int num4 = -1;
 		for (int k = 0; k < 4; k++)
 		{
-			if (((num != 0) & CustomKingdomUtil::IF(1 << k)) && (num4 < 0 || dist[num4] > dist[k] || CustomKingdomUtil::IF(input_dir & (1 << k))))
+			if ((num & (1 << k)) != 0 && (num4 < 0 || dist[num4] > dist[k] || CustomKingdomUtil::IF(input_dir & (1 << k))))   // DOL: num & bit (the C# had (num != 0) & bit)
 			{
 				num4 = k;
 			}

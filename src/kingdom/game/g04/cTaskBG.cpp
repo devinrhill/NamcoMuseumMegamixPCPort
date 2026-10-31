@@ -60,7 +60,7 @@ cTaskBG::cTaskBG()
 	Init();
 }
 
-// DOL 0x8019ce0c. 0x8001e16c (register the model with the app's scene root) is implicit natively.
+// DOL 0x8019ce0c [audited]. 0x8001e16c (register the model with the app's scene root) is implicit natively.
 void cTaskBG::Init()
 {
 	cKingdomModel* set = CreateModel(0u);   // FUN_8009991c(+0x88, 0)

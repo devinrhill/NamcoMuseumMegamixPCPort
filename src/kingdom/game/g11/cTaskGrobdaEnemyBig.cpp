@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g11/cTaskGrobdaEnemyBig.hpp"
 
 #include <cmath>
@@ -22,7 +23,7 @@ constexpr float DEG = 0.017453292f;
 
 // ---- Fortres ---------------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x80028ec4 (type 0x20000006) + Init 0x80028fa0
+// DOL 0x80028ec4 [audited] (type 0x20000006) + Init 0x80028fa0
 cTaskGrobdaEnemyFortres::cTaskGrobdaEnemyFortres()
 	: cTaskGrobdaEnemy(0x20000006u)
 {
@@ -32,7 +33,7 @@ cTaskGrobdaEnemyFortres::cTaskGrobdaEnemyFortres()
 	m->SetLightSetIdx(1);
 	m->SetFogIdx(1);
 	m->RegistExpand(0, "cannon", "BIN_MDL_ENEMY_06_CANNON", 0x36f);
-	if (cKingdomModel* c = m->pExpandMdl(0)) { c->SetLightSetIdx(1); c->SetFogIdx(1); }
+	m->IsDrawShadowDepth(true);   // vtable +0x20 (1); the cannon takes the light set from the body in RegistExpand (0x8001fe58), not the fog
 	m->Visible();
 	cKingdomModel* d = CreateModel(1);
 	d->RegistModel("BIN_MDL_DEBRIS_ENEMY_06", 0x36f);
@@ -68,17 +69,17 @@ cTaskGrobdaEnemyFortres::cTaskGrobdaEnemyFortres()
 	for (int l = 0; l < 3; l++)
 	{
 		const int col = l + 1;
-		m_Par[l].speed = m_Csv.F32(0, col, 0.0f);
-		m_Par[l].shotSpeed = m_Csv.F32(1, col, 0.0f);
-		m_Par[l].wait = (uint)m_Csv.F32(2, col, 0.0f);
-		m_Par[l].move = (uint)m_Csv.F32(3, col, 0.0f);
-		m_Par[l].moveMin = (uint)m_Csv.F32(4, col, 0.0f);
-		m_Par[l].ring = (uint)m_Csv.F32(5, col, 0.0f);
-		m_Par[l].aimed = (uint)m_Csv.F32(6, col, 0.0f);
+		m_Par[l].speed = m_Csv.F32(0, col, 255.0f);   // FLOAT_80479f58
+		m_Par[l].shotSpeed = m_Csv.F32(1, col, 255.0f);
+		m_Par[l].wait = (uint)m_Csv.S32(2, col, 0xff);
+		m_Par[l].move = (uint)m_Csv.S32(3, col, 0xff);
+		m_Par[l].moveMin = (uint)m_Csv.S32(4, col, 0xff);
+		m_Par[l].ring = (uint)m_Csv.S32(5, col, 0xff);
+		m_Par[l].aimed = (uint)m_Csv.S32(6, col, 0xff);
 	}
 }
 
-// DOL 0x8002947c: the angle (steps of 22 degrees up to 88) turns the body; the cannon offset turns with it
+// DOL 0x8002947c [audited]: the angle (steps of 22 degrees up to 88) turns the body; the cannon offset turns with it
 void cTaskGrobdaEnemyFortres::SetStart(int level, int delay, int angleDeg)
 {
 	int deg = angleDeg;
@@ -102,7 +103,7 @@ void cTaskGrobdaEnemyFortres::SetStart(int level, int delay, int angleDeg)
 	ComboStep() = m_Csv.S32(9, m_nLevel + 1, 0xff);
 }
 
-// DOL 0x80029700
+// DOL 0x80029700 [audited]
 bool cTaskGrobdaEnemyFortres::HasShots()
 {
 	for (cTaskGrobdaShotEnemy* s : m_pRing) if (s != nullptr && s->nState() != 0) return true;
@@ -110,7 +111,7 @@ bool cTaskGrobdaEnemyFortres::HasShots()
 	return false;
 }
 
-// DOL 0x80029d38
+// DOL 0x80029d38 [audited]
 void cTaskGrobdaEnemyFortres::Anim(int mode)
 {
 	m_nAnim = mode;
@@ -125,7 +126,7 @@ void cTaskGrobdaEnemyFortres::Anim(int mode)
 	m->RegistAnm(0u, NAME[mode]);
 }
 
-// DOL 0x80029f64: four ring shots at 90 degrees from the cannon's yaw, half a unit out
+// DOL 0x80029f64 [audited]: four ring shots at 90 degrees from the cannon's yaw, half a unit out
 void cTaskGrobdaEnemyFortres::FireRing()
 {
 	cKingdomModel* m = pModel(0);
@@ -145,7 +146,7 @@ void cTaskGrobdaEnemyFortres::FireRing()
 	}
 }
 
-// DOL 0x80029798
+// DOL 0x80029798 [audited]
 void cTaskGrobdaEnemyFortres::Ai()
 {
 	float* pos = GetPos();
@@ -158,7 +159,7 @@ void cTaskGrobdaEnemyFortres::Ai()
 		if (TakeModeChanged())
 		{
 			Anim(1);
-			std::memcpy(m_vDir, grobda_dir::Dir8(std::rand() & 7), 16);
+			std::memcpy(m_vDir, grobda_dir::Dir8(kingdom::MslRand() & 7), 16);
 			TimerReset(0);
 			TimerStart(0);
 		}
@@ -240,7 +241,7 @@ void cTaskGrobdaEnemyFortres::Ai()
 			}
 }
 
-// DOL 0x8002a1e8
+// DOL 0x8002a1e8 [audited]
 void cTaskGrobdaEnemyFortres::Phase2()
 {
 	TakeEnter(false);
@@ -251,7 +252,7 @@ void cTaskGrobdaEnemyFortres::Phase2()
 	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(1, this, nullptr);
 }
 
-// DOL 0x8002a260
+// DOL 0x8002a260 [audited]
 void cTaskGrobdaEnemyFortres::Phase3()
 {
 	if (TakeEnter(false))
@@ -265,7 +266,7 @@ void cTaskGrobdaEnemyFortres::Phase3()
 		if (m->GetFrameMaxAnmChr(0) <= m->GetFrameAnmChr(0)) SetPhase(4);
 }
 
-// DOL 0x8002a3f4
+// DOL 0x8002a3f4 [audited]
 void cTaskGrobdaEnemyFortres::Phase4()
 {
 	if (TakeEnter(false))
@@ -278,7 +279,7 @@ void cTaskGrobdaEnemyFortres::Phase4()
 	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(4, this, nullptr);
 }
 
-// DOL 0x8002a478
+// DOL 0x8002a478 [audited]
 void cTaskGrobdaEnemyFortres::Phase5()
 {
 	if (TakeEnter(false))
@@ -298,7 +299,7 @@ void cTaskGrobdaEnemyFortres::Phase5()
 		}
 }
 
-// DOL 0x8002a570: a hit that does not kill flashes the hit-damage clip for 300 ms
+// DOL 0x8002a570 [audited]: a hit that does not kill flashes the hit-damage clip for 300 ms
 void cTaskGrobdaEnemyFortres::Resolve(int a, int b)
 {
 	const int before = Hp();
@@ -311,7 +312,7 @@ void cTaskGrobdaEnemyFortres::Resolve(int a, int b)
 	}
 }
 
-// DOL 0x8002936c: the hit flash ends after 300 ms
+// DOL 0x8002936c [audited]: the hit flash ends after 300 ms
 bool cTaskGrobdaEnemyFortres::Execute(cJetTask* pParam)
 {
 	if (cTaskGrobdaCollision::Running() && TimerRunning(4) && TimerMs(4) >= 300)
@@ -325,7 +326,7 @@ bool cTaskGrobdaEnemyFortres::Execute(cJetTask* pParam)
 
 // ---- Frossor -----------------------------------------------------------------------------------------------------------------------------
 
-// DOL 0x8002bd30 (Brown, type 0x20000005, shots 0x2000006) / 0x8002c1b0 (Green, type 0x20000004, shots 0x2000005) + Init 0x8002be0c / 0x8002c28c + 0x8002a708
+// DOL 0x8002bd30 [audited] (Brown, type 0x20000005, shots 0x2000006) / 0x8002c1b0 (Green, type 0x20000004, shots 0x2000005) + Init 0x8002be0c / 0x8002c28c + 0x8002a708
 cTaskGrobdaEnemyFrossor::cTaskGrobdaEnemyFrossor(uint type, bool brown)
 	: cTaskGrobdaEnemy(type)
 {
@@ -334,6 +335,7 @@ cTaskGrobdaEnemyFrossor::cTaskGrobdaEnemyFrossor(uint type, bool brown)
 	m->RegistModel(brown ? "BIN_MDL_ENEMY_05" : "BIN_MDL_ENEMY_04", 0x36f);
 	m->SetLightSetIdx(1);
 	m->SetFogIdx(1);
+	m->IsDrawShadowDepth(true);   // vtable +0x20 (1)
 	m->Visible();
 	cKingdomModel* d = CreateModel(1);
 	d->RegistModel(brown ? "BIN_MDL_DEBRIS_ENEMY_05" : "BIN_MDL_DEBRIS_ENEMY_04", 0x36f);
@@ -362,23 +364,23 @@ cTaskGrobdaEnemyFrossor::cTaskGrobdaEnemyFrossor(uint type, bool brown)
 	{
 		const int c = l + 1;
 		sPar& p = m_Par[l];
-		p.speed = m_Csv.F32(0, c, 0.0f);
-		p.speedDebris = m_Csv.F32(1, c, 0.0f);
-		p.shotSpeed = m_Csv.F32(2, c, 0.0f);
-		p.shotCount = (uint)m_Csv.F32(3, c, 0.0f);
-		p.move = (uint)m_Csv.F32(4, c, 0.0f);
-		p.moveMin = (uint)m_Csv.F32(5, c, 0.0f);
-		p.turn = (uint)m_Csv.F32(6, c, 0.0f);
-		p.wallWait = (uint)m_Csv.F32(7, c, 0.0f);
-		p.interval = (uint)m_Csv.F32(8, c, 0.0f);
-		p.intervalSeen = (uint)m_Csv.F32(9, c, 0.0f);
-		p.dodgeSpeed = m_Csv.F32(10, c, 0.0f);
-		p.dodge = (uint)m_Csv.F32(11, c, 0.0f);
-		p.dodgeMin = (uint)m_Csv.F32(12, c, 0.0f);
+		p.speed = m_Csv.F32(0, c, 255.0f);
+		p.speedDebris = m_Csv.F32(1, c, 255.0f);
+		p.shotSpeed = m_Csv.F32(2, c, 255.0f);
+		p.shotCount = (uint)m_Csv.S32(3, c, 0xff);
+		p.move = (uint)m_Csv.S32(4, c, 0xff);
+		p.moveMin = (uint)m_Csv.S32(5, c, 0xff);
+		p.turn = (uint)m_Csv.S32(6, c, 0xff);
+		p.wallWait = (uint)m_Csv.S32(7, c, 0xff);
+		p.interval = (uint)m_Csv.S32(8, c, 0xff);
+		p.intervalSeen = (uint)m_Csv.S32(9, c, 0xff);
+		p.dodgeSpeed = m_Csv.F32(10, c, 255.0f);
+		p.dodge = (uint)m_Csv.S32(11, c, 0xff);
+		p.dodgeMin = (uint)m_Csv.S32(12, c, 0xff);
 	}
 }
 
-// DOL 0x8002a840: the angle in 22 degree steps picks the facing (16 directions)
+// DOL 0x8002a840 [audited]: the angle in 22 degree steps picks the facing (16 directions)
 void cTaskGrobdaEnemyFrossor::SetStart(int level, int delay, int angleDeg)
 {
 	int deg = angleDeg;
@@ -397,14 +399,14 @@ void cTaskGrobdaEnemyFrossor::SetStart(int level, int delay, int angleDeg)
 	ComboStep() = m_Csv.S32(15, m_nLevel + 1, 0xff);
 }
 
-// DOL 0x8002ab08
+// DOL 0x8002ab08 [audited]
 bool cTaskGrobdaEnemyFrossor::HasShots()
 {
 	for (cTaskGrobdaShotEnemy* s : m_pShot) if (s != nullptr && s->nState() != 0) return true;
 	return false;
 }
 
-// DOL 0x8002ab68
+// DOL 0x8002ab68 [audited]
 void cTaskGrobdaEnemyFrossor::Anim(int mode)
 {
 	m_nAnim = mode;
@@ -416,7 +418,7 @@ void cTaskGrobdaEnemyFrossor::Anim(int mode)
 	m->RegistAnm(0u, NAME[mode]);
 }
 
-// DOL 0x8002b578: a player that has just fired aims along a line; when it passes within 2 units (distance^2 <= FLOAT_80479f8c = 4) in front of the player, step away from the line
+// DOL 0x8002b578 [audited]: a player that has just fired aims along a line; when it passes within 2 units (distance^2 <= FLOAT_80479f8c = 4) in front of the player, step away from the line
 // (the direction nearest to the offset from the line's point; turned a step at a time while a wall is in the way)
 bool cTaskGrobdaEnemyFrossor::Danger()
 {
@@ -441,8 +443,8 @@ bool cTaskGrobdaEnemyFrossor::Danger()
 		if (!(uu >= 1.17549435e-38f)) continue;
 		const float t = (u[0] * w[0] + u[2] * w[2]) / uu;
 		if (!(t >= 1.17549435e-38f)) continue;
-		const float foot[3] = {p1[0] + u[0] * t, 0.0f, p1[2] + u[2] * t};
-		const float d2 = (foot[0] - me[0]) * (foot[0] - me[0]) + (foot[2] - me[2]) * (foot[2] - me[2]);
+		const float foot[3] = {p1[0] + u[0] * t, p1[1], p1[2] + u[2] * t};
+		const float d2 = (foot[0] - me[0]) * (foot[0] - me[0]) + (foot[1] - me[1]) * (foot[1] - me[1]) + (foot[2] - me[2]) * (foot[2] - me[2]);   // the y difference counts here
 		if (d2 > 4.0f) continue;
 		const float off[3] = {me[0] - foot[0], 0.0f, me[2] - foot[2]};
 		int idx = grobda_dir::Nearest16(off);
@@ -459,7 +461,7 @@ bool cTaskGrobdaEnemyFrossor::Danger()
 	return false;
 }
 
-// DOL 0x8002b824: one homing shot along the facing while fewer than the shot count are in the air
+// DOL 0x8002b824 [audited]: one homing shot along the facing while fewer than the shot count are in the air
 void cTaskGrobdaEnemyFrossor::Shoot()
 {
 	uint active = 0;
@@ -477,7 +479,7 @@ void cTaskGrobdaEnemyFrossor::Shoot()
 	}
 }
 
-// DOL 0x8002acc8: actions 0 turn in place by random steps, 1 wait, 2 shoot, 3 wander, 4 dodge
+// DOL 0x8002acc8 [audited]: actions 0 turn in place by random steps, 1 wait, 2 shoot, 3 wander, 4 dodge
 void cTaskGrobdaEnemyFrossor::Ai()
 {
 	float* pos = GetPos();
@@ -502,10 +504,10 @@ void cTaskGrobdaEnemyFrossor::Ai()
 		if (TakeModeChanged())
 		{
 			Anim(0);
-			m_nTurnSteps = std::rand() & 7;
+			m_nTurnSteps = kingdom::MslRand() & 7;
 			if (m_nTurnSteps != 0)
 			{
-				m_nTurnDir = std::rand() & 1;
+				m_nTurnDir = kingdom::MslRand() & 1;
 				m_nDirTarget = m_nTurnDir == 0 ? (m_nDirIdx == 15 ? 0 : m_nDirIdx + 1) : (m_nDirIdx == 0 ? 15 : m_nDirIdx - 1);
 			}
 			TimerReset(0);
@@ -589,7 +591,7 @@ void cTaskGrobdaEnemyFrossor::Ai()
 		if (TakeModeChanged())
 		{
 			Anim(1);
-			std::memcpy(m_vMoveDir, grobda_dir::Dir16(std::rand() & 15), 16);
+			std::memcpy(m_vMoveDir, grobda_dir::Dir16(kingdom::MslRand() & 15), 16);
 			TimerReset(0);
 			TimerStart(0);
 		}
@@ -615,7 +617,7 @@ void cTaskGrobdaEnemyFrossor::Ai()
 	}
 }
 
-// DOL 0x8002b9a4
+// DOL 0x8002b9a4 [audited]
 void cTaskGrobdaEnemyFrossor::Phase2()
 {
 	TakeEnter(false);
@@ -626,7 +628,7 @@ void cTaskGrobdaEnemyFrossor::Phase2()
 	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(1, this, nullptr);
 }
 
-// DOL 0x8002ba1c
+// DOL 0x8002ba1c [audited]
 void cTaskGrobdaEnemyFrossor::Phase3()
 {
 	if (TakeEnter(false))
@@ -640,7 +642,7 @@ void cTaskGrobdaEnemyFrossor::Phase3()
 		if (m->GetFrameMaxAnmChr(0) <= m->GetFrameAnmChr(0)) SetPhase(4);
 }
 
-// DOL 0x8002bb8c
+// DOL 0x8002bb8c [audited]
 void cTaskGrobdaEnemyFrossor::Phase4()
 {
 	if (TakeEnter(false))
@@ -653,7 +655,7 @@ void cTaskGrobdaEnemyFrossor::Phase4()
 	if (st != nullptr && !st->IsEnded() && cTaskGrobdaCollision::Instance() != nullptr) cTaskGrobdaCollision::Instance()->Register(4, this, nullptr);
 }
 
-// DOL 0x8002bc10
+// DOL 0x8002bc10 [audited]
 void cTaskGrobdaEnemyFrossor::Phase5()
 {
 	if (TakeEnter(false))

@@ -10,17 +10,17 @@ cTaskSmokeMan::sHooks cTaskSmokeMan::Hooks;
 bool cTaskSmokeMan::IsLive(kingdom::cTaskModel* g) { return g != nullptr && Hooks.IsLive != nullptr && Hooks.IsLive(g); }
 u32 cTaskSmokeMan::Owner(kingdom::cTaskModel* g) { return g != nullptr && Hooks.Owner != nullptr ? Hooks.Owner(g) : 0u; }
 
-// the inline ctor in DOL 0x80076cb0 (cTaskKingdom ctor, vtable 0x80393be0, vector +0x1b4..+0x1bc = 0) + Init 0x8007c0dc (empty)
+// the inline ctor in DOL 0x80076cb0 [audited] (cTaskKingdom ctor, vtable 0x80393be0, vector +0x1b4..+0x1bc = 0) + Init 0x8007c0dc (empty)
 cTaskSmokeMan::cTaskSmokeMan() { SetName("g02::cTaskSmokeMan"); }
 
-// DOL 0x8007c0e0
+// DOL 0x8007c0e0 [audited]
 bool cTaskSmokeMan::Execute(cJetTask* pParam)
 {
 	(void)pParam;
 	return true;
 }
 
-// DOL 0x8007c0e8 (the DOL tests the argument, not the result of its dynamic_cast to the smoke class)
+// DOL 0x8007c0e8 [audited] (the DOL tests the argument, not the result of its dynamic_cast to the smoke class)
 bool cTaskSmokeMan::Add(kingdom::cTaskModel* g)
 {
 	if (g == nullptr) return false;
@@ -28,7 +28,7 @@ bool cTaskSmokeMan::Add(kingdom::cTaskModel* g)
 	return true;
 }
 
-// DOL 0x8007c47c
+// DOL 0x8007c47c [audited]
 int cTaskSmokeMan::Put(u32 nOwner, u32 nMax, const int cell[2], int nArg)
 {
 	u32 n = 0;
@@ -50,7 +50,7 @@ int cTaskSmokeMan::Put(u32 nOwner, u32 nMax, const int cell[2], int nArg)
 	return 0;
 }
 
-// DOL 0x8007c400
+// DOL 0x8007c400 [audited]
 bool cTaskSmokeMan::Reset()
 {
 	for (kingdom::cTaskModel* g : m_vSmoke)
@@ -58,7 +58,7 @@ bool cTaskSmokeMan::Reset()
 	return true;
 }
 
-// DOL 0x8007c59c
+// DOL 0x8007c59c [audited]
 bool cTaskSmokeMan::IsFree(u32 nOwner) const
 {
 	for (kingdom::cTaskModel* g : m_vSmoke)

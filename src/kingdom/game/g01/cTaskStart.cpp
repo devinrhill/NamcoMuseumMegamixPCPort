@@ -64,7 +64,7 @@ float Frame(cKingdomModel* m, int k)
 }
 }
 
-// DOL 0x800faf04
+// DOL 0x800faf04 [audited]
 cTaskStart::cTaskStart()
 {
 	SetName("g01::cTaskStart");
@@ -72,7 +72,7 @@ cTaskStart::cTaskStart()
 
 cTaskStart::~cTaskStart() = default;
 
-// DOL 0x800fb0e4 / 0x800fb188: for n = 1, 2 ... while m01g_s%x_s%02d.brres exists, the first skeleton node containing m01g_s%x_s%02d_
+// DOL 0x800fb0e4 [audited] / 0x800fb188: for n = 1, 2 ... while m01g_s%x_s%02d.brres exists, the first skeleton node containing m01g_s%x_s%02d_
 // gives the placement (translate, rotate * DEG2RAD, scale). Stage 1 registers its demo object with cDemoMan, the others load the a01
 // models at once. State 2 (no demo running).
 void cTaskStart::Setup(int nStage, const wii::Mdl0& skel)
@@ -113,7 +113,7 @@ void cTaskStart::Setup(int nStage, const wii::Mdl0& skel)
 	m_nState = 2;
 }
 
-// DOL 0x800fb97c: model slot i = m01g_s%x_s%02d.brres of placement i at its SRT, light set 0, fog 3
+// DOL 0x800fb97c [audited]: model slot i = m01g_s%x_s%02d.brres of placement i at its SRT, light set 0, fog 3
 void cTaskStart::LoadModels()
 {
 	for (std::size_t i = 0; i < m_Place.size(); i++)
@@ -130,7 +130,7 @@ void cTaskStart::LoadModels()
 	}
 }
 
-// DOL 0x800fbcb8: the a01 clips (cha / cla / tsa at 0.1 before world 3, else 1.0; tpa / via at 1.0)
+// DOL 0x800fbcb8 [audited]: the a01 clips (cha / cla / tsa at 0.1 before world 3, else 1.0; tpa / via at 1.0)
 void cTaskStart::LoadGame()
 {
 	static const char* const A01[5] = {"m01g_s%x_s%02d_a01_cha.brres", "m01g_s%x_s%02d_a01_cla.brres", "m01g_s%x_s%02d_a01_tsa.brres",
@@ -146,7 +146,7 @@ void cTaskStart::LoadGame()
 		}
 }
 
-// DOL 0x800fbab0: the stage 1 demo clips m01g_s1_s%02d_a10_* at 1.0; the longest clip of all is the demo's (cAnmCheck: model, kind, max)
+// DOL 0x800fbab0 [audited]: the stage 1 demo clips m01g_s1_s%02d_a10_* at 1.0; the longest clip of all is the demo's (cAnmCheck: model, kind, max)
 void cTaskStart::LoadDemo()
 {
 	static const char* const A10[5] = {"m01g_s1_s%02d_a10_cha.brres", "m01g_s1_s%02d_a10_cla.brres", "m01g_s1_s%02d_a10_tsa.brres",
@@ -225,7 +225,7 @@ void cTaskStart::DemoFinish()
 	m_nSe = m_nSeEnd = -1;
 }
 
-// DOL 0x800fbeec: state 0 runs the demo object (0x801bce00: Init, then until its check fails), then the clips advance (0x8009a478)
+// DOL 0x800fbeec [audited: the demo object's goal tick (state 1, 0x801bce94) is not used by the start demo; its ticks live in DemoInit / DemoCheck]: state 0 runs the demo object (0x801bce00: Init, then until its check fails), then the clips advance (0x8009a478)
 bool cTaskStart::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused

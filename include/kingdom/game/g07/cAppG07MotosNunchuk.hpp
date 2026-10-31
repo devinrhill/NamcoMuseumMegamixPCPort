@@ -11,6 +11,7 @@ class cAppG07MotosNunchuk : public menu::cAppGameBaseNunchuk
 {
 public:
 	cAppG07MotosNunchuk();
+	void Free() override;
 
 protected:
 	bool IsSkip() override;

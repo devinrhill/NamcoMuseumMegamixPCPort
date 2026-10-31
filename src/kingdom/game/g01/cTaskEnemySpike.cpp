@@ -29,7 +29,7 @@ cTaskEnemySpike::cTaskEnemySpike()
 	SetName("g01::cTaskEnemySpike");
 }
 
-// DOL 0x800e8310: active, not collidable, type 13, its EnemyParam row (0x800e3800), the model and place (vtable +0xcc = 0x800e8514: model
+// DOL 0x800e8310 [audited]: active, not collidable, type 13, its EnemyParam row (0x800e3800), the model and place (vtable +0xcc = 0x800e8514: model
 // of type 13 with fog 3; position = node translate + Rz Ry Rx(node rotate) * -(model node "root" translate), rotation, scale), the
 // SpikeGalaga_s%x.csv row nIndex (0-based)
 void cTaskEnemySpike::SetupSpike(const wii::Mdl0Node& node, int nStage, int nIndex, int nModel, const char* csvFormat)
@@ -83,14 +83,14 @@ void cTaskEnemySpike::SetupSpike(const wii::Mdl0Node& node, int nStage, int nInd
 	ConnectChild(m_pMarker);
 }
 
-// DOL 0x800e8e38: the enemy's state 2 (0x800e2de0), the marker goes
+// DOL 0x800e8e38 [audited]: the enemy's state 2 (0x800e2de0), the marker goes
 void cTaskEnemySpike::Dead()
 {
 	cTaskEnemy::Dead();
 	if (m_pMarker != nullptr) m_pMarker->Hide();
 }
 
-// DOL 0x800e8934: step 0 the grow clips CHAR_ENEMY_SPIKE_ANM_CHA_04 / CLA_04 (rate 1.0); step 1 at the bone clip's end the loop CHA_01
+// DOL 0x800e8934 [audited]: step 0 the grow clips CHAR_ENEMY_SPIKE_ANM_CHA_04 / CLA_04 (rate 1.0); step 1 at the bone clip's end the loop CHA_01
 void cTaskEnemySpike::GrowStep()
 {
 	cKingdomModel* m = pModel(0);
@@ -112,17 +112,16 @@ void cTaskEnemySpike::GrowStep()
 	}
 }
 
-// DOL 0x800e8cdc: Pac-Man (kind 3) touches it while not jumping (0x800f4bc4): spheres 0.35 / 1.0 (0x801c1aa4)
+// DOL 0x800e8cdc [audited]: Pac-Man (kind 3) touches it while not jumping (0x800f4bc4): spheres 0.35 / 1.0 (0x801c1aa4)
 bool cTaskEnemySpike::HitCheck(cObject* other)
 {
 	if (other->nKind() != 3 || other->bJumping()) return false;
 	const float* a = other->vPos();
 	const float d[3] = {a[0] - m_v20.x, a[1] - m_v20.y, a[2] - m_v20.z};
-	const float r = PAC_RADIUS + SPIKE_RADIUS;
-	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
+	return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) < PAC_RADIUS + SPIKE_RADIUS;   // 0x801c1aa4: distance < r1 + r2
 }
 
-// DOL 0x800e8d4c: Pac-Man ran into it -> PTK_SPIKE_HIT01 at the spike (Pac-Man's own callback takes the damage); a shot -> as any enemy
+// DOL 0x800e8d4c [audited]: Pac-Man ran into it -> PTK_SPIKE_HIT01 at the spike (Pac-Man's own callback takes the damage); a shot -> as any enemy
 void cTaskEnemySpike::HitCallback(cObject* other)
 {
 	if (other->nKind() == 3)
@@ -133,7 +132,7 @@ void cTaskEnemySpike::HitCallback(cObject* other)
 	cTaskEnemy::HitCallback(other);
 }
 
-// DOL 0x800e8ab0
+// DOL 0x800e8ab0 [audited]
 bool cTaskEnemySpike::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -152,8 +151,7 @@ bool cTaskEnemySpike::Execute(cJetTask* pParam)
 		GrowStep();                                               // +0x7c
 	else if (m_nState == 2)
 	{
-		if (DieStep()) Leave();                                   // +0xc8 / +0xa8, then +0x84
-		return true;
+		if (!m_bKilled || DieStep()) Leave();   // +0xc8, then +0x84 = 0x800e271c (a killed spike runs its death step +0xa8 first); the flash step still follows
 	}
 	if (!m_b14 && m_nState != 2 && !m_bHitOn && m_fHitFrom < frame)
 	{

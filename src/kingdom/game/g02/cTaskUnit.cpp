@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g02/cG02RallyXRecord.hpp"
 #include "kingdom/game/g02/cTaskUnit.hpp"
 
@@ -37,7 +38,7 @@ constexpr float TWO_PI = 6.2831855f;         // FLOAT_8047aa7c
 constexpr float ROLL_MAX = 572.958f;         // FLOAT_8047aa60 (the steering roll +0x254: 10 turns' worth of degrees, read by nothing found)
 constexpr float ROLL_STEP = 5.72958f;        // FLOAT_8047aa64
 
-int Rand15() { return std::rand() & 0x7fff; }   // the SDK rand() (0..32767)
+int Rand15() { return kingdom::MslRand() & 0x7fff; }   // the SDK rand() (0..32767)
 
 // a clip entry's kind (the native IsAttached bookkeeping of 0x8007ca24: CHR0 / VIS0 / CLR0 / PAT0 / SRT0 slots are separate)
 int ClipKind(const char* name)
@@ -75,7 +76,7 @@ bool IsPlaying(const WiiSnd::Handle& h) { return h.voice >= 0 && snd::IsPlaying(
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // small shared helpers
 
-// DOL 0x800c53c0
+// DOL 0x800c53c0 [audited]
 bool cTaskUnit::Up(float target, float step, float& v)
 {
 	v = v + step;
@@ -87,7 +88,7 @@ bool cTaskUnit::Up(float target, float step, float& v)
 	return false;
 }
 
-// DOL 0x800c5450
+// DOL 0x800c5450 [audited]
 bool cTaskUnit::Down(float target, float step, float& v)
 {
 	v = v + step;
@@ -99,13 +100,13 @@ bool cTaskUnit::Down(float target, float step, float& v)
 	return false;
 }
 
-// DOL 0x800c53ec (FLOAT_8047b2e4 = 1)
+// DOL 0x800c53ec [audited] (FLOAT_8047b2e4 = 1)
 bool cTaskUnit::Inc1(float target, float& v) { return Up(target, 1.0f, v); }
 
-// DOL 0x800c547c (FLOAT_8047b2ec = -1)
+// DOL 0x800c547c [audited] (FLOAT_8047b2ec = -1)
 bool cTaskUnit::Dec1(float target, float& v) { return Down(target, -1.0f, v); }
 
-// DOL 0x800c54ac (FLOAT_8047b2f0 = -99999)
+// DOL 0x800c54ac [audited] (FLOAT_8047b2f0 = -99999)
 bool cTaskUnit::Dec1Floor(float& v) { return Down(-99999.0f, -1.0f, v); }
 
 int cTaskUnit::DirDeg(int nDir)
@@ -122,10 +123,10 @@ int cTaskUnit::DirDeg(int nDir)
 
 bool cTaskUnit::IsMultiStage() { return KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsMulti(); }
 bool cTaskUnit::IsBossStageNow() { return KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsBossStage(); }
-int cTaskUnit::SysView(int nIndex) { return (unsigned)nIndex < 4u ? cG02RallyXSysExt::nCtrlType[nIndex] : 2; }   // DOL 0x800c5b88 (sys +0x14 + 0x14 i; ctor default 2)
-int cTaskUnit::SysPad(int nIndex) { return (unsigned)nIndex < 4u ? cG02RallyXSysExt::nPadNo[nIndex] : nIndex; }   // DOL 0x800c5b98 (sys +0x1c + 0x14 i; ctor default = the index)
-int cTaskUnit::SysPattern() { return 1; }                          // NOT PORTED getter (sys +0x04; ctor default 1)
-bool cTaskUnit::SysWinner(int nIndex) { (void)nIndex; return false; }   // NOT PORTED getter (sys +0x10 bit i, set by 0x800c5898)
+int cTaskUnit::SysView(int nIndex) { return (unsigned)nIndex < 4u ? cG02RallyXSysExt::nCtrlType[nIndex] : 2; }   // DOL 0x800c5b88 [audited] (sys +0x14 + 0x14 i; ctor default 2)
+int cTaskUnit::SysPad(int nIndex) { return (unsigned)nIndex < 4u ? cG02RallyXSysExt::nPadNo[nIndex] : nIndex; }   // DOL 0x800c5b98 [audited] (sys +0x1c + 0x14 i; ctor default = the index)
+int cTaskUnit::SysPattern() { return KingdomGlobal::RallyXSys != nullptr ? KingdomGlobal::RallyXSys->nTimeIdx() : 1; }   // DOL 0x800c5990 [audited] (sys +0x04, the time choice; ctor default 1)
+bool cTaskUnit::SysWinner(int nIndex) { return KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::RallyXSys->IsPlayerActive(nIndex); }   // DOL 0x800c58b0 [audited] (sys +0x10 bit i, set by 0x800c5898)
 
 bool cTaskUnit::IsFrozen() const
 {
@@ -142,7 +143,7 @@ int cTaskUnit::MapCell(int x, int z) const
 	return map != nullptr ? map->Cell(x, z) : 0;   // the DOL reads MAPOO_MAP +0x20 + (x + z * width) * 2 unchecked
 }
 
-// DOL 0x80079aec
+// DOL 0x80079aec [audited]
 bool cTaskUnit::MapRoad(int x, int z) const
 {
 	cTaskMap* map = m_pHost != nullptr ? m_pHost->pUnitMap() : nullptr;
@@ -183,7 +184,7 @@ kingdom::cKingdomModel* cTaskUnit::pHeadSpin()
 	return body != nullptr ? body->pExpandMdl(1) : nullptr;   // UNVERIFIED: body +0x6c = expand slot 1 (the red heads' spin model)
 }
 
-// DOL 0x8007ca24 (natively: the entry last attached to (model, slot, kind))
+// DOL 0x8007ca24 [audited] (natively: the entry last attached to (model, slot, kind))
 bool cTaskUnit::IsAttached(kingdom::cKingdomModel* m, const char* name, uint slot) const
 {
 	if (m == nullptr) return false;
@@ -247,7 +248,7 @@ void cTaskUnit::InitUnit()
 	Reset();                                    // vtable +0x48 (the cTaskUnit one while constructing, as in the DOL)
 }
 
-// DOL 0x8007f638
+// DOL 0x8007f638 [audited]
 void cTaskUnit::Term()
 {
 	if (m_pParam != nullptr)
@@ -311,7 +312,7 @@ void cTaskUnit::Models(int nColour)
 	// UNVERIFIED: the DOL sets no light set on the body (the expanded body keeps its resource light set)
 }
 
-// DOL 0x80081cec
+// DOL 0x80081cec [audited]
 void cTaskUnit::CreateCamera(const s32* pScnLayout)
 {
 	if (m_pCamera != nullptr || m_nIndex >= 4) return;
@@ -323,7 +324,7 @@ void cTaskUnit::CreateCamera(const s32* pScnLayout)
 	if (m_nIndex == 0) SoundManager::get_SE()->SetListenerParam(m_pParam->fSndInterior, m_pParam->fSndMaxVolDist, m_pParam->fSndUnitDist);
 }
 
-// DOL 0x80081dd0
+// DOL 0x80081dd0 [audited]
 void cTaskUnit::CameraStart(int nWhich, int bFlag)
 {
 	if (m_pCamera == nullptr || m_nIndex >= 4) return;
@@ -356,7 +357,7 @@ void cTaskUnit::SetStart(int nCellX, int nCellZ, int nDir)
 	if (kingdom::cKingdomModel* car = pModel(0)) m_SndActor.SetPosition(car->vTrans());   // 0x80078550 (velocity 0: FUN_80026660)
 }
 
-// DOL 0x80087c0c
+// DOL 0x80087c0c [audited]
 void cTaskUnit::SetDir(int nDir)
 {
 	m_nStartDir = nDir;
@@ -370,15 +371,15 @@ void cTaskUnit::SetSpeedLevel(int nLevel)
 	if (m_pParam != nullptr) m_pParam->SetSpeedLevel(nLevel);
 }
 
-// DOL 0x80087c9c
+// DOL 0x80087c9c [audited]
 float cTaskUnit::FuelCost() const { return m_pParam->fFuelCost; }
 
-// DOL 0x80087998
+// DOL 0x80087998 [audited]
 float cTaskUnit::NitroFuel() const { return m_pParam->fFuelNitroStart; }
 
 float cTaskUnit::fRelocation(int i) const { return (unsigned)i < 4u ? m_pParam->fRelocation[i] : 0.0f; }
 
-// DOL 0x80088a40
+// DOL 0x80088a40 [audited]
 int cTaskUnit::nNitroState() const
 {
 	int n = m_nBrake == 1 ? 2 : 1;
@@ -386,7 +387,7 @@ int cTaskUnit::nNitroState() const
 	return n;
 }
 
-// DOL 0x80088934: rock-paper-scissors of the nitro state (0 nitro beats 1 normal, 1 beats 2 brake, 2 beats 0)
+// DOL 0x80088934 [audited]: rock-paper-scissors of the nitro state (0 nitro beats 1 normal, 1 beats 2 brake, 2 beats 0)
 int cTaskUnit::Rock(const cTaskUnit* a, const cTaskUnit* b)
 {
 	const int na = a->nNitroState(), nb = b->nNitroState();
@@ -394,7 +395,7 @@ int cTaskUnit::Rock(const cTaskUnit* a, const cTaskUnit* b)
 	return R[na][nb];
 }
 
-// DOL 0x8008868c
+// DOL 0x8008868c [audited]
 void cTaskUnit::StartEngine()
 {
 	if ((unsigned)m_nDir < 2u)
@@ -409,7 +410,7 @@ void cTaskUnit::StartEngine()
 	}
 }
 
-// DOL 0x80088a70
+// DOL 0x80088a70 [audited]
 void cTaskUnit::Clear()
 {
 	m_fNitro = 0.0f;
@@ -423,7 +424,7 @@ void cTaskUnit::Clear()
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // reset
 
-// DOL 0x8007eb80
+// DOL 0x8007eb80 [audited]
 void cTaskUnit::Reset()
 {
 	m_bStop = false;
@@ -518,7 +519,7 @@ void cTaskUnit::ClipsNormal()
 	}
 }
 
-// DOL 0x8007ded0
+// DOL 0x8007ded0 [audited]
 void cTaskUnit::BlendNormal(float rate)
 {
 	kingdom::cKingdomModel* car = pModel(0);
@@ -547,7 +548,7 @@ void cTaskUnit::BlendNormal(float rate)
 	}
 }
 
-// DOL 0x8007e0d0
+// DOL 0x8007e0d0 [audited]
 void cTaskUnit::BlendNormalPac(float rate)
 {
 	kingdom::cKingdomModel* car = pModel(0);
@@ -613,7 +614,7 @@ void cTaskUnit::BlendTurn(float rate, bool bLeft, bool bHeadByColour)
 	}
 }
 
-// DOL 0x8007d0cc
+// DOL 0x8007d0cc [audited]
 bool cTaskUnit::IsSpinClip(int nPhase)
 {
 	static const char* const PAC_L[3] = {"HEAD_PAC_ANIM_LSPIN_S", "HEAD_PAC_ANIM_LSPIN", "HEAD_PAC_ANIM_LSPIN_E"};   // 0x0d3311c1 ..
@@ -630,7 +631,7 @@ bool cTaskUnit::IsSpinClip(int nPhase)
 	return IsAttached(body, BODY_L[nPhase], 0) || IsAttached(body, BODY_R[nPhase], 0);
 }
 
-// DOL 0x8007d74c (nSide 0 left, 1 right; nPhase 0 start, 1 loop, 2 end)
+// DOL 0x8007d74c [audited] (nSide 0 left, 1 right; nPhase 0 start, 1 loop, 2 end)
 void cTaskUnit::SpinClip(int nSide, int nPhase)
 {
 	Face(nPhase == 2 ? 0 : 2);
@@ -643,7 +644,7 @@ void cTaskUnit::SpinClip(int nSide, int nPhase)
 	else Attach(pBody(), BODY[nSide][nPhase], 0);
 }
 
-// DOL 0x8007d328
+// DOL 0x8007d328 [audited]
 bool cTaskUnit::Face(int nFace)
 {
 	if (m_nFace == nFace) return false;
@@ -681,7 +682,7 @@ bool cTaskUnit::Face(int nFace)
 	return true;
 }
 
-// DOL 0x8007dd14
+// DOL 0x8007dd14 [audited]
 bool cTaskUnit::WinClip()
 {
 	Face(3);
@@ -690,7 +691,7 @@ bool cTaskUnit::WinClip()
 	return true;
 }
 
-// DOL 0x8007de2c
+// DOL 0x8007de2c [audited]
 bool cTaskUnit::LoseClip()
 {
 	if (m_nColour == 6) return false;
@@ -701,7 +702,7 @@ bool cTaskUnit::LoseClip()
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // the step
 
-// DOL 0x80084d1c
+// DOL 0x80084d1c [audited]
 void cTaskUnit::StepMove()
 {
 	Fuel();
@@ -711,7 +712,7 @@ void cTaskUnit::StepMove()
 	Collision();
 }
 
-// DOL 0x80084d6c
+// DOL 0x80084d6c [audited]
 void cTaskUnit::Step()
 {
 	if (IsFrozen()) return;
@@ -841,7 +842,7 @@ void cTaskUnit::Step()
 	if (car != nullptr) m_SndActor.SetPosition(car->vTrans());   // 0x80085e98: the actor (+0x378) at the car
 }
 
-// DOL 0x800837b4
+// DOL 0x800837b4 [audited]
 void cTaskUnit::Fuel()
 {
 	if (m_fFuelBurst <= 0.0f)
@@ -858,7 +859,7 @@ void cTaskUnit::Fuel()
 	}
 }
 
-// DOL 0x800838bc
+// DOL 0x800838bc [audited]
 void cTaskUnit::Speed()
 {
 	Dec1(0.0f, m_fNitro);
@@ -878,7 +879,7 @@ void cTaskUnit::Speed()
 	else if (m_fSpeed < m_fSpeedGoal) Up(m_fSpeedGoal, p.fSpeedAdd, m_fSpeed);
 }
 
-// DOL 0x80082680
+// DOL 0x80082680 [audited]
 void cTaskUnit::Move()
 {
 	// M = Trans(pos) * RotY(heading of +0x22c) * Trans(0, 0, speed): the new position is its translation
@@ -945,7 +946,7 @@ void cTaskUnit::Move()
 	if (contact && m_pHost != nullptr) m_pHost->MapContact(this, newX, newZ);   // FUN_80079b50 -> the gimmicks under the car
 }
 
-// DOL 0x80081f20
+// DOL 0x80081f20 [audited]
 void cTaskUnit::CellCentre()
 {
 	Up(2.0f, m_fSpeed, m_fCellPos);              // FLOAT_8047aa58
@@ -973,7 +974,7 @@ void cTaskUnit::CellCentre()
 	}
 }
 
-// DOL 0x80086f58
+// DOL 0x80086f58 [audited]
 bool cTaskUnit::CanLeft(int bStone) const
 {
 	int x = CellX(), z = CellZ();
@@ -990,7 +991,7 @@ bool cTaskUnit::CanLeft(int bStone) const
 	return ok;
 }
 
-// DOL 0x800870dc
+// DOL 0x800870dc [audited]
 bool cTaskUnit::CanRight(int bStone) const
 {
 	int x = CellX(), z = CellZ();
@@ -1007,7 +1008,7 @@ bool cTaskUnit::CanRight(int bStone) const
 	return ok;
 }
 
-// DOL 0x80087260
+// DOL 0x80087260 [audited]
 bool cTaskUnit::CanBack(int bStone) const
 {
 	int x = CellX(), z = CellZ();
@@ -1024,7 +1025,7 @@ bool cTaskUnit::CanBack(int bStone) const
 	return ok;
 }
 
-// DOL 0x80082120
+// DOL 0x80082120 [audited]
 int cTaskUnit::Bump(int nKind, int bStone)
 {
 	bool ok = false;
@@ -1062,7 +1063,7 @@ int cTaskUnit::Bump(int nKind, int bStone)
 	return nKind;
 }
 
-// DOL 0x800862f0
+// DOL 0x800862f0 [audited]
 void cTaskUnit::TurnLeft()
 {
 	if (m_fTurnRest == 0.0f) m_nDirOld = m_nDir;
@@ -1086,7 +1087,7 @@ void cTaskUnit::TurnLeft()
 	Se("m02se_04Stear");
 }
 
-// DOL 0x8008678c
+// DOL 0x8008678c [audited]
 void cTaskUnit::TurnRight()
 {
 	if (m_fTurnRest == 0.0f) m_nDirOld = m_nDir;
@@ -1122,7 +1123,7 @@ void cTaskUnit::TurnRight()
 	Se("m02se_04Stear");
 }
 
-// DOL 0x80086c50
+// DOL 0x80086c50 [audited]
 void cTaskUnit::TurnBack()
 {
 	if (m_fTurnRest == 0.0f) m_nDirOld = m_nDir;
@@ -1151,7 +1152,7 @@ void cTaskUnit::TurnBack()
 	SeRemote("m02se_05Break");                   // 0x80086de4
 }
 
-// DOL 0x800873e4
+// DOL 0x800873e4 [audited]
 bool cTaskUnit::TurnBackHalf()
 {
 	TurnBack();
@@ -1159,7 +1160,7 @@ bool cTaskUnit::TurnBackHalf()
 	return true;
 }
 
-// DOL 0x8008241c
+// DOL 0x8008241c [audited]
 void cTaskUnit::Heading()
 {
 	float heading = DEG * (float)DirDeg(m_nDir);
@@ -1177,7 +1178,7 @@ void cTaskUnit::Heading()
 	}
 }
 
-// DOL 0x800835a0
+// DOL 0x800835a0 [audited]
 void cTaskUnit::SpinStep()
 {
 	if (m_nSpin == 0) return;
@@ -1204,7 +1205,7 @@ void cTaskUnit::SpinStep()
 	}
 }
 
-// DOL 0x80086e50
+// DOL 0x80086e50 [audited]
 bool cTaskUnit::Spin(int nKind)
 {
 	if ((unsigned)m_nSpin < (unsigned)nKind)
@@ -1222,7 +1223,7 @@ bool cTaskUnit::Spin(int nKind)
 	return false;
 }
 
-// DOL 0x80088004
+// DOL 0x80088004 [audited]
 bool cTaskUnit::SpinStart(int nKind)
 {
 	if (!Spin(nKind)) return false;
@@ -1250,7 +1251,7 @@ bool cTaskUnit::SpinStart(int nKind)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // actions (called by the decisions and the event hooks)
 
-// DOL 0x80087424
+// DOL 0x80087424 [audited]
 bool cTaskUnit::Nitro()
 {
 	if (!(0.0f < m_fFuel || 0.0f < m_fFuelBurst)) return false;
@@ -1281,7 +1282,7 @@ bool cTaskUnit::Nitro()
 	return true;
 }
 
-// DOL 0x80087744
+// DOL 0x80087744 [audited]
 bool cTaskUnit::NitroFree()
 {
 	if (!(0.0f < m_fFuel || 0.0f < m_fFuelBurst)) return false;
@@ -1305,7 +1306,7 @@ bool cTaskUnit::NitroFree()
 	return true;
 }
 
-// DOL 0x800879a4
+// DOL 0x800879a4 [audited]
 bool cTaskUnit::BrakeOn()
 {
 	m_nBrake = 1;
@@ -1313,7 +1314,7 @@ bool cTaskUnit::BrakeOn()
 	return true;
 }
 
-// DOL 0x80087a3c
+// DOL 0x80087a3c [audited]
 bool cTaskUnit::BrakeOff()
 {
 	m_nBrake = 0;
@@ -1335,7 +1336,7 @@ bool cTaskUnit::BrakeOff()
 	return true;
 }
 
-// DOL 0x80087bd4
+// DOL 0x80087bd4 [audited]
 bool cTaskUnit::Smoke()
 {
 	if (m_nSmokeStock == 0) return false;
@@ -1345,34 +1346,34 @@ bool cTaskUnit::Smoke()
 	return true;
 }
 
-// DOL 0x80088158
+// DOL 0x80088158 [audited]
 bool cTaskUnit::IsSmokeFree() { return m_pHost == nullptr || m_pHost->MapSmokeFree((int)nUnitId()); }
 
-// DOL 0x800881a0
+// DOL 0x800881a0 [audited]
 bool cTaskUnit::DropFlag() { return m_pHost != nullptr && m_pHost->MapDropFlag(m_vPos, m_nDir); }
 
-// DOL 0x80087ca8
+// DOL 0x80087ca8 [audited]
 void cTaskUnit::ReqLeft()
 {
 	if (m_fCellPos <= 0.8f) return;              // FLOAT_8047aa88
 	m_nReqTurn = 2;
 }
 
-// DOL 0x80087cc8
+// DOL 0x80087cc8 [audited]
 void cTaskUnit::ReqRight()
 {
 	if (m_fCellPos <= 0.8f) return;
 	m_nReqTurn = 3;
 }
 
-// DOL 0x80087ce8
+// DOL 0x80087ce8 [audited]
 void cTaskUnit::ReqBack()
 {
 	if (m_fTurnRest != 0.0f) return;
 	m_nReqTurn = 4;
 }
 
-// DOL 0x80087d04 (0) / 0x80087dc4 (1) / 0x80087e84 (2) / 0x80087f44 (3): steer toward an absolute direction
+// DOL 0x80087d04 [audited] (0) / 0x80087dc4 (1) / 0x80087e84 (2) / 0x80087f44 (3): steer toward an absolute direction
 bool cTaskUnit::Want(int nDir)
 {
 	// [wanted][current] -> 0 straight, 2 left, 3 right, 4 back (from the four DOL functions)
@@ -1396,7 +1397,7 @@ bool cTaskUnit::Want(int nDir)
 	return true;
 }
 
-// DOL 0x80088264
+// DOL 0x80088264 [audited]
 bool cTaskUnit::Crash()
 {
 	Se("m02se_06Crash");
@@ -1411,11 +1412,11 @@ bool cTaskUnit::Crash()
 	m_fSmokeTime = 0.0f;
 	SpinStart(6);
 	if (m_pHost != nullptr && m_pHost->nUnitGameState() == 4) m_bStop = true;
-	// rumble FUN_80021a14(pad, 500): NOT PORTED
+	GamePad::Rumble(SysPad(m_nIndex), 500);      // 0x80021a14
 	return true;
 }
 
-// DOL 0x80084984
+// DOL 0x80084984 [audited]
 void cTaskUnit::Bounce(cTaskUnit* pOther)
 {
 	const bool same = m_nDir == pOther->m_nDir;
@@ -1440,13 +1441,14 @@ void cTaskUnit::Bounce(cTaskUnit* pOther)
 	pOther->SpinStart(4);
 	if (IsMultiStage())
 	{
-		// rumble of both pads: NOT PORTED
+		GamePad::Rumble(SysPad(m_nIndex), 500);
+		GamePad::Rumble(SysPad(pOther->m_nIndex), 500);
 		if (0 < m_nFlags && DropFlag()) nFlags(m_nFlags - 1);
 		if (0 < pOther->m_nFlags && pOther->DropFlag()) pOther->nFlags(pOther->m_nFlags - 1);
 	}
 }
 
-// DOL 0x80084c58
+// DOL 0x80084c58 [audited]
 void cTaskUnit::SmokeHit()
 {
 	if (m_nSpin != 0) return;
@@ -1457,7 +1459,7 @@ void cTaskUnit::SmokeHit()
 			if (0 < m_nFlags && DropFlag()) nFlags(m_nFlags - 1);
 }
 
-// DOL 0x800884dc
+// DOL 0x800884dc [audited]
 bool cTaskUnit::ArmorHit()
 {
 	if (m_pHost != nullptr && m_pHost->nUnitGameState() == 7)
@@ -1466,42 +1468,42 @@ bool cTaskUnit::ArmorHit()
 		{
 			m_nArmor = 0;
 			m_fBlink = m_pParam->fVisibleTime;
-			// rumble: NOT PORTED
+			GamePad::Rumble(SysPad(m_nIndex), 500);
 		}
 		return true;
 	}
 	if (m_nArmor == 0) return !(0.0f < m_fBlink);
 	m_nArmor = 0;
 	m_fBlink = m_pParam->fVisibleTime;
-	// rumble: NOT PORTED
+	GamePad::Rumble(SysPad(m_nIndex), 500);
 	return false;
 }
 
-// DOL 0x800881b8
+// DOL 0x800881b8 [audited]
 void cTaskUnit::AddScore(int n)
 {
 	if (m_pHost != nullptr) m_pHost->UnitAddScore(n);
 }
 
-// DOL 0x800881c4
+// DOL 0x800881c4 [audited]
 bool cTaskUnit::IsState(int n) const { return m_pHost != nullptr && m_pHost->nUnitGameState() == n; }
 
-// DOL 0x800881dc
+// DOL 0x800881dc [audited]
 void cTaskUnit::FlagFx(int nCount, int nSpecial, const Vector4& pos)
 {
 	if (!IsMultiStage() && m_pHost != nullptr) m_pHost->FxFlagScore(nCount, nSpecial, pos);
 }
 
-// DOL 0x80088440
+// DOL 0x80088440 [audited]
 void cTaskUnit::FuelBurstOn() { m_fFuelBurst = m_pParam->fFuelBurst; }
-// DOL 0x80088450
+// DOL 0x80088450 [audited]
 void cTaskUnit::FuelBurstStep() { Dec1Floor(m_fFuelBurst); }
-// DOL 0x8008847c
+// DOL 0x8008847c [audited]
 void cTaskUnit::ChameleonOn() { m_fChameleon = m_pParam->fChameleon; }
-// DOL 0x8008848c
+// DOL 0x8008848c [audited]
 void cTaskUnit::ChameleonStep() { Dec1(0.0f, m_fChameleon); }
 
-// DOL 0x800885bc
+// DOL 0x800885bc [audited]
 void cTaskUnit::MudOn()
 {
 	if (m_fMud <= 0.0f)
@@ -1511,10 +1513,10 @@ void cTaskUnit::MudOn()
 	}
 }
 
-// DOL 0x80088658
+// DOL 0x80088658 [audited]
 void cTaskUnit::MudStep() { Dec1(0.0f, m_fMud); }
 
-// DOL 0x80085f50 (types: cTaskMap.hpp gimmick table 0x80391f48)
+// DOL 0x80085f50 [audited] (types: cTaskMap.hpp gimmick table 0x80391f48)
 bool cTaskUnit::OnGimmick(cTaskGimmick* g, int nType, int nSmokeOwner)
 {
 	if (g == nullptr) return false;
@@ -1548,7 +1550,7 @@ bool cTaskUnit::OnGimmick(cTaskGimmick* g, int nType, int nSmokeOwner)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // car vs car
 
-// DOL 0x80083a14
+// DOL 0x80083a14 [audited]
 void cTaskUnit::Collision()
 {
 	if (m_fStartWait != 0.0f || m_nSpin != 0 || m_pHost == nullptr) return;
@@ -1584,7 +1586,7 @@ void cTaskUnit::Collision()
 		{
 			u->m_nArmor = 0;
 			u->m_fBlink = u->m_pParam->fVisibleTime;
-			// rumble: NOT PORTED
+			GamePad::Rumble(SysPad(u->m_nIndex), 500);
 		}
 	};
 	for (int i = 0; i < 7; i++)
@@ -1628,13 +1630,14 @@ void cTaskUnit::Collision()
 					else if (r == 0)
 					{
 						knock(o, this);
-						// rumble of o: NOT PORTED
+						GamePad::Rumble(SysPad(o->m_nIndex), 500);
 						for (int k = 0; k < 2; k++)
 							if (0 < o->m_nFlags && o->DropFlag()) o->nFlags(o->m_nFlags - 1);
 					}
 					else if (r == 2)
 					{
 						knock(this, o);
+						GamePad::Rumble(SysPad(m_nIndex), 500);
 						for (int k = 0; k < 2; k++)
 							if (0 < m_nFlags && DropFlag()) nFlags(m_nFlags - 1);
 					}
@@ -1825,7 +1828,7 @@ void cTaskUnit::Effects()
 	}
 }
 
-// DOL 0x8007f714
+// DOL 0x8007f714 [audited: the Mii head visibility (+0x2e4, Mii) and the car PB model word +0x290 not ported]
 bool cTaskUnit::Execute(cJetTask* pParam)
 {
 	(void)pParam;

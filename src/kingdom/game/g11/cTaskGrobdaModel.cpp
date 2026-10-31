@@ -13,7 +13,7 @@ namespace
 float s_Dummy[4] = {};   // a model that does not exist yet
 }
 
-// DOL 0x80036a90
+// DOL 0x80036a90 [audited]
 cTaskGrobdaModel::cTaskGrobdaModel()
 {
 	SetName("cTaskGrobdaModel");
@@ -39,7 +39,7 @@ void cTaskGrobdaModel::SetPos(float x, float y, float z)
 	p[2] = z;
 }
 
-// DOL 0x80036b00: FUN_80193b34 (the timers freeze while the app is paused or HOME is held), then cTaskModel::Execute
+// DOL 0x80036b00 [audited]: FUN_80193b34 (the timers freeze while the app is paused or HOME is held), then cTaskModel::Execute
 bool cTaskGrobdaModel::Execute(cJetTask* pParam)
 {
 	kingdom::cAppKingdom* app = KingdomGlobal::KingSys->pAppMain();

@@ -538,6 +538,13 @@ bool ScnAnim::Load(const Brres& brres)
 				Light li;
 				li.name = l.first;
 				li.flags = r.u32(p + 28);
+				// ResAnmLight +0x18 = its user data; a ResDic follows the data's first word (DOL 0x802db7c0 [audited], 0x800b5864)
+				if (const std::int32_t ud = r.i32(p + 0x18); ud != 0)
+				{
+					Entries user;
+					if (ParseDic(r, p + ud + 4, user))
+						for (const auto& e : user) if (e.first == "follow") li.follow = true;
+				}
 				auto slotAt = [&](int i, int constBit, Slot& s) {
 					const std::size_t at = p + 32 + 4 * i;
 					s.constant = li.flags >> constBit & 1;
@@ -655,7 +662,7 @@ bool ScnAnim::Load(const Brres& brres)
 		}
 	}
 	m_key.clear();
-	if (m_cams.empty() && m_lights.empty()) return false;
+	if (m_cams.empty() && m_lights.empty() && m_fogs.empty()) return false;   // SCA_BOSS_HIT holds only a fog
 	char crc[16];
 	std::snprintf(crc, sizeof crc, "%08x", wii::Crc32(&brres.Data()[blk], std::min<std::size_t>(r.u32(blk + 4), brres.Data().size() - blk)));
 	m_key = brres.Folder("AnmScn(NW4R)")->front().first + " [" + crc + "]";
@@ -730,6 +737,7 @@ bool ScnAnim::SampleLightSet(float frame, LightResult& out) const
 		}
 		if (out.numRig >= 4) continue;
 		LightResult::RigLight& g = out.rig[out.numRig++];
+		g.follow = l.follow;
 		float d[3] = {pos[0] - aim[0], pos[1] - aim[1], pos[2] - aim[2]};
 		const float len = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
 		for (int k = 0; k < 3; k++) g.dir[k] = len > 0.0f ? d[k] / len : 0.0f;
@@ -745,10 +753,22 @@ bool ScnAnim::SampleLightSet(float frame, LightResult& out) const
 	return !first;
 }
 
+bool ScnAnim::FogAt(int idx, int& type, float& start, float& end, float color[3]) const
+{
+	if (const ScnAnim* e = Edited()) return e->FogAt(idx, type, start, end, color);   // devtools: SCN0 tab edits
+	if (idx < 0 || idx >= (int)m_fogs.size()) return false;
+	const Fog& f = m_fogs[idx];
+	type = f.type; start = f.start; end = f.end;
+	for (int i = 0; i < 3; i++) color[i] = (float)(f.color >> (24 - 8 * i) & 0xff) / 255.0f;
+	return true;
+}
+
 bool ScnAnim::SampleFog(LightResult& out) const
 {
 	if (const ScnAnim* e = Edited()) return e->SampleFog(out);   // devtools: SCN0 tab edits
 	if (m_fogs.empty()) return false;
+	out.numFogs = std::min<int>((int)m_fogs.size(), LightResult::MAX_FOGS);
+	for (int k = 0; k < out.numFogs; k++) FogAt(k, out.fogs[k].type, out.fogs[k].start, out.fogs[k].end, out.fogs[k].color);
 	const Fog& f = m_fogs.front();
 	out.fogType = f.type;
 	out.fogStart = f.start;

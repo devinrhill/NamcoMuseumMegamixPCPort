@@ -20,7 +20,7 @@
 namespace kingdom::game::g07
 {
 
-const float cTaskConsSingleSetup::aHeight[3] = {-84.0f, -136.0f, -188.0f};
+const float cTaskConsSingleSetup::aHeight[4] = {-84.0f, -136.0f, -188.0f, 0.0f}; // DOL 0x803766f8 [audited: described by the 43rd-session pass]: the table has a 4th (zero) word that step 3 reads
 const int cTaskConsSingleSetup::nTikiAnm[4] = {0, 118, 121, 124};
 const int cTaskConsSingleSetup::nAnmSelectItem[4] = {0, 119, 122, 125};
 const int cTaskConsSingleSetup::nAnmNoSelectItem[4] = {0, 208, 209, 210};
@@ -38,6 +38,7 @@ cTaskAnita* cTaskConsSingleSetup::Construct()
 	return new cTaskConsSingleSetup();
 }
 
+// DOL 0x8010403c [audited: per AUDIT_G03_G07 row]
 void cTaskConsSingleSetup::Init()
 {
 	if (KingdomGlobal::g_pMotosGame->bMultiPlay())
@@ -128,6 +129,7 @@ int cTaskConsSingleSetup::IsBossStageNo()
 	return ((KingdomGlobal::MotosSys->nStageIdx() == 7u) ? 1 : ((KingdomGlobal::MotosSys->nStageIdx() == 14u) ? 2 : ((KingdomGlobal::MotosSys->nStageIdx() == 21u) ? 3 : ((KingdomGlobal::MotosSys->nStageIdx() == 28u) ? 4 : ((KingdomGlobal::MotosSys->nStageIdx() == 35u) ? 5 : (0))))));
 }
 
+// DOL 0x8010474c [audited: per AUDIT_G03_G07 row] (every step compared 2026-10-30; tables 0x803766f8.. word for word)
 bool cTaskConsSingleSetup::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->bMultiPlay())

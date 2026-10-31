@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "wii/Archive.hpp"
+#include "kingdom/NativeScene.hpp"
 #include "wii/Brres.hpp"
 
 namespace kingdom::menu
@@ -121,7 +122,7 @@ bool TitleScene::Load()
 	m_pacCur = m_pacPrev = Layer{1, 1, 0, 0};
 	m_pacCounter = 0;
 	m_pacWeight = 0;
-	m_rng.seed(0x20061206u);
+	m_rng.seed(0x20061206u);   // DOL 0x801412b4 [audited: init_genrand = std::mt19937 seed] = init_genrand, 0x8014146c = genrand: std::mt19937 is the same generator
 	m_gateStarted = false;
 	m_wind.reset();
 	{
@@ -136,15 +137,23 @@ bool TitleScene::Load()
 			m_wind->Spawn(mtx);
 		}
 	}
+	// DOL 0x80202f48: the depth shadow light (scene root +0x1f8 = 1): mode 0, target 0, rotation (pi/4, 0, 0), ortho 20 x 20, near 20, far 60, radius 30.
+	// Pac-Man is the only caster (0x8012056c, vtable +0x20 (1)); the castle's materials receive it (0x8001e16c)
+	m_shadow = kingdom::cKingdomShadow();
+	m_shadow.SetMode(0);
+	m_shadow.SetTarget(0.0f, 0.0f, 0.0f);
+	m_shadow.SetAngles(0.7853982f, 0.0f, 0.0f);
+	m_shadow.SetOrtho(20.0f, 20.0f, 20.0f, 60.0f);
+	m_shadow.SetRadius(30.0f);
 	m_skyFrame = m_gateFrame = m_tapeFrame = 0;
 	m_loaded = true;
 	return true;
 }
 
-// DOL 0x80121308: new mode: the current layer becomes the outgoing one, the new mode's clips become current
+// DOL 0x80121308 [audited]: new mode: the current layer's clips go to slot 1, restarted at frame 0 (0x8001a564 attaches at frame 0), the new mode's clips become current
 void TitleScene::PacSetMode(int mode)
 {
-	m_pacPrev = m_pacCur;
+	m_pacPrev = Layer{m_pacCur.tpa, m_pacCur.cha, 0, 0};
 	m_pacCur = Layer{kPacModes[mode].tpa, kPacModes[mode].cha, 0, 0};
 	m_pacMode = mode;
 	m_pacCounter = 0;
@@ -159,7 +168,7 @@ void TitleScene::StartPressed()
 	PacSetMode(1);         // FUN_80121308(pacman, 1)
 }
 
-// DOL 0x80120914 (cTaskPacman::Execute)
+// DOL 0x80120914 (cTaskPacman::Execute) [audited]; Term DOL 0x801208bc [audited: Term frees the generator only] only frees the generator
 void TitleScene::PacExecute()
 {
 	if (m_pacMode == 0)
@@ -229,8 +238,17 @@ void TitleScene::Draw()
 		m_pac.model.SetTexPat(&tpa, wii::ClipFrame(m_pacCur.tpaFrame, tpa.numFrame, tpa.loops));
 	}
 
-	gfx::Begin3D(view, proj, true);
 	float world[16];
+	float lightView[16], lightProj[16];
+	if (kingdom::NativeScene::ShadowMatrices(m_shadow, lightView, lightProj) && gfx::ShadowBeginPass(lightView, lightProj, 512, 512))
+	{
+		gfx::ModelDraw::SetPass(0);
+		Translation(m_pac.pos, world);
+		m_pac.model.Draw(world);
+		gfx::ShadowEndPass();
+		gfx::SetShadowReceiver(lightView, lightProj);
+	}
+	gfx::Begin3D(view, proj, true);
 	for (Holder* h : {&m_sky, &m_gate, &m_tape, &m_pac})
 	{
 		Translation(h->pos, world);
@@ -238,6 +256,7 @@ void TitleScene::Draw()
 	}
 	if (m_wind && !std::getenv("MEGAMIX_NOPTK")) m_wind->Draw();
 	gfx::End3D();
+	gfx::SetShadowReceiver(nullptr, nullptr);
 }
 
 }

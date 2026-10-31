@@ -24,7 +24,7 @@ struct cKingdomModelBase::Native
 };
 
 std::shared_ptr<gfx::ModelDraw> LoadNativeModel(const std::string& archiveEntry);
-void DrawNativeModel(cKingdomModelBase::Native* native, const float world[16], int lightSet);
+void DrawNativeModel(cKingdomModelBase::Native* native, const float world[16], int lightSet, int fogIdx = -1);
 bool NativeNodeMatrix(cKingdomModelBase::Native* native, const std::string& node, float m3x4[12]);
 bool NativeHasModel(const cKingdomModelBase::Native* native);
 }

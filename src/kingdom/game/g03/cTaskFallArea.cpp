@@ -21,6 +21,7 @@ cTaskFallArea::~cTaskFallArea()
 	Term();
 }
 
+// DOL 0x8017a094 [audited: per AUDIT_G03_G07 row] (BIN_FALL_AREA_SET_DAT: position / 1000, half extents scale/1000*0.5, kind at +0x24; 0x20-byte areas)
 void cTaskFallArea::Init()
 {
 	float num = 1000.0f;
@@ -52,6 +53,7 @@ void cTaskFallArea::Term()
 {
 }
 
+// DOL 0x8017a65c [audited: per AUDIT_G03_G07 row] (return 1); Term 0x8017a658; dtor 0x80179fe4
 bool cTaskFallArea::Execute(cJetTask* pParam)
 {
 	return true;
@@ -61,6 +63,7 @@ void cTaskFallArea::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x8017a668 [audited: per AUDIT_G03_G07 row] (kind 0: was above (last y > area y), inside x / z, now below; kind 1: below the plane)
 bool cTaskFallArea::AreaCheck(Vector4 trans, Vector4 last)
 {
 	CustomKingdomUtil::Assert("nullpo");

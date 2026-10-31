@@ -29,7 +29,7 @@ void OneTime(uint nSlot, const Vector4& pos)
 }
 }
 
-// DOL 0x8006cb10 (CRCs of these names; slot 0x0c = 0x04529f8a, PTK_SMOKE2 in g02game.lzs)
+// DOL 0x8006cb10 [audited] (CRCs of these names; slot 0x0c = 0x04529f8a, PTK_SMOKE2 in g02game.lzs)
 const char* const cTaskEffect::SLOT_NAME[eSLOT_MAX] = {
 	"PTK_TEST", "PTK_SMOKE", "PTK_NITRO", "PTK_CRASH", "PTK_CHIP", "PTK_OIL", "PTK_MUD", "PTK_SPARK", "PTK_ARMOR", "PTK_GETS",
 	"PTK_EXHAUST", "PTK_EFFECT_LINE", "PTK_SMOKE2", "PTK_SMOKE3", "PTK_SMOKE4", "PTK_CHAMELEON", "PTK_SAND", "PTK_BANG", "PTK_SCORE_MULT2",
@@ -37,7 +37,7 @@ const char* const cTaskEffect::SLOT_NAME[eSLOT_MAX] = {
 	"PTK_SCORE10", "PTK_SCORE11", "PTK_SCORE12", "PTK_SCORE13", "PTK_SCORE14", "PTK_SCORE15", "PTK_SCORE16", "PTK_SCORE17", "PTK_SCORE18",
 	"PTK_SCORE19", "PTK_SCORE20", "PTK_STONE_BRAEK", "PTK_STAGE_EFF01", "PTK_QUESTION", "PTK_FLAG", "PTK_ENPTY"};
 
-// DOL 0x801245e4 (+ setup 0x8006cb10). The cSysTaskUser priority 0x10000 of the ctor is not set natively (the other games' effect ports do
+// DOL 0x801245e4 [audited] (+ setup 0x8006cb10). The cSysTaskUser priority 0x10000 of the ctor is not set natively (the other games' effect ports do
 // not set one either).
 cTaskEffect::cTaskEffect(cRallyUnitHost* pHost) : m_pHost(pHost)
 {
@@ -55,7 +55,7 @@ cTaskEffect::cTaskEffect(cRallyUnitHost* pHost) : m_pHost(pHost)
 	}
 }
 
-// DOL 0x8006cedc: the particle calc (FUN_8008ad34(1.0, +0x1c0)) unless the app is paused (+0x1b4), the stage end runs (+0x284) or HOME is
+// DOL 0x8006cedc [audited]: the particle calc (FUN_8008ad34(1.0, +0x1c0)) unless the app is paused (+0x1b4), the stage end runs (+0x284) or HOME is
 // held (get_pad1(0) & 0x400, tested twice in the DOL)
 bool cTaskEffect::Execute(cJetTask* pParam)
 {
@@ -66,7 +66,7 @@ bool cTaskEffect::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8006cfa0 (the DOL indexes its 21-entry table unchecked; natively clamped to 0..20)
+// DOL 0x8006cfa0 [audited] (the DOL indexes its 21-entry table unchecked; natively clamped to 0..20)
 void cTaskEffect::FlagScore(int nCount, bool bMult2, const Vector4& pos)
 {
 	const int i = nCount < 0 ? 0 : (nCount > 20 ? 20 : nCount);
@@ -74,7 +74,7 @@ void cTaskEffect::FlagScore(int nCount, bool bMult2, const Vector4& pos)
 	if (bMult2) OneTime(eSCORE_MULT2, pos);
 }
 
-// DOL 0x8006d114
+// DOL 0x8006d114 [audited]
 void cTaskEffect::RedFlag(const Vector4& pos) { OneTime(eFLAG, pos); }
 
 // FUN_8008a814 (the cJetPtkMan sub-object: every emitter detached and freed, every generator / particle freed). UNVERIFIED that it is the

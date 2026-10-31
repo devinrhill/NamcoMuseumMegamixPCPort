@@ -85,6 +85,7 @@ void cTaskConsItemMultiPlay::Term()
 {
 }
 
+// DOL 0x800fdd34 [audited: per AUDIT_G03_G07 row]
 bool cTaskConsItemMultiPlay::Execute(cJetTask* pParam)
 {
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())

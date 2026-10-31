@@ -40,7 +40,7 @@ std::string Lower(std::string s)
 	return s;
 }
 
-// The engine textures "depth_tex" / "ramp16_tex" are not on the disc: cKingdomSys init (DOL 0x8000bcd8) registers the in-memory files
+// The engine textures "depth_tex" / "ramp16_tex" are not on the disc: cKingdomSys init (DOL 0x8000bcd8 [audited: engine blob addresses/sizes verified]) registers the in-memory files
 // "depth_tex.dat" (blob 0x80396c00, size word at 0x8047b000) and "ramp16_tex.dat" (blob 0x80416d00, size at 0x8047b004), BRRES files
 // embedded in main.dol (textures "depth_dummy" and "ramp16"; cTaskScnRoot ctor 0x8009ac1c names them depth_tex / ramp16_tex).
 const std::uint8_t* EngineBlob(const std::string& key, std::size_t& size)

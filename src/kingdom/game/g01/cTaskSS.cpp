@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskSS.hpp"
 #include "kingdom/game/g01/cG01GalagaSys.hpp"
 
@@ -9,7 +10,7 @@
 namespace kingdom::game::g01
 {
 
-// cTaskSS: +0x70 0x800f90b8 (state / step 0); its Draw is the model task's (0x8009aad0).
+// cTaskSS: its Draw is the model task's (0x8009aad0).
 
 namespace
 {
@@ -20,10 +21,10 @@ constexpr unsigned STAR_SLOT = 0x20;
 
 float cTaskSS::NextWait()
 {
-	return (float)((unsigned)std::rand() % 60000u + 40000u) / 1000.0f;   // rand 0x80211048, FLOAT_8047b710
+	return (float)((unsigned)kingdom::MslRand() % 60000u + 40000u) / 1000.0f;   // rand 0x80211048, FLOAT_8047b710
 }
 
-// DOL 0x800f8f74: the model m01e_53_star01.brres (FUN_8001f6c0), its node count, the first wait, active, state 1 (+0xa8 = 0x800f9450)
+// DOL 0x800f8f74 [audited]: the model m01e_53_star01.brres (FUN_8001f6c0), its node count, the first wait, active, state 1 (+0xa8 = 0x800f9450)
 cTaskSS::cTaskSS()
 {
 	SetName("g01::cTaskSS");
@@ -36,7 +37,7 @@ cTaskSS::cTaskSS()
 	m_nStep = 0;
 }
 
-// DOL 0x800f91e8: counting down; below 0 the previous star is detached (FUN_8008a508(+0x2f0, 0)) and slot 0x20 starts at a random node
+// DOL 0x800f91e8 [audited]: counting down; below 0 the previous star is detached (FUN_8008a508(+0x2f0, 0)) and slot 0x20 starts at a random node
 // 2 .. n - 1 (translate, rotate in degrees -> radians, scale 10) (FUN_80021a9c: one-time, depend, clipping, light 0, fog -1), next wait
 void cTaskSS::Step()
 {
@@ -50,7 +51,7 @@ void cTaskSS::Step()
 	if (mdl != nullptr && m_nNodes > 2)
 	{
 		const unsigned span = (unsigned)(m_nNodes - 2);
-		const wii::Mdl0Node& n = mdl->nodes[(unsigned)std::rand() % span + 2u];
+		const wii::Mdl0Node& n = mdl->nodes[(unsigned)kingdom::MslRand() % span + 2u];
 		if (m_Hnd.IsValid()) m_Hnd.Detach(false);
 		const Vector4 pos(n.translate[0], n.translate[1], n.translate[2], 1.0f);
 		const Vector4 rot(n.rotate[0] * DEG2RAD, n.rotate[1] * DEG2RAD, n.rotate[2] * DEG2RAD, 1.0f);
@@ -61,6 +62,7 @@ void cTaskSS::Step()
 	m_fWait = NextWait();
 }
 
+// DOL 0x800f9184 [audited] (+0x70 0x800f90b8 sets state 0 / step 0, +0x74 0x800f9450 state 1 / step 0 [audited])
 bool cTaskSS::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused

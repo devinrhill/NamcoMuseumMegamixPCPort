@@ -26,11 +26,13 @@ uint cTaskConsMenuWorld::nGetWorldNo()
 	return nWorldNo();
 }
 
+// DOL 0x801ca818 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 cTaskConsMenuWorld::cTaskConsMenuWorld(cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
 }
 
+// DOL 0x801ca85c [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 void cTaskConsMenuWorld::SetData(uint nWorld)
 {
 	nDrawPriority(2147483651u);
@@ -40,6 +42,7 @@ void cTaskConsMenuWorld::SetData(uint nWorld)
 	pAnita(0u)->SetState(1u, false);
 }
 
+// DOL 0x801ca940 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 int cTaskConsMenuWorld::nGetWorldAnmNo(int nAnmState)
 {
 	int obj[5][3] = {{36, 37, 38}, {39, 40, 41}, {42, 43, 44}, {45, 46, 47}, {48, 49, 50}};
@@ -48,11 +51,13 @@ int cTaskConsMenuWorld::nGetWorldAnmNo(int nAnmState)
 	return obj[nWorldNo()][nAnmState];
 }
 
+// DOL 0x801ca9e8 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 void cTaskConsMenuWorld::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetWorldAnmNo(1), false);
 }
 
+// DOL 0x801caa4c [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 bool cTaskConsMenuWorld::AppearExec()
 {
 	if (nStep() == 0)
@@ -68,6 +73,7 @@ bool cTaskConsMenuWorld::AppearExec()
 	return false;
 }
 
+// DOL 0x801cab10 [audited: tables, priorities and step logic checked vs decomp (Unity UI branches are native-only)]
 bool cTaskConsMenuWorld::DeleteExec()
 {
 	if (nStep() == 0)

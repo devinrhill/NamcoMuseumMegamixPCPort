@@ -192,6 +192,7 @@ set(MEGAMIX_SOURCES
   src/kingdom/game/g03/cTaskCharGolvis02.cpp
   src/kingdom/game/g03/cTaskCharGolvis03.cpp
   src/kingdom/game/g03/cTaskCharGolvis04.cpp
+  src/kingdom/game/g03/cDemoSceneCamera.cpp
   src/kingdom/game/g03/cTaskCharGolvis05.cpp
   src/kingdom/game/g03/cTaskCharNonRideGhost.cpp
   src/kingdom/game/g03/cTaskCharPacman.cpp
@@ -224,6 +225,7 @@ set(MEGAMIX_SOURCES
   src/kingdom/game/g03/cTaskPoint.cpp
   src/kingdom/game/g03/cTaskShadowCamera.cpp
   src/kingdom/game/g03/cTaskStage.cpp
+  src/kingdom/game/g03/cPacnRollLoopSndMan.cpp
   src/kingdom/game/g03/cTaskWater.cpp
   src/kingdom/game/g03/cTaskWind.cpp
   src/kingdom/game/g03/sCheckPoint.cpp

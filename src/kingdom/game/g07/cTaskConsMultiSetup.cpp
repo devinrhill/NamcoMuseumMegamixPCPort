@@ -35,6 +35,7 @@ cTaskAnita* cTaskConsMultiSetup::Construct()
 	return new cTaskConsMultiSetup();
 }
 
+// DOL 0x80100e0c [audited: per AUDIT_G03_G07 row]
 void cTaskConsMultiSetup::Init()
 {
 	if (KingdomGlobal::g_pMotosGame->bMultiPlay())
@@ -97,7 +98,7 @@ void cTaskConsMultiSetup::Setup()
 {
 }
 
-// DOL 0x8010183c (names: the 0x80016e88 calls of the setup / result branches)
+// DOL 0x8010183c [audited: per AUDIT_G03_G07 row] (names: the 0x80016e88 calls of the setup / result branches)
 bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 {
 	m_names.clear();
@@ -127,9 +128,9 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 		int array[4] = {254, 257, 260, 263};
 		CustomKingdomUtil::Assert((long)KingdomGlobal::g_pMotosGame->nPlayerParam() < (long)::Constants::ARRAY_SIZE(array), "error");
 		SetAnmDiffCurrent(6u, array[KingdomGlobal::g_pMotosGame->nPlayerParam()]);
-		float array2[3] = {-84.0f, -136.0f, -188.0f};
+		// DOL table 0x80376404: the index is clamped to 3 but the table has 3 entries; the DOL reads the next stack word (a value ~0 as a float)
+		float array2[4] = {-84.0f, -136.0f, -188.0f, 0.0f};
 		int num3 = KingdomGlobal::g_pMotosGame->nStep(1);
-		CustomKingdomUtil::Assert(0 <= num3 && num3 < ::Constants::ARRAY_SIZE(array2), "error");
 		if (num3 > 3)
 		{
 			num3 = 3;
@@ -137,7 +138,10 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 		pAnita(0u)->vTrans()[0] = 0.0f;
 		pAnita(0u)->vTrans()[1] = array2[num3];
 		int array3[3] = {211, 212, 213};
-		SetAnmDiffCurrent(1u, array3[num3]);
+		if (num3 < 3) // index 3 reads the float -84.0 as an animation number in the DOL (UNVERIFIED what that draws): skipped
+		{
+			SetAnmDiffCurrent(1u, array3[num3]);
+		}
 		for (uint num4 = 0u; num4 < 8; num4++)
 		{
 			switch (num4)
@@ -255,7 +259,9 @@ bool cTaskConsMultiSetup::Execute(cJetTask* pParam)
 					pAnita(num11)->SetAnimNo((int)array6[num13]);
 				}
 			}
-			else if ((long)pAnita(num11)->GetAnimNo() != (long)array5[num11])
+			// anita 12 (the winner crown): the DOL's table has 12 entries and reads the stack word after it for index 12 (the 0x43300000
+			// double-conversion constant, UNVERIFIED what that does); skipped here
+			else if (num11 < 12 && (long)pAnita(num11)->GetAnimNo() != (long)array5[num11])
 			{
 				pAnita(num11)->SetAnimNo((int)array5[num11]);
 			}
@@ -283,7 +289,7 @@ void cTaskConsMultiSetup::QueueName(float x, float y, const std::string& text, u
 	m_names.push_back({(float)((int)x - 1), (float)((int)y - 1), text, color});
 }
 
-// DOL 0x80102190: the anitas, then (multiplayer, sys +0xcd8) the font writer queue
+// DOL 0x80102190 [audited: per AUDIT_G03_G07 row]: the anitas, then (multiplayer, sys +0xcd8) the font writer queue
 void cTaskConsMultiSetup::Draw(int nState, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nState, pParam);

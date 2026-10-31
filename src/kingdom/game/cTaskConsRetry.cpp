@@ -81,7 +81,7 @@ bool cTaskConsRetry::IsVisible()
 	return m_nStep != cTaskConsRetry::eStep::eSTEP_INVISIBLE;
 }
 
-// DOL 0x80148c64: the three anitas from the one layout (board anim 0, YES 3, NO 8), at the origin
+// DOL 0x80148c64 [audited]: the three anitas from the one layout (board anim 0, YES 3, NO 8), at the origin
 void cTaskConsRetry::Init(string retry_key)
 {
 	CustomKingdomUtil::Assert(!retry_key.empty(), "nullpo");
@@ -96,7 +96,7 @@ void cTaskConsRetry::Init(string retry_key)
 	m_nThroughCnt = 0u;
 }
 
-// DOL 0x80148ea4: cursor i on pad i (the games set the pad afterwards, e.g. Galaga 0x801b9d0c: the player's work pad), idle anim 2 i,
+// DOL 0x80148ea4 [audited]: cursor i on pad i (the games set the pad afterwards, e.g. Galaga 0x801b9d0c: the player's work pad), idle anim 2 i,
 // A / B / Z (0x860) plays 2 i + 1; a child drawn at 0x8ffffffe
 void cTaskConsRetry::CreateCursor(string cursor_key, uint cursor_max)
 {
@@ -115,7 +115,7 @@ void cTaskConsRetry::CreateCursor(string cursor_key, uint cursor_max)
 	}
 }
 
-// DOL 0x80149018
+// DOL 0x80149018 [audited]
 void cTaskConsRetry::SetInvisible()
 {
 	pAnita(2u)->SetAnimNo(0);
@@ -161,7 +161,7 @@ void cTaskConsRetry::SetCursorVisible()
 	for (uint i = 0; i < m_nCursorMax; i++) m_pCursor[i]->SetEnable(true);
 }
 
-// DOL 0x80149110. Nothing at all (not even the anitas) while pad 0 holds HOME.
+// DOL 0x80149110 [audited: Execute compared in structure (HOME gate, 20-frame wait, A/B/Z decide, stick/D-pad/pointer select); stick source native]. Nothing at all (not even the anitas) while pad 0 holds HOME.
 bool cTaskConsRetry::Execute(cJetTask* pParam)
 {
 	if ((GamePad::Get(0).hold & GamePad::PAD_HOME) != 0) return true;
@@ -284,7 +284,7 @@ bool cTaskConsRetry::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);   // 0x80014d58: the anitas
 }
 
-// DOL 0x80149b88: only from hidden; in-animations (board 0, YES 3, NO 8) shown, no decision, YES focused
+// DOL 0x80149b88 [audited]: only from hidden; in-animations (board 0, YES 3, NO 8) shown, no decision, YES focused
 void cTaskConsRetry::Start()
 {
 	if (m_nStep != cTaskConsRetry::eStep::eSTEP_INVISIBLE) return;

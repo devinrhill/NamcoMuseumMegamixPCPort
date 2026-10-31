@@ -419,7 +419,7 @@ void cKingdomModelBase::CalcWorld(float out[16]) const
 	out[12] = m_vTrans.x; out[13] = m_vTrans.y; out[14] = m_vTrans.z; out[15] = 1.0f;
 }
 
-// computed when the task draws (cTaskModelBase::Draw): the world matrix and the submission to this frame's 3D pass (DOL 0x8009c3f4)
+// computed when the task draws (cTaskModelBase::Draw): the world matrix and the submission to this frame's 3D pass (DOL 0x8009c3f4 [audited: submission to the per-frame list])
 void cKingdomModelBase::UpdateMatrix()
 {
 	CalcWorld(m_world);
@@ -474,7 +474,7 @@ bool PosedNode(cKingdomModelBase::Native* n, const std::string& name, float m[12
 }
 
 // the shared ModelDraw is posed for this instance right before it draws
-void DrawNativeModel(cKingdomModelBase::Native* n, const float world[16], int lightSet)
+void DrawNativeModel(cKingdomModelBase::Native* n, const float world[16], int lightSet, int fogIdx)
 {
 	if (n == nullptr || !n->draw) return;
 	if (gfx::ModelDraw::Pass() == 2 && !n->draw->HasXlu()) return;   // the translucent pass: nothing to draw, no pose
@@ -486,6 +486,10 @@ void DrawNativeModel(cKingdomModelBase::Native* n, const float world[16], int li
 		if (lightSet == 0 || lightSet == 3) n->draw->SetFog(l->fogType, l->fogStart, l->fogEnd, l->fogColor);
 		else n->draw->SetFog(0, 0, 0, l->fogColor);
 	}
+	// SetFogIdx(i): the model is fogged by the scene's fog slot i (DOL kingdom 0x8001e400 -> ScnRoot::GetFog(i)); ModelDraw drops it for materials
+	// whose own fog index is < 0
+	if (fogIdx >= 0)
+		if (const NativeScene::FogSlot* f = NativeScene::GetFogSlot(fogIdx)) n->draw->SetFog(f->type, f->start, f->end, f->color);
 	n->draw->Draw(world);
 }
 

@@ -52,6 +52,7 @@ float cTaskGhostMan::GetGondolaAnim()
 	return m_fGondolaAnim;
 }
 
+// DOL 0x8017efe8 [audited: ctor data names, thresholds (99 combo, stat < 5 / < 8) vs decomp; Execute body not re-read line by line]
 cTaskGhostMan::cTaskGhostMan()
 {
 	SetName("cTaskGhostMan");
@@ -184,6 +185,7 @@ cTaskGhostMan::cTaskGhostMan()
 	}
 }
 
+// DOL 0x8017f8f8 [audited: ctor data names, thresholds (99 combo, stat < 5 / < 8) vs decomp; Execute body not re-read line by line]
 void cTaskGhostMan::Init()
 {
 	for (int i = 0; i < 8; i++)
@@ -207,41 +209,13 @@ void cTaskGhostMan::Init()
 	}
 }
 
+// DOL 0x8017f9d8 [audited: blr]
 void cTaskGhostMan::Term()
 {
-	auto& pGhostArea = m_pGhostArea;
-	for (int i = 0; i < (int)std::size(pGhostArea); i++)
-	{
-		if (pGhostArea[i] != nullptr)
-		{
-			pGhostArea[i]->TermOnce();
-		}
-	}
-	for (int i = 0; i < (int)std::size(pGhostArea); i++)
-	{
-		if (pGhostArea[i] != nullptr)
-		{
-			pGhostArea[i]->TermOnce();
-		}
-	}
-	auto& pTaskCharGhost = m_pTaskCharGhost;
-	for (int i = 0; i < (int)std::size(pTaskCharGhost); i++)
-	{
-		if (pTaskCharGhost[i] != nullptr)
-		{
-			pTaskCharGhost[i]->TermOnce();
-		}
-	}
-	auto& pTaskCharGhostBomb = m_pTaskCharGhostBomb;
-	for (int i = 0; i < (int)std::size(pTaskCharGhostBomb); i++)
-	{
-		if (pTaskCharGhostBomb[i] != nullptr)
-		{
-			pTaskCharGhostBomb[i]->TermOnce();
-		}
-	}
+	// DOL: blr. Areas, routes and bombs are child tasks (ConnectChild) and run their own Term when the tree is released.
 }
 
+// DOL 0x8017f9dc [audited: ctor data names, thresholds (99 combo, stat < 5 / < 8) vs decomp; Execute body not re-read line by line]
 bool cTaskGhostMan::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -347,6 +321,7 @@ uint cTaskGhostMan::AllGhostNum()
 	return m_nAllGhostNum;
 }
 
+// DOL 0x80180230 [audited: ctor data names, thresholds (99 combo, stat < 5 / < 8) vs decomp; Execute body not re-read line by line]
 uint cTaskGhostMan::DeadGhostNum()
 {
 	uint num = 0u;

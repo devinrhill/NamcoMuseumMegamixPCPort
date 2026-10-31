@@ -31,7 +31,7 @@ namespace kingdom::game::g04
 
 cAppG04WaniWaniGame* cAppG04WaniWaniGame::s_pApp = nullptr;
 
-// DOL 0x80091d60 (CSV_GAME, 0x84635999)
+// DOL 0x80091d60 [audited] (CSV_GAME, 0x84635999)
 void cParamGame::Load()
 {
 	kingdom::cKingdomCSV csv;
@@ -56,7 +56,7 @@ void cParamGame::Load()
 	}
 }
 
-// DOL 0x80091af8 + 0x80094a58; built at 0x80091408 / 0x80091448: one player = no matching data (the pause answers pad 1), more = the sys's
+// DOL 0x80091af8 [audited: pause ctor data passed per nTimeIndex] + 0x80094a58; built at 0x80091408 / 0x80091448: one player = no matching data (the pause answers pad 1), more = the sys's
 // sWaniMatching (0x80091d20 = sys + 4): the base pause takes nNum controllers and gives cursor i the pad player[i].nWork (+0x4c)
 cTaskPause::cTaskPause()
 {
@@ -68,7 +68,7 @@ cTaskPause::cTaskPause()
 		for (uint i = 0; i < 4; i++)
 		{
 			m_Info[i].Name = w->player[i].szName;
-			m_Info[i].nWork = (uint)w->player[i].nWork;
+			m_Info[i].nCtrl = (uint)w->player[i].nWork;
 			m_Matching.Info[i] = &m_Info[i];
 		}
 		data = &m_Matching;
@@ -82,7 +82,7 @@ cTaskPause::~cTaskPause()
 	Free();
 }
 
-// DOL 0x8019a13c (job 227): new 0x330, the six-entry array +0x2bc (0x8019a27c), Init 0x80090fb8, RegistMainTask
+// DOL 0x8019a13c [audited: object size/array not modelled] (job 227): new 0x330, the six-entry array +0x2bc (0x8019a27c), Init 0x80090fb8, RegistMainTask
 void cAppG04WaniWaniGame::JobInit()
 {
 	cAppG04WaniWaniGame* app = new cAppG04WaniWaniGame();
@@ -126,7 +126,7 @@ void cAppG04WaniWaniGame::CameraShake(int mode)
 	if (m_pTaskCamera != nullptr) m_pTaskCamera->SetMode(mode);
 }
 
-// DOL 0x80093ae0
+// DOL 0x80093ae0 [audited]
 void cAppG04WaniWaniGame::BuildEffect()
 {
 	m_pEffect = new cTaskEffect();
@@ -138,21 +138,21 @@ void cAppG04WaniWaniGame::BuildEffect()
 	ConnectChild(new cTaskEffectBird(m_pTaskBG->BirdNode()));   // the birds at bird_set (0x8019d1f4)
 }
 
-// DOL 0x80093260
+// DOL 0x80093260 [audited]
 void cAppG04WaniWaniGame::BuildTortoise()
 {
 	m_pTortoise = new cTaskTortoise(m_pTaskBG->KameNode());
 	ConnectChild(m_pTortoise);
 }
 
-// DOL 0x800933f4
+// DOL 0x800933f4 [audited]
 void cAppG04WaniWaniGame::BuildEnemyManager()
 {
 	m_pEnemyManager = new cTaskEnemyManager(m_pTaskBG);
 	ConnectChild(m_pEnemyManager);
 }
 
-// DOL 0x80093624
+// DOL 0x80093624 [audited: Mii listener (multiplayer) not ported]
 void cAppG04WaniWaniGame::BuildPacmanManager()
 {
 	m_pPacmanManager = new cTaskPacmanManager(m_pTaskBG);
@@ -161,14 +161,14 @@ void cAppG04WaniWaniGame::BuildPacmanManager()
 	ConnectChild(m_pPacmanManager);
 }
 
-// DOL 0x80093920
+// DOL 0x80093920 [audited]
 void cAppG04WaniWaniGame::BuildCollision()
 {
 	m_pCollision = new cTaskCollision(m_pEnemyManager, m_pPacmanManager);
 	ConnectChild(m_pCollision);
 }
 
-// DOL 0x800937bc (+0x1c4 = the Pac-Man manager; priority 0x10002)
+// DOL 0x800937bc [audited] (+0x1c4 = the Pac-Man manager; priority 0x10002)
 void cAppG04WaniWaniGame::BuildConsole()
 {
 	m_pConsole = new cTaskGameConsole();
@@ -176,14 +176,14 @@ void cAppG04WaniWaniGame::BuildConsole()
 	ConnectChild(m_pConsole);
 }
 
-// DOL 0x800940b8
+// DOL 0x800940b8 [audited]
 void cAppG04WaniWaniGame::BuildTimer()
 {
 	m_pTimer = new cTaskConsTimer();
 	ConnectChild(m_pTimer);
 }
 
-// DOL 0x800943cc (multiplayer: by the chosen play time)
+// DOL 0x800943cc [audited] (multiplayer: by the chosen play time)
 void cAppG04WaniWaniGame::SetAngry()
 {
 	if (KingdomGlobal::WaniWaniSys->nPlayers() == 1)
@@ -203,7 +203,7 @@ void cAppG04WaniWaniGame::SetAngry()
 	}
 }
 
-// DOL 0x80090fb8
+// DOL 0x80090fb8 [audited: build order, shadow ortho/angles, CSV_GAME, pause data checked; the DOL seeds a local via OSGetTime/0x800917c8 and calls 0x801338e8 first, not ported; Mii manager 0x80094250 not ported]
 void cAppG04WaniWaniGame::Init()
 {
 	m_bNewRecord = false;
@@ -233,7 +233,7 @@ void cAppG04WaniWaniGame::Init()
 			kingdom::NativeScene::SetLight(i, light);
 		}
 	}
-	// DOL 0x80091144..0x80091668: the depth shadow light (mode 0, target 0, angles (pi/4, 0, 0), radius 30, ortho 20 x 20 near 20 far 60)
+	// DOL 0x80091144 [audited: shadow constants verified]..0x80091668: the depth shadow light (mode 0, target 0, angles (pi/4, 0, 0), radius 30, ortho 20 x 20 near 20 far 60)
 	{
 		kingdom::NativeScene::SetShadow(true);
 		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
@@ -278,7 +278,7 @@ void cAppG04WaniWaniGame::Init()
 	m_nNextPlayers = n;
 }
 
-// DOL 0x80094480 (the dtor) -> 0x80092018 (Term): the fog / light managers (+0x2b4 / +0x2b8) and CSV_GAME (+0x314) are plain members natively;
+// DOL 0x80094480 [audited: Free order checked] (the dtor) -> 0x80092018 (Term): the fog / light managers (+0x2b4 / +0x2b8) and CSV_GAME (+0x314) are plain members natively;
 // sound handles 1..5 stop at once (handle 0, the menu music, keeps playing: the DOL skips it), the stick stops working the dpad
 void cAppG04WaniWaniGame::Free()
 {
@@ -310,7 +310,7 @@ void cAppG04WaniWaniGame::PauseCheck()
 	else m_bPause = m_pPause->IsPause();   // +0x1d4
 }
 
-// DOL 0x8009219c
+// DOL 0x8009219c [audited: states 0..10 compared vs decomp; state 0xb tail and Mii calls (0x801b1f44/20d4/1fdc/203c) not checked]
 bool cAppG04WaniWaniGame::Execute(cJetTask* pParam)
 {
 	(void)pParam;

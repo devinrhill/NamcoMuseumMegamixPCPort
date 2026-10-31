@@ -115,25 +115,26 @@ void cTaskBgHit::OffState(uint n)
 	m_nState &= ~n;
 }
 
+// DOL 0x80154bb0 [audited: per AUDIT_G03_G07 row]
 cTaskBgHit::cTaskBgHit()
-	: m_animRootNode(new ResNode())
 {
 	SetName("cTaskBgHit");
 	Init();
 }
 
 cTaskBgHit::cTaskBgHit(ResNode* const& node0)
-	: cTaskBgBase(node0, node0), m_animRootNode(new ResNode())
+	: cTaskBgBase(node0, node0)
 {
 	Init();
 }
 
 cTaskBgHit::cTaskBgHit(ResNode* const& node0, ResNode* const& node1)
-	: cTaskBgBase(node0, node1), m_animRootNode(new ResNode())
+	: cTaskBgBase(node0, node1)
 {
 	Init();
 }
 
+// DOL 0x80154d18 [audited: per AUDIT_G03_G07 row]
 void cTaskBgHit::Init()
 {
 	m_nState = 0u;
@@ -152,11 +153,6 @@ void cTaskBgHit::Init()
 	::Constants::jetGeoMtxIdentity(m_MtxRltateOld);
 	::Constants::jetGeoMtxIdentity(m_MtxRltateInvOld);
 	this->Model->Invisible();
-	if (false /* TODO(unity): null != base.Model.pAnim() && 0 < base.Model.pAnim().GetClipCount() */)
-	{
-		ResNode* resNode = (new ResMdl(this->Model->pScnMdl()))->GetResNode("root");
-		m_animRootNode = resNode;
-	}
 }
 
 void cTaskBgHit::Term()
@@ -164,6 +160,7 @@ void cTaskBgHit::Term()
 	cTaskBgBase::Term();
 }
 
+// DOL 0x80154db8 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgHit::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -178,6 +175,7 @@ bool cTaskBgHit::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x80154e40 [audited: per AUDIT_G03_G07 row]
 void cTaskBgHit::Draw(int nStatus, cJetTask* pParam)
 {
 	if (this->Model->IsVisible())
@@ -186,37 +184,27 @@ void cTaskBgHit::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x80154e64 [audited: per AUDIT_G03_G07 row] (vtable +0x18): recomputed on every call, moving or not (the C#'s "calculated once unless IsMove" gate is gone)
 void cTaskBgHit::UpdateMatrix()
 {
-	if (m_forceUpdateMtx || !m_isCalcedMtx || (pFaceList() != nullptr && IsMove()))
-	{
-		::Constants::jetGeoMtxCopy(pMtxOld(), pMtx());
-		::Constants::jetGeoMtxCopy(pMtxInvOld(), pMtxInv());
-		::Constants::jetGeoMtxCopy(pMtxRotateOld(), pMtxRotate());
-		::Constants::jetGeoMtxCopy(pMtxRotateInvOld(), pMtxRotateInv());
-		::Constants::jetGeoMtxIdentity(m_MtxRotate);
-		::Constants::jetGeoMtxRotZYX(m_MtxRotate, m_MtxRotate, this->Model->vRotate());
-		::Constants::jetGeoMtxIdentity(m_MtxRotTrans);
-		::Constants::jetGeoMtxTrans(m_MtxRotTrans, m_MtxRotTrans, this->Model->vTrans());
-		::Constants::jetGeoMtxMult(m_MtxRotTrans, m_MtxRotTrans, m_MtxRotate);
-		::Constants::jetGeoMtxScale(m_Mtx, m_MtxRotTrans, this->Model->vScale());
-		// DOL 0x80154e64: the scene model's current CHR result for its "root" node (ChrAnmResult via the ScnMdl, vtable +0x38) moves the collision:
-		// m_Mtx *= S(root.scale) * rt(root) (rotation + translation), m_MtxRotate *= rt(root) with the translation zeroed (moving platforms, rotating
-		// bridges). Natively: the first CHR slot that poses the model (weight > 0) and animates "root"; RegistAnmNoIdx puts a gimmick's CHR clip after
-		// its SRT / PAT clips, so it is often not slot 0 (the w4 rotating / swinging / rising bounce pads stayed static)
-		ApplyAnmRoot();
-		if (devtools::G03BgCollision()) devtools::G03BgCollisionRefresh(this); // devtools: --g03-bg-collision (not 1:1)
-		::Constants::jetGeoMtxInverse(m_MtxRotateInv, m_MtxRotate);
-		::Constants::jetGeoMtxInverse(m_MtxInv, m_Mtx);
-		m_isCalcedMtx = true;
-		if (!m_forceUpdateMtx && (pFaceList() == nullptr || !IsMove()))
-		{
-			::Constants::jetGeoMtxCopy(pMtxOld(), pMtx());
-			::Constants::jetGeoMtxCopy(pMtxInvOld(), pMtxInv());
-			::Constants::jetGeoMtxCopy(pMtxRotateOld(), pMtxRotate());
-			::Constants::jetGeoMtxCopy(pMtxRotateInvOld(), pMtxRotateInv());
-		}
-	}
+	::Constants::jetGeoMtxCopy(pMtxOld(), pMtx());
+	::Constants::jetGeoMtxCopy(pMtxInvOld(), pMtxInv());
+	::Constants::jetGeoMtxCopy(pMtxRotateOld(), pMtxRotate());
+	::Constants::jetGeoMtxCopy(pMtxRotateInvOld(), pMtxRotateInv());
+	::Constants::jetGeoMtxIdentity(m_MtxRotate);
+	::Constants::jetGeoMtxRotZYX(m_MtxRotate, m_MtxRotate, this->Model->vRotate());
+	::Constants::jetGeoMtxIdentity(m_MtxRotTrans);
+	::Constants::jetGeoMtxTrans(m_MtxRotTrans, m_MtxRotTrans, this->Model->vTrans());
+	::Constants::jetGeoMtxMult(m_MtxRotTrans, m_MtxRotTrans, m_MtxRotate);
+	::Constants::jetGeoMtxScale(m_Mtx, m_MtxRotTrans, this->Model->vScale());
+	// the scene model's current CHR result for its "root" node (ChrAnmResult via the ScnMdl, vtable +0x38) moves the collision:
+	// m_Mtx *= S(root.scale) * rt(root) (rotation + translation), m_MtxRotate *= rt(root) with the translation zeroed (moving platforms, rotating
+	// bridges). Natively: the first CHR slot that poses the model (weight > 0) and animates "root"; RegistAnmNoIdx puts a gimmick's CHR clip after
+	// its SRT / PAT clips, so it is often not slot 0 (the w4 rotating / swinging / rising bounce pads stayed static)
+	ApplyAnmRoot();
+	if (devtools::G03BgCollision()) devtools::G03BgCollisionRefresh(this); // devtools: --g03-bg-collision (not 1:1)
+	::Constants::jetGeoMtxInverse(m_MtxRotateInv, m_MtxRotate);
+	::Constants::jetGeoMtxInverse(m_MtxInv, m_Mtx);
 }
 
 // natively: the first CHR slot that poses the model (weight > 0) and animates "root"; RegistAnmNoIdx puts a gimmick's CHR clip after its SRT / PAT clips,
@@ -245,6 +233,7 @@ void cTaskBgHit::ApplyAnmRoot()
 	::Constants::jetGeoMtxMult(m_MtxRotate, m_MtxRotate, cKingdomModelBase::BoneRt(root, false));
 }
 
+// DOL 0x80155204 [audited: per AUDIT_G03_G07 row]
 void cTaskBgHit::RegistHitData(string key)
 {
 	CustomKingdomUtil::Assert(!key.empty(), "nullpo");
@@ -259,13 +248,9 @@ void cTaskBgHit::RegistHitData(string key)
 			cAppG03PacnRollGame2->pHitHash().emplace(key, cFaceList2);
 		}
 	}
-	else
-	{
-		cFaceList2->IsReuse() = true;
-	}
 	pFaceList() = cFaceList2;
 	if (devtools::G03BgCollision()) devtools::G03BgCollisionReplace(this); // devtools: --g03-bg-collision (not 1:1)
-	if (pFaceList() != nullptr && IsCollision())
+	if (pFaceList() != nullptr)
 	{
 		cAppG03PacnRollGame2->pTaskCollision()->PushBackCollisionObj(this);
 	}

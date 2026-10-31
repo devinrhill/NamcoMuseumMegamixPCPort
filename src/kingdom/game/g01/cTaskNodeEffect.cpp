@@ -42,7 +42,7 @@ cTaskNodeEffect::cTaskNodeEffect(PosFn fn) : m_Pos(std::move(fn))
 	SetName("g01::cTaskNodeEffect");
 }
 
-// DOL 0x800e0fe4 (delay 0.0)
+// DOL 0x800e0fe4 [audited] (delay 0.0)
 void cTaskNodeEffect::Start(uint nSlot, bool bOnetime, bool bDepend, bool bClipping)
 {
 	float p[3] = {0, 0, 0};

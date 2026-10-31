@@ -27,6 +27,7 @@ cTaskWater::~cTaskWater()
 	Term();
 }
 
+// DOL 0x80188ae8 [audited: per AUDIT_G03_G07 row] (BIN_WATER_SET_DAT: 0x40-byte records; position /1000, half extents scale/1000*0.5 (x at +0x18, z at +0x20), force direction (0,0,1,1) turned about Y by +0x28 degrees and scaled by +0x30/1000; stored as 0x30-byte areas)
 void cTaskWater::Init()
 {
 	float num = 1000.0f;
@@ -58,10 +59,12 @@ void cTaskWater::Init()
 	}
 }
 
+// DOL 0x80189250 [audited: described by the 43rd-session pass] (blr); dtor 0x80188a38
 void cTaskWater::Term()
 {
 }
 
+// DOL 0x80189254 [audited: per AUDIT_G03_G07 row] (return 1)
 bool cTaskWater::Execute(cJetTask* pParam)
 {
 	return true;
@@ -71,11 +74,11 @@ void cTaskWater::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x80189260 [audited: per AUDIT_G03_G07 row]
 uint cTaskWater::AreaCheck(Vector4 trans, float radius, Vector4& outWaterForce, float& outWaterHeight)
 {
 	CustomKingdomUtil::Assert("nullpo");
-	outWaterForce = Vector4();
-	outWaterHeight = 0.0f;
+	// DOL 0x80189260: the outputs are written only for the area that matched (the port cleared them first: with no match the DOL leaves the caller's last values)
 	for (cTaskWater::sWaterArea* item : m_vecTaskWater)
 	{
 		if (item->vTrans[0] - item->fLengthX <= trans[0] && trans[0] <= item->vTrans[0] + item->fLengthX && item->vTrans[2] - item->fLengthZ <= trans[2] && trans[2] <= item->vTrans[2] + item->fLengthZ)

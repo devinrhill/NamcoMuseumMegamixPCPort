@@ -25,7 +25,7 @@ constexpr uint kRsoSaveSize = 0x2000;
 std::size_t SliceOf(int game) { return (uint)game < 9 ? 0 : gotch::kBridgeSaveSize; }
 }
 
-// DOL 0x800c1700 (ctor): the game index from cKingdomSys +0xa70 (< 9 = nmwii.rso, else nmwii2.rso) and the volume's save slice of block 6 into
+// DOL 0x800c1700 [audited: module load/link, bridge heap and HomeButton settings are the Wii side; not ported by design] (ctor): the game index from cKingdomSys +0xa70 (< 9 = nmwii.rso, else nmwii2.rso) and the volume's save slice of block 6 into
 // the bridge (+0x29c = sRSOBridge +0x1c). The module load / link, the bridge's heap blocks and settings are the Wii side of the module and are
 // not ported (the gotch port reads the module itself)
 cAppRSOOriginal::cAppRSOOriginal()
@@ -36,7 +36,7 @@ cAppRSOOriginal::cAppRSOOriginal()
 	std::memcpy(gotch::BridgeSave(), block.data() + SliceOf(m_nGame), gotch::kBridgeSaveSize);
 }
 
-// DOL 0x800c1f00 (dtor) -> 0x800c1ab0: frees the bridge's heap blocks (+0x28c / +0x294 / +0xadc: nothing native), puts the bridge's save back
+// DOL 0x800c1f00 [audited: bridge heap/KPADEnableDPD not ported] (dtor) -> 0x800c1ab0: frees the bridge's heap blocks (+0x28c / +0x294 / +0xadc: nothing native), puts the bridge's save back
 // into the volume's slice of block 6 (FUN_8000d8cc, copy, FUN_8000d8d4), re-enables the pointer of every remote (KPADEnableDPD x 4,
 // DAT_80478fd8 = 0: no native counterpart). The module has written its save into the bridge when it left (PACMAN::ExitExtend).
 void cAppRSOOriginal::Free()
@@ -53,7 +53,7 @@ void cAppRSOOriginal::Free()
 	cAppKingdom::Free();
 }
 
-// DOL 0x800c1b90. The DOL skips the frame while HOME is held (pad bit 0x400) or the HOME menu is up (+0xa50 +0x1b4), then calls MainA once:
+// DOL 0x800c1b90 [audited: MainA loop is one gotch frame per Execute; HOME test replaced]. The DOL skips the frame while HOME is held (pad bit 0x400) or the HOME menu is up (+0xa50 +0x1b4), then calls MainA once:
 // the module's loop returns when the player leaves. Here MainA's loop is one gotch::console::Frame per Execute (HOME = the exit stand-in, so
 // the HOME test of the DOL is not repeated).
 bool cAppRSOOriginal::Execute(cJetTask*)
@@ -83,7 +83,7 @@ void cAppRSOOriginal::Draw(int, cJetTask*)
 	if (m_bRunning) gotch::console::Draw();
 }
 
-// DOL 0x800c1f98: FUN_800c2404(menu, "RSO Release" (0x803709cc), 22, table 0x804382c0)
+// DOL 0x800c1f98 [audited]: FUN_800c2404(menu, "RSO Release" (0x803709cc), 22, table 0x804382c0)
 cAppRSODebugMenu::cAppRSODebugMenu()
 {
 	SetName("cJetTask");
@@ -100,7 +100,7 @@ cAppRSODebugMenu::cAppRSODebugMenu()
 	});
 }
 
-// DOL 0x800c22c4: the first frame puts the cursor on the last game index (+0xa70) and stores 2 at +0xa74 (the DOL also moves the raw pad's
+// DOL 0x800c22c4 [audited: raw pad word shuffle (FUN_801411d8) not repeated]: the first frame puts the cursor on the last game index (+0xa70) and stores 2 at +0xa74 (the DOL also moves the raw pad's
 // second word into the first and clears it, FUN_801411d8: not repeated, the native pad block has no such words); while an RSO row is the
 // current one, its row is the game index
 bool cAppRSODebugMenu::Execute(cJetTask* pParam)

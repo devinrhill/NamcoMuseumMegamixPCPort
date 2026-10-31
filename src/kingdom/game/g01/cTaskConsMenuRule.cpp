@@ -9,10 +9,10 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x80370400: appear, wait, point, decide
+// DOL 0x80370400 [audited]: appear, wait, point, decide
 const int cTaskConsMenuRule::ANM_LIST[eANM_MAX] = {0x5a, 0x5b, 0x5c, 0x5d};
 
-// DOL 0x800bef54: no draw priority; layout ANT_MENU loaded hidden
+// DOL 0x800bef54 [audited]: no draw priority; layout ANT_MENU loaded hidden
 cTaskConsMenuRule::cTaskConsMenuRule(cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -21,24 +21,24 @@ cTaskConsMenuRule::cTaskConsMenuRule(cTaskConsMenuManBase* const& pConsMan)
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x800bf004
+// DOL 0x800bf004 [audited]
 cTaskConsMenuRule::~cTaskConsMenuRule()
 {
 }
 
-// DOL 0x800bf05c: hit test of anita 0, pattern 10
+// DOL 0x800bf05c [audited]: hit test of anita 0, pattern 10
 bool cTaskConsMenuRule::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, HIT_PAT);
 }
 
-// DOL 0x800bf194
+// DOL 0x800bf194 [audited]
 void cTaskConsMenuRule::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(ANM_LIST[eANM_WAIT], false);
 }
 
-// DOL 0x800bf1e0
+// DOL 0x800bf1e0 [audited]
 bool cTaskConsMenuRule::AppearExec()
 {
 	if (nStep() == 0)
@@ -54,13 +54,13 @@ bool cTaskConsMenuRule::AppearExec()
 	return false;
 }
 
-// DOL 0x800bf294
+// DOL 0x800bf294 [audited]
 void cTaskConsMenuRule::PointExec()
 {
 	pAnita(0u)->SetAnimNo(ANM_LIST[eANM_POINT], false);
 }
 
-// DOL 0x800bf2e0
+// DOL 0x800bf2e0 [audited]
 bool cTaskConsMenuRule::DecideExec()
 {
 	if (nStep() == 0)

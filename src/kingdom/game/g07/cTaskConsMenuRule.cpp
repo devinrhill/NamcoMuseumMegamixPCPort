@@ -22,7 +22,7 @@ cTaskConsMenuRule::~cTaskConsMenuRule()
 {
 }
 
-// DOL 0x801c9814 (priority 0x80000006, hit pattern 0x11, layout crc 0x62428a7d = ANT_MENU_SELECT_01)
+// DOL 0x801c9814 [audited: described by the 43rd-session pass] (priority 0x80000006, hit pattern 0x11, layout crc 0x62428a7d = ANT_MENU_SELECT_01)
 void cTaskConsMenuRule::SetData()
 {
 	nDrawPriority(2147483654u);
@@ -33,7 +33,7 @@ void cTaskConsMenuRule::SetData()
 	UnityUI = (static_cast<cTaskConsMenuMan*>(pTaskConsMenuMan()))->UnityUI;
 }
 
-// DOL 0x801c98f8 (table 0x8037ec30)
+// DOL 0x801c98f8 [audited: anim ids, tables and step logic checked vs decomp] (table 0x8037ec30)
 int cTaskConsMenuRule::nGetRuleAnmNo(int nAnmState)
 {
 	int obj[4] = {319, 320, 321, 322};
@@ -41,19 +41,19 @@ int cTaskConsMenuRule::nGetRuleAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
-// DOL 0x801c9934: hit test of anita 0, pattern +0x1d8 (nHitPat) (the C# returned false: Unity used colliders)
+// DOL 0x801c9934 [audited: described by the 43rd-session pass]: hit test of anita 0, pattern +0x1d8 (nHitPat) (the C# returned false: Unity used colliders)
 bool cTaskConsMenuRule::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, nHitPat());
 }
 
-// DOL 0x801c9a78 (the C# drove a Unity button; the DOL plays the Anita anims like Back)
+// DOL 0x801c9a78 [audited: described by the 43rd-session pass] (the C# drove a Unity button; the DOL plays the Anita anims like Back)
 void cTaskConsMenuRule::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetRuleAnmNo(1), false);
 }
 
-// DOL 0x801c9adc
+// DOL 0x801c9adc [audited: anim ids, tables and step logic checked vs decomp]
 bool cTaskConsMenuRule::AppearExec()
 {
 	if (nStep() == 0)
@@ -70,13 +70,13 @@ bool cTaskConsMenuRule::AppearExec()
 	return false;
 }
 
-// DOL 0x801c9bd8
+// DOL 0x801c9bd8 [audited: anim ids, tables and step logic checked vs decomp]
 void cTaskConsMenuRule::PointExec()
 {
 	pAnita(0u)->SetAnimNo(nGetRuleAnmNo(2), false);
 }
 
-// DOL 0x801c9c3c
+// DOL 0x801c9c3c [audited: anim ids, tables and step logic checked vs decomp]
 bool cTaskConsMenuRule::DecideExec()
 {
 	if (nStep() == 0)

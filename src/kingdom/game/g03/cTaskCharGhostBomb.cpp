@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g03/cTaskCharGhostBomb.hpp"
 #include "DummyNW4R.hpp"
 #include "kingdom/game/g03/cTaskConsoleMan.hpp"
@@ -20,6 +21,7 @@
 namespace kingdom::game::g03
 {
 
+// inline in the DOL (proc +0x25c == 0)
 bool cTaskCharGhostBomb::IsWait()
 {
 	if (m_nProc != 0)
@@ -59,6 +61,7 @@ void cTaskCharGhostBomb::Term()
 	cTaskChar::Term();
 }
 
+// DOL 0x80162f14 [audited]
 void cTaskCharGhostBomb::Init()
 {
 	m_PtkHndBurst = new cKingdomPtkHnd();
@@ -77,6 +80,7 @@ void cTaskCharGhostBomb::Init()
 	m_pGhostTask = nullptr;
 }
 
+// DOL 0x80162fb0 [audited: 43rd-session pass; not re-read now]
 bool cTaskCharGhostBomb::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -103,7 +107,8 @@ bool cTaskCharGhostBomb::Execute(cJetTask* pParam)
 	{
 	case 1u:
 		{
-			float f = Random::Range(0, 1048576);
+			// DOL: rand() % 0x100000 used as radians (SinFIdx / CosFIdx of 256/2pi * angle); was Unity Random.Range(0, 1048576)
+			float f = (float)(MslRand() % 0x100000);
 			::Constants::jetGeoVecCopy(m_vCursor, cTaskCharPacman2->vTrans());
 			m_vCursor[0] += Mathf::Sin(f) * 50.0f;
 			m_vCursor[2] += Mathf::Cos(f) * 50.0f;
@@ -164,8 +169,7 @@ bool cTaskCharGhostBomb::Execute(cJetTask* pParam)
 				cAppG03PacnRollGame2->pTaskConsole()->BomCursorEnd(m_nCursorId);
 				m_SndHnd = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE072_BOSS_BOM);
 				m_nProc = 4u;
-				m_burstWaitTime = 0.0f;
-			}
+							}
 			float outDist = 0.0f;
 			Constants::sFace* _discard2;
 			cTaskBgHit* _discard3;
@@ -176,19 +180,18 @@ bool cTaskCharGhostBomb::Execute(cJetTask* pParam)
 				cAppG03PacnRollGame2->pTaskConsole()->BomCursorEnd(m_nCursorId);
 				m_SndHnd = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE072_BOSS_BOM);
 				m_nProc = 4u;
-				m_burstWaitTime = 0.0f;
-			}
+							}
 			break;
 		}
 	case 4u:
-		if (m_PtkHndBurst->IsValid() && m_PtkHndBurst->IsActive() && m_burstWaitTime < 0.7f)
+		// DOL: a hazard for as long as the burst effect lives (43rd: the C# also cut it after 0.7 s of Time.deltaTime)
+		if (m_PtkHndBurst->IsValid() && m_PtkHndBurst->IsActive())
 		{
 			if (::Constants::jetGeoVecDistance(cTaskCharPacman2->vTrans(), pModel(nType())->vTrans()) < 10.0f)
 			{
 				Constants::PACN_APP()->pTaskCollision()->PushBackChar(this);
 				pHitChar(0)->FlagOn(2u);
 			}
-			m_burstWaitTime += Time::deltaTime;
 		}
 		else
 		{
@@ -208,6 +211,7 @@ bool cTaskCharGhostBomb::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x80163584 [audited: 43rd-session pass]
 void cTaskCharGhostBomb::Draw(int nStatus, cJetTask* pParam)
 {
 	if (m_nProc != 0)
@@ -220,6 +224,7 @@ void cTaskCharGhostBomb::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x80163604 [audited: 43rd-session pass]
 void cTaskCharGhostBomb::SetStart(cTaskCharRouteGhost* pParent)
 {
 	if (m_nProc == 0 && pParent != nullptr)
@@ -230,6 +235,7 @@ void cTaskCharGhostBomb::SetStart(cTaskCharRouteGhost* pParent)
 	}
 }
 
+// DOL 0x801636a0 [audited: 43rd-session pass]
 void cTaskCharGhostBomb::SetParam(uint nFlyTime, float fRadius, float max)
 {
 	m_nFlyTime = nFlyTime;
@@ -237,6 +243,7 @@ void cTaskCharGhostBomb::SetParam(uint nFlyTime, float fRadius, float max)
 	m_fRadiusMax = max;
 }
 
+// DOL 0x801636b0 [audited: 43rd-session pass]
 void cTaskCharGhostBomb::Shoot()
 {
 	if (m_pGhostTask != nullptr)

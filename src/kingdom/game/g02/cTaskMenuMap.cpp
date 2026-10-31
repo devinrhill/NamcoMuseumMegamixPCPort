@@ -19,7 +19,7 @@ constexpr float PULSE_HIGH = 1.1f;                 // FLOAT_8047bb24
 constexpr float POINT_SPEED = 0.01f;               // FLOAT_8047bb1c / -FLOAT_8047bb28
 constexpr float DECIDE_SPEED = 0.02f;              // FLOAT_8047bb2c / -FLOAT_8047bb30
 
-// DOL 0x80377cb8: the model of stage index n (stage + world * 6); stages 4..6 of a world reuse its three maps
+// DOL 0x80377cb8 [audited]: the model of stage index n (stage + world * 6); stages 4..6 of a world reuse its three maps
 const char* const WORLD_MODEL[24] = {
 	"MENU_WORLD_1A", "MENU_WORLD_1B", "MENU_WORLD_1C", "MENU_WORLD_1A", "MENU_WORLD_1B", "MENU_WORLD_1C",
 	"MENU_WORLD_2A", "MENU_WORLD_2B", "MENU_WORLD_2C", "MENU_WORLD_2A", "MENU_WORLD_2C", "MENU_WORLD_2B",
@@ -28,7 +28,7 @@ const char* const WORLD_MODEL[24] = {
 };
 }
 
-// DOL 0x80111d84: the cTaskMenuBgBase part (+0x1d8.. = 0, +0x1e0 = 0, the cTaskModel child +0x1e8), then priority 0x10003, world / stage,
+// DOL 0x80111d84 [audited]: the cTaskMenuBgBase part (+0x1d8.. = 0, +0x1e0 = 0, the cTaskModel child +0x1e8), then priority 0x10003, world / stage,
 // the shown model = stage + world * 6, pulse step 0
 cTaskMenuMap::cTaskMenuMap(kingdom::game::cTaskConsMenuManBase* const& pConsMan, int nWorldNo, int nStageNo)
 	: cTaskConsMenuBase(pConsMan)
@@ -47,12 +47,12 @@ cTaskMenuMap::cTaskMenuMap(kingdom::game::cTaskConsMenuManBase* const& pConsMan,
 	m_fSpeed = 0.0f;
 }
 
-// DOL 0x801127b8
+// DOL 0x801127b8 [audited]
 cTaskMenuMap::~cTaskMenuMap()
 {
 }
 
-// DOL 0x80111ec8: model 24 = MENU_NULL_MODEL; models 0..23 = WORLD_MODEL[n] + MENU_WORLD_ANIM (crc 0xbc72f62d), light set 0, hidden, each placed
+// DOL 0x80111ec8 [audited]: model 24 = MENU_NULL_MODEL; models 0..23 = WORLD_MODEL[n] + MENU_WORLD_ANIM (crc 0xbc72f62d), light set 0, hidden, each placed
 // at node "set_bg" of the null model (rotation degrees -> radians); then the hit layout on anita 0
 void cTaskMenuMap::RegistData()
 {
@@ -77,7 +77,7 @@ void cTaskMenuMap::RegistData()
 	pAnita(0u)->RegistData(ResourceDatabase::GetPath("ANITA_MENU_SELECT_01"));
 }
 
-// DOL 0x801089f4
+// DOL 0x801089f4 [audited]
 void cTaskMenuMap::ChangeData(int nIdx)
 {
 	m_pModel->pModel((uint)m_nCurIdx)->Invisible();
@@ -85,7 +85,7 @@ void cTaskMenuMap::ChangeData(int nIdx)
 	m_pModel->pModel((uint)m_nCurIdx)->Visible();
 }
 
-// DOL 0x80112114
+// DOL 0x80112114 [audited]
 bool cTaskMenuMap::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, 0x24);
@@ -97,7 +97,7 @@ void cTaskMenuMap::ApplyScale()
 	m->vScale() = Vector4(m_vScale.x * m_fScale, m_vScale.y * m_fScale, m_vScale.z * m_fScale, m->vScale().w);
 }
 
-// DOL 0x8011224c: (bg step 0 only) full size, the pulse stops
+// DOL 0x8011224c [audited]: (bg step 0 only) full size, the pulse stops
 void cTaskMenuMap::WaitExec()
 {
 	if (m_nBgStep == 0)
@@ -108,7 +108,7 @@ void cTaskMenuMap::WaitExec()
 	}
 }
 
-// DOL 0x8011230c: the model shows and grows from 0 to full size by 0.075 a frame
+// DOL 0x8011230c [audited]: the model shows and grows from 0 to full size by 0.075 a frame
 bool cTaskMenuMap::AppearExec()
 {
 	if (m_nBgStep == 0)
@@ -132,7 +132,7 @@ bool cTaskMenuMap::AppearExec()
 	return false;
 }
 
-// DOL 0x80112430: the pointed map pulses between 0.9 and 1.1 (+-0.01 a frame)
+// DOL 0x80112430 [audited]: the pointed map pulses between 0.9 and 1.1 (+-0.01 a frame)
 void cTaskMenuMap::PointExec()
 {
 	if (m_fSpeed == 0.0f) m_fSpeed = POINT_SPEED;
@@ -144,7 +144,7 @@ void cTaskMenuMap::PointExec()
 	ApplyScale();
 }
 
-// DOL 0x8011252c: the same pulse at +-0.02; never ends (the man waits for the stage button, not for the map)
+// DOL 0x8011252c [audited]: the same pulse at +-0.02; never ends (the man waits for the stage button, not for the map)
 bool cTaskMenuMap::DecideExec()
 {
 	if (m_fSpeed == 0.0f) m_fSpeed = DECIDE_SPEED;
@@ -157,7 +157,7 @@ bool cTaskMenuMap::DecideExec()
 	return false;
 }
 
-// DOL 0x8011262c: shrinks from 1 to 0 by 0.075 a frame, then hides
+// DOL 0x8011262c [audited]: shrinks from 1 to 0 by 0.075 a frame, then hides
 bool cTaskMenuMap::DeleteExec()
 {
 	if (m_nBgStep == 0)
@@ -181,7 +181,7 @@ bool cTaskMenuMap::DeleteExec()
 	return false;
 }
 
-// DOL 0x8011274c: the console state machine (cTaskConsMenuBase::Execute 0x80145740), then the model clips step (0x8009a478)
+// DOL 0x8011274c [audited]: the console state machine (cTaskConsMenuBase::Execute 0x80145740), then the model clips step (0x8009a478)
 bool cTaskMenuMap::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::KingSys->pAppMain()->IsPause()) return true;

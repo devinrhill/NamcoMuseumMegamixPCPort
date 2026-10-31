@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskBoss05Last.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
@@ -108,6 +109,7 @@ bool& cTaskBoss05Last::IsTakeOver()
 	return m_IsTakeOver;
 }
 
+// DOL 0x8004e090 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05Last::Init()
 {
 	m_fNowAccel = 0.0f;
@@ -272,6 +274,7 @@ bool cTaskBoss05Last::ActionOther()
 	return true;
 }
 
+// DOL 0x8004e99c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05Last::AdjustMaxSpeed()
 {
 	float num = ::Constants::jetGeoVecLength(vSpeed());
@@ -282,6 +285,7 @@ void cTaskBoss05Last::AdjustMaxSpeed()
 	}
 }
 
+// DOL 0x8004ea0c [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	cTaskFade* cTaskFade2 = KingdomGlobal::g_pMotosGame->pTaskFade();
@@ -449,7 +453,7 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (1 == nMes)
 			{
-				vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+				vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 				if (nTimer()-- <= 0)
 				{
 					SetNextMode();
@@ -485,13 +489,13 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 				case 0:
 					{
 						bool flag = true;
-						if (++Step(1) < 45)
+						if (++Step(1) < 90) // DOL 0x8004ea0c mode 7: 0x59 / 0x5a / 0x1e / 0x14 / 0x28 (the port had half the counts and fade times)
 						{
 							fFogNear() -= 1.0f / 3.0f;
 							fFogFar() -= -1.0f / 3.0f;
 							flag = false;
 						}
-						if (++Step(2) < 45)
+						if (++Step(2) < 90)
 						{
 							fCoreFogNear() -= 0.0f;
 							fCoreFogFar() -= 0.0f;
@@ -509,24 +513,24 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 							Step(2) = 0;
 							Step()++;
 						}
-						vMTrans()[1] = (float)((double)Random::Range(0, 10) * 0.01);
+						vMTrans()[1] = (float)((double)kingdom::MslRandRange(0, 10) * 0.01);
 						break;
 					}
 				case 1:
 					switch (Step(2))
 					{
 					case 0:
-						if (++Step(1) > 15)
+						if (++Step(1) > 30)
 						{
 							Constants::SpawnEffect(21, vMTrans());
 							KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.25f, 20);
 							Step(1) = 0;
 							Step(2)++;
-							cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 1000);
+							cTaskFade2->Fade(EFadeKind::eFADE_TYPE_OUT_WHITE, 2000);
 						}
 						break;
 					case 1:
-						if (++Step(1) > 10)
+						if (++Step(1) > 20)
 						{
 							Constants::SpawnEffect(21, vMTrans());
 							KingdomGlobal::g_pMotosGame->pCamera()->SetQuake(0.25f, 20);
@@ -535,7 +539,7 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 						}
 						break;
 					case 2:
-						if (++Step(1) > 20)
+						if (++Step(1) > 40)
 						{
 							Constants::SpawnEffect(21, vMTrans());
 							OnFlag(1u);
@@ -552,7 +556,7 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 					if (cTaskFade2->IsEnd())
 					{
 						OnFlag(33u);
-						cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 1000);
+						cTaskFade2->Fade(EFadeKind::eFADE_TYPE_IN_WHITE, 2000);
 						Step()++;
 						Step(1) = 0;
 						for (uint num2 = 0u; pModel(num2) != nullptr; num2++)
@@ -596,6 +600,7 @@ bool cTaskBoss05Last::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 	return true;
 }
 
+// DOL 0x8004fc88 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05Last::RefAttacked(int nParts, int nGrobalID)
 {
 	cTaskChar* cTaskChar2 = KingdomGlobal::g_pMotosGame->pChars((uint)nGrobalID);
@@ -623,6 +628,7 @@ void cTaskBoss05Last::RefAttacked(int nParts, int nGrobalID)
 	}
 }
 
+// DOL 0x8004fdd4 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 void cTaskBoss05Last::SlantFloor()
 {
 	float num = vMTrans()[0] - s_vPos[0][0];
@@ -732,7 +738,7 @@ Vector4 cTaskBoss05Last::vSetRandTarget()
 	float num = cTaskPanelMan2->fPanelSize() * (float)cTaskPanelMan2->nWidth();
 	float num2 = cTaskPanelMan2->fPanelSize() * (float)cTaskPanelMan2->nDepth();
 	::Constants::jetGeoVecUnit(m_vSTarget);
-	float n = (float)Random::Range(0, 100) * 0.1f + 1.0f;
+	float n = (float)kingdom::MslRandRange(0, 100) * 0.1f + 1.0f;
 	Vector4 v;
 	::Constants::jetGeoVecCopy(v, Constants::motosDir2Vector(nRandomDir()));
 	Constants::VEC3_MUL(m_vSTarget, v, n);

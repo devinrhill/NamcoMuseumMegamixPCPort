@@ -28,7 +28,6 @@ void cTaskBgGimmickIronBall::Init()
 		localBounds.Expand(1000.0f); // the converter dropped the argument (C#: Expand(1000f))
 		// TODO(unity): obj.localBounds = localBounds;
 	}
-	m_forceUpdateMtx = true;
 }
 
 void cTaskBgGimmickIronBall::Term()

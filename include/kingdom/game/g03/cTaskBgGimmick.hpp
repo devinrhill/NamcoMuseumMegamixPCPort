@@ -48,6 +48,11 @@ public:
 
 	cTaskBgGimmick(ResNode* const& node0, ResNode* const& node1);
 
+	// length of the half extents of this gimmick's model volume (DOL: nw4r ScnObj::GetBoundingVolume 0x802f6400 of the scene model, then
+	// half the size per axis and PSVECDotProduct + sqrt, inlined in cTaskBgGimmickAddinSnd::Init 0x8014e128 and PistonMan::RegistGimmick
+	// 0x801527c8). Natively the MDL0 header's volume (UNVERIFIED that the nw4r volume is the unskinned header box for these models).
+	float ModelHalfDiagonal();
+
 private:
 	void Init();
 

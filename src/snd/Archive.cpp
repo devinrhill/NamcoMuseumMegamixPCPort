@@ -169,6 +169,9 @@ std::shared_ptr<Wave> Archive::LoadWave(const SoundDef& s) const
 	w->pcm.resize(len * w->channels);
 	for (std::size_t i = 0; i < len; i++)
 		for (int c = 0; c < w->channels; c++) w->pcm[i * w->channels + c] = chans[c][i];
+	w->attack = m_d[note + 4]; w->decay = m_d[note + 5]; w->sustain = m_d[note + 6]; w->release = m_d[note + 7]; w->hold = m_d[note + 8];
+	w->originalKey = m_d[note + 12]; w->noteVolume = m_d[note + 13]; w->notePitch = f32(note + 16);
+	w->wsdPitch = f32(wsdInfo); w->pan = m_d[wsdInfo + 4]; w->mainSend = m_d[wsdInfo + 9];
 	w->volume = m_d[note + 13] / 127.0f;
 	w->pitch = f32(note + 16) * f32(wsdInfo);
 	if (w->pitch <= 0) w->pitch = 1.0f;

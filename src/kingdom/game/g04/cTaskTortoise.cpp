@@ -20,7 +20,7 @@ cTaskTortoise::cTaskTortoise(const Vector4& pos)
 	m->vRotate() = Vector4(0.0f, 3.1415927f, 0.0f, 1.0f);   // -0x7094(r2) / -0x707c / -0x7094 / -0x7080 = 0, pi, 0, 1 (0x800933ac)
 }
 
-// DOL 0x801b7768
+// DOL 0x801b7768 [audited]
 void cTaskTortoise::Init()
 {
 	kingdom::cKingdomModel* m = CreateModel(0u);
@@ -33,7 +33,7 @@ void cTaskTortoise::Init()
 	m_b2d0 = m_bTurned = m_bResultFx = m_b2d3 = false;
 }
 
-// DOL 0x801b7810
+// DOL 0x801b7810 [audited]
 void cTaskTortoise::Reset()
 {
 	SetState(0);
@@ -45,7 +45,7 @@ void cTaskTortoise::Reset()
 	m_b2d3 = false;
 }
 
-// DOL 0x801b7c7c
+// DOL 0x801b7c7c [audited]
 void cTaskTortoise::SetState(int state)
 {
 	m_nOldState = m_nState;
@@ -110,7 +110,7 @@ void cTaskTortoise::SetState(int state)
 	}
 }
 
-// DOL 0x801b86b8: alone the rank 0..4 picks 5..9; in a match rank 4 (a tie) gets 9, anything else 5
+// DOL 0x801b86b8 [audited]: alone the rank 0..4 picks 5..9; in a match rank 4 (a tie) gets 9, anything else 5
 void cTaskTortoise::Result(int rank)
 {
 	m_bTurned = false;
@@ -121,7 +121,7 @@ void cTaskTortoise::Result(int rank)
 	else SetState(rank == 4 ? 9 : 5);
 }
 
-// DOL 0x801b7898
+// DOL 0x801b7898 [audited: the DOL Execute never calls UpdateFrame / cTaskModel::Execute (port does at the end); how the clips advance there is UNVERIFIED]
 bool cTaskTortoise::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();

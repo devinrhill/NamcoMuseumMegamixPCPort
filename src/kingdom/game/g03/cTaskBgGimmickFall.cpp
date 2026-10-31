@@ -1,4 +1,6 @@
+#include "kingdom/game/g03/cPacnRollLoopSndMan.hpp"
 #include "kingdom/game/g03/cTaskBgGimmickFall.hpp"
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g03/cAppG03PacnRollGame.hpp"
 
 #include "cJetTask.hpp"
@@ -23,6 +25,7 @@ bool& cTaskBgGimmickFall::IsReturn()
 	return m_bReturn;
 }
 
+// DOL 0x8014f4c8 [audited: per AUDIT_G03_G07 row] (user data ShakeTime +0x52c, FallTime +0x530, ShakeFallSpeed -|v| +0x534, FallAccel -|v| +0x538)
 cTaskBgGimmickFall::cTaskBgGimmickFall(ResNode* const& node0, ResNode* const& node1)
 	: cTaskBgGimmick(node0, node1)
 {
@@ -78,6 +81,7 @@ void cTaskBgGimmickFall::Term()
 	cTaskBgGimmick::Term();
 }
 
+// DOL 0x8014fd1c [audited: per AUDIT_G03_G07 row] (modes: 0 wait for the step-on, 1 shake (x / z jitter (rand() % 200 - 100) / 1000), 2 fall (accel, max -2.0), 3 return (20 frames, blinking on frame % 4 == 1), 4 gone)
 bool cTaskBgGimmickFall::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE() || Constants::PACN_APP()->IsNakajimaPause(this))
@@ -122,7 +126,7 @@ bool cTaskBgGimmickFall::Execute(cJetTask* pParam)
 			nModeStep(n) = 1u;
 			m_nTimeCnt = m_nShakeTime;
 			m_fMoveY = m_fShakeFall;
-			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE056_YUKA_YURE);
+			if (cPacnRollLoopSndMan::CanPlay()) cPacnRollLoopSndMan::Track(SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE056_YUKA_YURE));
 			goto _switch2_1u;
 		case 1u:
 		_switch2_1u:
@@ -130,8 +134,8 @@ bool cTaskBgGimmickFall::Execute(cJetTask* pParam)
 			{
 				m_nTimeCnt--;
 				this->Model->vTrans()[1] += m_fMoveY;
-				this->Model->vTrans()[0] += (float)(Random::Range(0, 200) - 100) / 1000.0f;
-				this->Model->vTrans()[2] += (float)(Random::Range(0, 200) - 100) / 1000.0f;
+				this->Model->vTrans()[0] += (float)(kingdom::MslRandRange(0, 200) - 100) / 1000.0f;
+				this->Model->vTrans()[2] += (float)(kingdom::MslRandRange(0, 200) - 100) / 1000.0f;
 			}
 			else
 			{

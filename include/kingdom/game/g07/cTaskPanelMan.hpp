@@ -115,7 +115,7 @@ public:
 
 	MAP_HIT_RESULT* HitResult(int n);
 
-	int StrikePanel(int id, int level, float range, Vector4 vec, bool spawnEffect = true);
+	int StrikePanel(int id, int level, float range, Vector4 vec);
 
 	int StrikePanel(int id, int level, int PanelID);
 
@@ -231,9 +231,9 @@ public:
 
 	int HitCheckSub(Constants::PANEL_INFO* pPanel, Vector4 pos, Vector4 vec, float fRange, Vector4& normal, Vector4& pCrs);
 
-	int StrikePanel(int id, int level, float range, float mx, float mz, bool spawnEffect = true);
+	int StrikePanel(int id, int level, float range, float mx, float mz);
 
-	int StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel, bool spawnEffect = true);
+	int StrikePanel(int id, int level, Constants::PANEL_INFO* pPanel);
 
 	Constants::PANEL_INFO* SearchPanelID(int PanelID);
 

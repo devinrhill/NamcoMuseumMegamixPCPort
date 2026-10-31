@@ -24,7 +24,7 @@ void cParamCamera::LoadValue()
 {
 	CustomKingdomUtil::Assert(2 <= nRow(), "csv error");
 	CustomKingdomUtil::Assert(10 <= nCol(), "csv error");
-	// DOL 0x801e23fc (g07 cTaskCamera::Setup, LoadValue inlined): x is stored as read; the C# negated it for the X-mirrored Unity import
+	// DOL 0x801e23fc [audited: described by the 43rd-session pass] (g07 cTaskCamera::Setup, LoadValue inlined): x is stored as read; the C# negated it for the X-mirrored Unity import
 	m_vPosition[0] = F32(1, 0, 0.0f);
 	m_vPosition[1] = F32(1, 1, 0.0f);
 	m_vPosition[2] = F32(1, 2, 0.0f);

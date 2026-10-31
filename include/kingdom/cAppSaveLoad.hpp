@@ -38,7 +38,7 @@ private:
 
 	cKingdomAnitaVector m_Anita;              // +0x280, layers 0-3 = RESIDENT_ANITA_FRAME
 	cTaskFade* m_pFade{};                     // +0x348
-	uint m_nErrState{};                       // +0x34c: state to return to after the "continue without saving" screen
+	uint m_nErrState{0x15};                   // +0x34c: state to return to after the "continue without saving" screen (leave steps of 8 / 9 / 10 / 11 / 14 set it)
 	uint m_nRetry{};                          // +0x350
 	uint m_nChoice{};                         // +0x354: 0 = none yet, 1 / 2 = first / second option
 	uint m_nCursor{};                         // +0x358: 0 = none, 1 = up (first option), 2 = down (second option)

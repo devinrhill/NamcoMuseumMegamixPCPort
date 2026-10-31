@@ -74,7 +74,6 @@ public:
 
 	bool SearchRoute(int nSrc, int nDst, uint nParam);
 
-	bool SearchRoute(const Vector4& vPos, uint nParam);
 
 	bool IsOnRoute(int nPos);
 

@@ -25,7 +25,7 @@ cTaskBossEnemyMan::cTaskBossEnemyMan()
 	SetName("g01::cTaskBossEnemyMan");
 }
 
-// DOL 0x800e7368 (+ the Bullet_s%x.csv parameters the missiles read, DAT_80479054: loaded by the stage in the DOL, 0x800efef4)
+// DOL 0x800e7368 [audited: pool sizes = stage 10 row of 0x80373148, the only boss stage] (+ the Bullet_s%x.csv parameters the missiles read, DAT_80479054: loaded by the stage in the DOL, 0x800efef4)
 void cTaskBossEnemyMan::Init(int nStage, cTaskScene* pScene, cTaskPacman* pPacman)
 {
 	cTaskEnemyMan::Init(nStage, pScene, pPacman);
@@ -51,7 +51,7 @@ void cTaskBossEnemyMan::Init(int nStage, cTaskScene* pScene, cTaskPacman* pPacma
 	}
 }
 
-// DOL 0x800e7ca8: a free pool entry (vtable +0x10), set up (0x800e2e2c) and started (+0xbc = 0x800e2da8); none free: nothing
+// DOL 0x800e7ca8 [audited]: a free pool entry (vtable +0x10), set up (0x800e2e2c) and started (+0xbc = 0x800e2da8); none free: nothing
 void cTaskBossEnemyMan::SpawnBossEnemy(const float vLocal[3], int nType, int nOrbit, cTaskBoss* pBoss)
 {
 	for (cTaskBossEnemy* e : m_BossEnemy)

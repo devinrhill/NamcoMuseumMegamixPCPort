@@ -334,6 +334,8 @@ uint cMotosGameSys::TestSlaveFlagSomebody(uint flag)
 	return 0u;
 }
 
+// DOL 0x800a1400 [audited: per AUDIT_G03_G07 row] (ctor body inside the 0xe3c-byte MotosSys block, job init 0x800a1e70): keep data life 3, VS defaults (sel color 0, sharing map -1,
+// item / round / time index 3, colours 0..3, selected stages -2, limit 1800 frames), then NeedInit; the RSAR group load (0x80137648) is the sound layer (E1)
 void cMotosGameSys::Init()
 {
 	CustomKingdomUtil::Assert(m_nInstance++ == 0, "fatal error");
@@ -396,6 +398,8 @@ void cMotosGameSys::Term()
 	CustomKingdomUtil::Assert(--m_nInstance == 0, "fatal error");
 }
 
+// DOL 0x800a1570 [audited: per AUDIT_G03_G07 row] (also called by the game Init 0x800a4288): it also zeroes the enemy / player parameter blocks (+0x1c0 / +0xe4), which the game
+// Init reloads right after (all 27 kinds), so the port keeps its pointers
 void cMotosGameSys::NeedInit()
 {
 	m_nID = 0u;

@@ -27,6 +27,7 @@ cTaskConsNum::~cTaskConsNum()
 	Term();
 }
 
+// DOL 0x8018e3d4 [audited: per AUDIT_G03_G07 row] (Regist(i, BIN_ANT_GAME) per digit, state 0)
 void cTaskConsNum::Init(uint figure)
 {
 	m_nNum = 0u;
@@ -42,6 +43,7 @@ void cTaskConsNum::Term()
 {
 }
 
+// DOL 0x8018e450 [audited: per AUDIT_G03_G07 row] (state 1: when the in clip ends set the stay clips (table 0x8037b8a8) -> state 2; state 3: when the out clip ends hide the digits -> state 0)
 bool cTaskConsNum::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -76,6 +78,7 @@ bool cTaskConsNum::Execute(cJetTask* pParam)
 	return cTaskConsoleBase::Execute(pParam);
 }
 
+// DOL 0x8018e5ec [audited: per AUDIT_G03_G07 row] (in clips table 0x8037b880, state 1)
 void cTaskConsNum::Start(uint num)
 {
 	m_nNum = num;
@@ -89,6 +92,7 @@ void cTaskConsNum::Start(uint num)
 	SetState(1u);
 }
 
+// DOL 0x8018e6e4 [audited: per AUDIT_G03_G07 row] (out clips table 0x8037b8d0, state 3)
 bool cTaskConsNum::End()
 {
 	uint num = m_nNum;
@@ -110,6 +114,7 @@ bool cTaskConsNum::IsSet()
 	return false;
 }
 
+// DOL 0x8018e7d0 [audited: per AUDIT_G03_G07 row]
 bool cTaskConsNum::Set(uint num)
 {
 	if (nGetState() != 2)

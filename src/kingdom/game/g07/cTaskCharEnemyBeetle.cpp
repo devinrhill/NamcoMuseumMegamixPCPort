@@ -18,6 +18,7 @@ cTaskCharEnemy* cTaskCharEnemyBeetle::Construct()
 	return new cTaskCharEnemyBeetle();
 }
 
+// DOL 0x8005097c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBeetle::Init()
 {
 	nChangeMoveFrame() = 12;
@@ -28,6 +29,7 @@ void cTaskCharEnemyBeetle::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x8005098c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBeetle::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -44,6 +46,7 @@ bool cTaskCharEnemyBeetle::Create(uint no)
 	return true;
 }
 
+// DOL 0x80050a70 [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyBeetle::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -91,6 +94,7 @@ uint cTaskCharEnemyBeetle::Input()
 	return num2;
 }
 
+// DOL 0x80050d00 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBeetle::ActionBoth()
 {
 	if (IsFall())
@@ -104,6 +108,7 @@ bool cTaskCharEnemyBeetle::ActionBoth()
 	return true;
 }
 
+// DOL 0x80050d84 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBeetle::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

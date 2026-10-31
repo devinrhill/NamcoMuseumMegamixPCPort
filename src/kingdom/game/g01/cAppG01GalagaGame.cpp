@@ -40,7 +40,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800b0ed4: stage 10 (cG01GalagaSys::nStage) builds cAppG01GalagaBoss, the others cAppG01GalagaGame
+// DOL 0x800b0ed4 [audited]: stage 10 (cG01GalagaSys::nStage) builds cAppG01GalagaBoss, the others cAppG01GalagaGame
 void cAppG01GalagaGame::JobInit()
 {
 	cAppG01GalagaGame* pApp = KingdomGlobal::GalagaSys->nStage() == 10 ? new cAppG01GalagaBoss() : new cAppG01GalagaGame();
@@ -48,7 +48,7 @@ void cAppG01GalagaGame::JobInit()
 	KingdomGlobal::SysCore->RegistMainTask(pApp);
 }
 
-// DOL 0x801bb1a0
+// DOL 0x801bb1a0 [audited: 3D sound setup (34000/6000 scale, id counter) not ported]
 cAppG01GalagaGame::cAppG01GalagaGame()
 {
 	cG01GalagaSys* sys = KingdomGlobal::GalagaSys;
@@ -66,14 +66,14 @@ cAppG01GalagaGame::cAppG01GalagaGame()
 	// cGalagaSndActor objects 0x801c1680 makes (natively kingdom::cKingdomSndActor needs no id). (Two calls of FUN_800151a8-like setters with 0 on KingSys come before AttachStageArc; UNVERIFIED.)
 }
 
-// DOL 0x801bb258
+// DOL 0x801bb258 [audited: scene root/lights/cameras are the native scene's; children compared]
 void cAppG01GalagaGame::Init()
 {
 	// cTaskScnRoot(0x200, 0x200, 0x80, 0x10) + light setup + 4 cameras (eye (0, 0, 100.3), fovy 60, aspect 1.3333, near 0.1, far 32766):
 	// natively the scene task draws the models submitted this frame (cTaskModel::Draw -> cTaskScnRoot) with the camera cTaskScene sets
 	kingdom::NativeScene::Reset();
 	kingdom::NativeScene::SetPerFrame(true);
-	// DOL 0x801bb3ec..0x801bb480 (the boss, 0x801b8968.., is the same): the depth shadow light straight above the origin, radius 25, ortho 20 x 20,
+	// DOL 0x801bb3ec [audited]..0x801bb480 (the boss, 0x801b8968.., is the same): the depth shadow light straight above the origin, radius 25, ortho 20 x 20,
 	// near 20, far 40 (41 at the end of Init)
 	{
 		kingdom::NativeScene::SetShadow(true);
@@ -166,7 +166,7 @@ cTaskEnemyMan* cAppG01GalagaGame::CreateEnemyMan()
 	return new cTaskEnemyMan();
 }
 
-// DOL 0x801bbdb8
+// DOL 0x801bbdb8 [audited]
 void cAppG01GalagaGame::Free()
 {
 	KingdomGlobal::GalagaSys->DetachStageArc(m_nWorld, m_nStage);
@@ -179,7 +179,7 @@ void cAppG01GalagaGame::Free()
 	cAppKingdom::Free();
 }
 
-// DOL 0x800ec2f8 (console manager vtable 32; 33 is the same on the stage work for stage 9): the best of each value goes into the record, with
+// DOL 0x800ec2f8 [audited] (console manager vtable 32; 33 is the same on the stage work for stage 9): the best of each value goes into the record, with
 // the "norma reached" flags (ScoreNorma.csv; stage 10 uses row 9). The life gauge's +0x228 (the life bonus (life + 1) * 1000, set by
 // 0x800d54e4 when the result starts) is added to the score; the console player's +0x240 rate bonus (-1 = none) is not ported.
 static void StoreResult(sStageRecord* rec, const cTaskConsolePlayer* player, const cTaskConsoleLife* life)
@@ -208,7 +208,7 @@ static void StoreResult(sStageRecord* rec, const cTaskConsolePlayer* player, con
 // state 0) set its state; its Execute hands each state to every console: ready 0x800eb76c (the READY sign, the life gauge and each player
 // console to state 1, then true when all are in state 2 (0x800eb680)), game 0x800eb87c (life + players to state 3), result 0x800eb914, retry
 // 0x800eba28 (the players' +0x84). The multiplayer record 0x800ec610 (vtable 34) is StoreMulti below.
-// DOL 0x800ec4fc (console manager vtable 33, stage 9 alone): this run's values straight into the stage work (no best-of, no norma flags):
+// DOL 0x800ec4fc [audited] (console manager vtable 33, stage 9 alone): this run's values straight into the stage work (no best-of, no norma flags):
 // kills +0x00, hit rate per mille +0x08 (with the carried rate as 0x800ec2f8), lives + 1 +0x0c, score + life bonus +0x10. Stage 10 starts
 // from them (cTaskConsolePlayer 0x800d65cc).
 static void StoreWork(sStageRecord* rec, const cTaskConsolePlayer* player, const cTaskConsoleLife* life)
@@ -222,7 +222,7 @@ static void StoreWork(sStageRecord* rec, const cTaskConsolePlayer* player, const
 	rec->n0c = life->nLife() + 1;   // +0x224 + 1
 }
 
-// DOL 0x800ec610 (console manager vtable 34, called with the stage's multiplayer record, or with the work area on stage 9): this run's numbers
+// DOL 0x800ec610 [audited] (console manager vtable 34, called with the stage's multiplayer record, or with the work area on stage 9): this run's numbers
 // (no best-of): the winners' mask +0x00 (the result console's +0x244), lives + 1 +0x04, per player kills +0x08.. / hit rate per mille +0x18.. /
 // score + the life bonus +0x28..
 static void StoreMultiRec(sMultiRecord* rec, cTaskConsolePlayer** players, int count, const cTaskConsoleLife* life, const cTaskConsoleResultMulti* result)
@@ -251,7 +251,7 @@ void cAppG01GalagaGame::StoreMulti(sMultiRecord* rec)
 	if (m_pTaskResultMulti != nullptr) StoreMultiRec(rec, m_pPlayer, KingdomGlobal::GalagaSys->nPlayer(), m_pTaskLife, m_pTaskResultMulti);
 }
 
-// DOL 0x801bbf5c. The result goes into the record (console vtable 32 / 33 / multiplayer 34); the next stage opens
+// DOL 0x801bbf5c [audited]. The result goes into the record (console vtable 32 / 33 / multiplayer 34); the next stage opens
 // and the record is saved.
 void cAppG01GalagaGame::SaveRecord()
 {
@@ -279,7 +279,7 @@ void cAppG01GalagaGame::SaveRecord()
 	sys->SaveData();
 }
 
-// DOL 0x801bc0fc: the nModeState / nModeStep machine (step 0 enter, 1 run, 2 leave)
+// DOL 0x801bc0fc [audited: the START / DEMO / GOAL stage-task tick (+0x2c0 state 0) goes through cDemoMan natively]: the nModeState / nModeStep machine (step 0 enter, 1 run, 2 leave)
 bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -381,6 +381,7 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 		{
 		case 0:
 			nModeStep(n) = 1;
+			m_pTaskLife->SetGame(true);   // console vtable +0x7c: state 3
 			m_pTaskStage->SetState(1);
 			m_pTaskScene->GameStart();   // 0x800f6aa8
 			m_pTaskPacman->GameStart();
@@ -460,6 +461,7 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 		{
 		case 0:
 			nModeStep(n) = 1;
+			m_pTaskLife->SetGame(false);   // console vtable +0x84: state 6
 			for (cTaskConsolePlayer* p : m_pPlayer) if (p != nullptr) p->SetEnable(false);   // console vtable 31 (UNVERIFIED: what it does)
 			m_pTaskRetry->Start();   // 0x80149b88
 			[[fallthrough]];
@@ -559,7 +561,7 @@ bool cAppG01GalagaGame::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801bc3b4 (inlined in READY / GAME / MISS): the first of the players' pads (get_pad1(i), i < nPlayer) that triggers HOME or MINUS
+// DOL 0x801bc3b4 [audited] (inlined in READY / GAME / MISS): the first of the players' pads (get_pad1(i), i < nPlayer) that triggers HOME or MINUS
 // starts the pause (0x80147c8c)
 void cAppG01GalagaGame::PauseCheck()
 {
@@ -571,7 +573,7 @@ void cAppG01GalagaGame::PauseCheck()
 		}
 }
 
-// DOL 0x801bcb7c (the Execute tail; the boss app's 0x801bae9c is the same): DAT_80479118 = the pause is on (+0x1d4) || pad 0 holds HOME
+// DOL 0x801bcb7c [audited] (the Execute tail; the boss app's 0x801bae9c is the same): DAT_80479118 = the pause is on (+0x1d4) || pad 0 holds HOME
 void cAppG01GalagaGame::PauseFlag()
 {
 	cG01GalagaSys::s_bPause = m_pTaskPause->IsPause() || (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0;

@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g11/cTaskGrobdaStage.hpp"
 #include "kingdom/game/g11/cTaskGrobdaConsole.hpp"
 
@@ -50,7 +51,7 @@ int Snap(int v)
 }
 }
 
-// DOL 0x8002f49c
+// DOL 0x8002f49c [audited]
 cTaskGrobdaBG::cTaskGrobdaBG()
 {
 	SetName("cTaskGrobdaBG");
@@ -79,7 +80,7 @@ cTaskGrobdaBG::cTaskGrobdaBG()
 			if (nd.name.size() > 2 && nd.name[0] == 'c' && nd.name[1] == '_' && n < 64)
 			{
 				v[n][0] = nd.translate[0];
-				v[n][1] = nd.translate[1];
+				v[n][1] = 0.0f;   // FLOAT_80479fd8: the DOL keeps only x / z
 				v[n][2] = nd.translate[2];
 				n++;
 			}
@@ -87,7 +88,7 @@ cTaskGrobdaBG::cTaskGrobdaBG()
 	}
 }
 
-// DOL 0x8002fafc (the pause test and the effect hook 0x8009ffa4 not ported)
+// DOL 0x8002fafc [audited: camera task native] (the pause test and the effect hook 0x8009ffa4 not ported)
 bool cTaskGrobdaBG::Execute(cJetTask* pParam)
 {
 	if (cTaskGrobdaCollision::Running())
@@ -98,7 +99,7 @@ bool cTaskGrobdaBG::Execute(cJetTask* pParam)
 	return cTaskGrobdaModel::Execute(pParam);
 }
 
-// DOL 0x800acaf0 / 0x800acd58
+// DOL 0x800acaf0 [audited] / 0x800acd58
 cTaskGrobdaStructure::cTaskGrobdaStructure(int kind, float x, float z)
 {
 	SetName(kind == 2 ? "cTaskGrobdaStructure02" : "cTaskGrobdaStructure01");
@@ -118,7 +119,7 @@ cTaskGrobdaStructure::cTaskGrobdaStructure(int kind, float x, float z)
 	SetShape(box, 4, false);
 }
 
-// DOL 0x800acbc0 (cTaskGrobdaStructure::Execute and the effect hook not ported)
+// DOL 0x800acbc0 [audited] (cTaskGrobdaStructure::Execute and the effect hook not ported)
 bool cTaskGrobdaStructure::Execute(cJetTask* pParam)
 {
 	if (cTaskGrobdaCollision::Running())
@@ -130,13 +131,24 @@ bool cTaskGrobdaStructure::Execute(cJetTask* pParam)
 	return cTaskGrobdaModel::Execute(pParam);
 }
 
-// DOL 0x800373cc + Init 0x800376a4 (partial: the enemy list manager +0x220, the player tanks (0x80194d0c, 0xc80 bytes, one per player,
+// DOL 0x800373cc [audited] + Init 0x800376a4 (partial: the enemy list manager +0x220, the player tanks (0x80194d0c, 0xc80 bytes, one per player,
 // priority 0x10002), collision +0x214, console manager +0x21c, fade +0x218, sound handle +0x1e4 are not ported)
 cTaskGrobdaStage::cTaskGrobdaStage()
 {
 	SetName("cTaskGrobdaStage");
 	// light manager +0x1f4 / fog manager +0x1f8: BIN_SCA_LIGHT_BG -> set 0, BIN_SCA_LIGHT_CHARA -> set 1
 	kingdom::NativeScene::Reset();
+	// DOL 0x80037744 [audited]..: the depth shadow light straight above the arena: scene root +0x1f8 = 1, mode 0, target 0, rotation (pi/2, 0, 0), radius 50, ortho 40 x 40, near 1, far 50.
+	// Casters: the player tanks (0x80194e74), the grenade shadow (0x800abc90). Receiver: the stage floor's material (0x8002f598). UNVERIFIED against Dolphin.
+	{
+		kingdom::NativeScene::SetShadow(true);
+		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
+		sh.SetMode(0);
+		sh.SetTarget(0.0f, 0.0f, 0.0f);
+		sh.SetAngles(1.5707964f, 0.0f, 0.0f);
+		sh.SetOrtho(40.0f, 40.0f, 1.0f, 50.0f);
+		sh.SetRadius(50.0f);
+	}
 	static const char* const LIGHT[2] = {"BIN_SCA_LIGHT_BG", "BIN_SCA_LIGHT_CHARA"};
 	for (int i = 0; i < 2; i++)
 	{
@@ -152,30 +164,33 @@ cTaskGrobdaStage::cTaskGrobdaStage()
 		}
 	}
 	ConnectChild(new kingdom::cTaskNativeScene());
-	m_pConsole = new cTaskGrobdaConsoleManager(KingdomGlobal::GrobdaSys->nPlayer());   // +0x21c (builder 0x8012f7c8)
-	ConnectChild(m_pConsole);
-	m_pFade = new kingdom::cTaskFade();   // +0x218
-	m_pFade->nDrawPriority(0x8fffffefu);
-	ConnectChild(m_pFade);
-	ConnectChild(new cTaskGrobdaBG());   // +0x200 (priority 0x10000)
-	char name[0x200];
-	std::snprintf(name, sizeof(name), "m11s_map%02d.bobj", (std::rand() & 3) + 1);   // the DOL picks one of the four maps at random
-	LoadMap(name);
-	// one tank per player (+0x204..; priority 0x10002); the DOL creates them before loading the map and then moves them to the starts
+	// the child order of Init 0x800376a4: list, BG, players, the map (structures, enemies), [camera], collision, effects, console, fade
 	s_pInstance = this;
+	m_pList = new cTaskGrobdaEnemyListManager();   // +0x220 (the waves)
+	ConnectChild(m_pList);
+	cTaskGrobdaBG* bg = new cTaskGrobdaBG();   // +0x200
+	bg->nDrawPriority(0x10000u);
+	ConnectChild(bg);
 	m_nPlayers = KingdomGlobal::GrobdaSys->nPlayer();
-	for (int i = 0; i < m_nPlayers && i < 4; i++)
+	for (int i = 0; i < m_nPlayers && i < 4; i++)   // +0x204..; priority 0x10002 (the ctor)
 	{
-		float x = 0.0f, z = 0.0f;
-		PlayerStart(i, x, z);
-		m_pPlayer[i] = new cTaskGrobdaPlayer(i, x, z);
+		m_pPlayer[i] = new cTaskGrobdaPlayer(i);
 		ConnectChild(m_pPlayer[i]);
 	}
-	m_pList = new cTaskGrobdaEnemyListManager();   // +0x220 (0x8003...: the waves)
-	ConnectChild(m_pList);
-	ConnectChild(new cTaskGrobdaCollision());   // +0x214 (0x220 bytes): after the objects, so the lists of this frame are resolved
+	char name[0x200];
+	std::snprintf(name, sizeof(name), "m11s_map%02d.bobj", (kingdom::MslRand() & 3) + 1);   // the DOL picks one of the four maps at random
+	LoadMap(name);
+	for (int i = 0; i < m_nPlayers && i < 4; i++)
+		if (m_bStart[i]) m_pPlayer[i]->SetStart(m_vStart[i][0], m_vStart[i][1], m_fStartAngle[i]);
+	LoadWave(name);   // 0x800384b4 also makes the enemies of the map file itself
+	ConnectChild(new cTaskGrobdaCollision());   // +0x214 (0x220 bytes)
+	ConnectChild(KingdomGlobal::KingSys->pAppMain()->pTaskPtkMan());   // app +0x1bc: made by the app, a child of the stage
+	m_pConsole = new cTaskGrobdaConsoleManager(m_nPlayers);   // +0x21c (builder 0x8012f7c8)
+	ConnectChild(m_pConsole);
+	m_pFade = new kingdom::cTaskFade();   // +0x218
+	ConnectChild(m_pFade);
+	m_pFade->nDrawPriority(0x8fffffefu);
 }
-
 void cTaskGrobdaStage::LoadMap(const char* name)
 {
 	std::size_t size = 0;
@@ -200,6 +215,7 @@ void cTaskGrobdaStage::LoadMap(const char* name)
 				{
 					m_vStart[n][0] = 2.0f * (float)ox * 0.0625f - 31.0f;
 					m_vStart[n][1] = 2.0f * (float)oz * 0.0625f - 32.0f;
+					m_fStartAngle[n] = 0.017453292f * (float)BE32(rec + 0x0c);   // FLOAT_8047a044 * (u32) word 0 of the record, FUN_80199818
 					m_bStart[n] = true;
 				}
 			}
@@ -241,7 +257,7 @@ bool cTaskGrobdaStage::PlayerStart(int n, float& x, float& z) const
 	return true;
 }
 
-// DOL 0x800391c8 (play state): frame counter, time left = total - ms(frames) (0x8000d80c: frames * 100000 / 6000), expiry -> state 3
+// DOL 0x800391c8 [audited] (play state): frame counter, time left = total - ms(frames) (0x8000d80c: frames * 100000 / 6000), expiry -> state 3
 void cTaskGrobdaStage::PlayState()
 {
 	if (m_bEnter)
@@ -283,17 +299,16 @@ void cTaskGrobdaStage::AddScore(int player, int pts)
 	static_cast<cAppG11GrobdaGame*>(KingdomGlobal::KingSys->pAppMain())->AddScore(player, pts, m_pConsole);
 }
 
-// DOL 0x800397b8: the combo joins the stage's list (it is active from then on)
+// DOL 0x800397b8 [audited]: the combo joins the stage's list (mode 0 until its first Hit)
 cTaskGrobdaCombo* cTaskGrobdaStage::AddCombo(uint type)
 {
 	cTaskGrobdaCombo* c = new cTaskGrobdaCombo(type);
-	c->SetMode(1);
 	ConnectChild(c);
 	m_vCombo.push_back(c);
 	return c;
 }
 
-// DOL 0x80039344: the wrecks that are gone are released; when the wave in play is all wrecks, the wrecks leave (and join the live list), the next
+// DOL 0x80039344 [audited]: the wrecks that are gone are released; when the wave in play is all wrecks, the wrecks leave (and join the live list), the next
 // wave file is loaded and its enemies drop in
 void cTaskGrobdaStage::UpdateWaves()
 {
@@ -319,7 +334,7 @@ void cTaskGrobdaStage::UpdateWaves()
 	for (cTaskGrobdaEnemy* e : m_vPending) e->Begin();   // 0x80027464
 }
 
-// DOL 0x80039aac: finished combos (mode 2) are released; the best running combo is shown on the console
+// DOL 0x80039aac [audited]: finished combos (mode 2) are released; the best running combo is shown on the console
 void cTaskGrobdaStage::UpdateCombos()
 {
 	int best = 0;
@@ -341,7 +356,7 @@ void cTaskGrobdaStage::UpdateCombos()
 		m_nComboMax = 0;
 }
 
-// DOL 0x800384b4 (the enemy half): every record 0x2000000N makes an enemy of the kind N at (x, 0, z); its three words start it
+// DOL 0x800384b4 [audited] (the enemy half): every record 0x2000000N makes an enemy of the kind N at (x, 0, z); its three words start it
 bool cTaskGrobdaStage::LoadWave(const std::string& name)
 {
 	std::size_t size = 0;
@@ -378,7 +393,7 @@ bool cTaskGrobdaStage::LoadWave(const std::string& name)
 	return true;
 }
 
-// DOL 0x80037fcc (camera + state machine): cTaskGrobdaCamera (0x8003027c) takes ScnRoot camera 0 and 0x80191f88 sets it from frame 0 of
+// DOL 0x80037fcc [audited] (camera + state machine): cTaskGrobdaCamera (0x8003027c) takes ScnRoot camera 0 and 0x80191f88 sets it from frame 0 of
 // BIN_SCA_STAGE_CAMERA (aim posture); its Execute (0x80030444, below) runs natively at the end of this Execute
 bool cTaskGrobdaStage::Execute(cJetTask* pParam)
 {
@@ -421,7 +436,7 @@ bool cTaskGrobdaStage::Execute(cJetTask* pParam)
 				m_pConsole->End();               // vtable +0x4c
 				m_pFade->Fade(0x10008u, 500);
 			}
-			if (m_pFade->IsEnd()) m_nState = 5;
+			else if (m_pFade->IsEnd()) m_nState = 5;
 			break;
 		default: break;
 		}
@@ -434,7 +449,7 @@ bool cTaskGrobdaStage::Execute(cJetTask* pParam)
 	if (d != nullptr && b.Load(d, size) && a.Load(b) && a.SampleCamera("", 0.0f, cam))
 	{
 		float target[3] = {cam.aimPos[0], cam.aimPos[1], cam.aimPos[2]};
-		// DOL 0x80030444 cTaskGrobdaCamera::Execute -> FUN_80191d2c (cGrobdaCamera update, every frame): position = Trans(aim +0x20) x RotZ(+0x38)
+		// DOL 0x80030444 [audited] cTaskGrobdaCamera::Execute -> FUN_80191d2c (cGrobdaCamera update, every frame): position = Trans(aim +0x20) x RotZ(+0x38)
 		// x RotY(+0x34) x RotX(+0x30) x Trans(pos +0x10) applied to the origin, aim posture unchanged. 0x80191f88 stored the file's pos / aim, the
 		// rotations stay 0 (only the ctor 0x80191c0c writes them), so the drawn camera is aim + pos (w1 stage: y 38.5 / z 31.64, not 38 / 30.84)
 		float pos[3] = {cam.aimPos[0] + cam.pos[0], cam.aimPos[1] + cam.pos[1], cam.aimPos[2] + cam.pos[2]};

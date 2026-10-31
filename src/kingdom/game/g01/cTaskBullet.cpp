@@ -22,7 +22,7 @@ const float* PacmanPos()   // DAT_80479038 + 0x20 (natively the enemy manager's 
 }
 }
 
-// DOL 0x800d2080 (kind 6; cTaskBulletHit 0x800d2da8 makes it 7) and the pools' model setup (cBulletDummyWork: CHAR_BULLET01_MDL 0x46dfb5c6;
+// DOL 0x800d2080 [audited] (kind 6; cTaskBulletHit 0x800d2da8 makes it 7) and the pools' model setup (cBulletDummyWork: CHAR_BULLET01_MDL 0x46dfb5c6;
 // cBulletHitWork: CHAR_BULLET02_MDL 0x017fcf16 + clip 0x07583216). Priority 0x10004.
 cTaskBullet::cTaskBullet(bool bHit)
 {
@@ -43,7 +43,7 @@ cTaskBullet::cTaskBullet(bool bHit)
 // +0xd4 0x800d2860 (state 2), +0xd8 0x800d2874 (state == 2), +0xe0 0x800d288c (state == 3), +0xe8 0x800d28a4 (state == 4); +0xb8 = the
 // kind (0x800d29d0: 6, 0x800d2da8: 7). cTaskBulletDummy +0xec 0x800d29e0 (a Setup toward the aim point, not collidable) has no caller found.
 // The cTaskKingdom accessors 0x80088bdc / 0x80088be4 (+0x5c / +0x54) are the engine's.
-// DOL 0x800d2174: start at the enemy, aim at Pac-Man's position, active and collidable, state 1
+// DOL 0x800d2174 [audited]: start at the enemy, aim at Pac-Man's position, active and collidable, state 1
 void cTaskBullet::Setup(float fSpeed, const float vPos[3])
 {
 	m_nState = 1;
@@ -65,6 +65,7 @@ void cTaskBullet::Setup(float fSpeed, const float vPos[3])
 	m_b08 = true;
 	m_b14 = true;
 	UpdateModel();
+	if (cKingdomModel* m = pModel(0)) m->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800d22c0
 }
 
 const float* cTaskBullet::Target() const
@@ -73,7 +74,7 @@ const float* cTaskBullet::Target() const
 	return PacmanPos();
 }
 
-// DOL 0x800d23b0 (cTaskBulletDummy 0x800d2ae8: the previous position to +0x340, Pac-Man's aim point +0x2f0 instead of his position): pos +=
+// DOL 0x800d23b0 [audited] (cTaskBulletDummy 0x800d2ae8: the previous position to +0x340, Pac-Man's aim point +0x2f0 instead of his position): pos +=
 // dir * speed + how far the target moved since the last frame (the first frame of a dummy shot: aim point - position, set by 0x800d2174)
 void cTaskBullet::Step()
 {
@@ -88,7 +89,7 @@ void cTaskBullet::Step()
 	m_fTime += 1.0f;
 }
 
-// DOL 0x800d24b0: out when farther than 150 from the camera, or while Pac-Man runs to the goal (state 8, 0x800f3e94)
+// DOL 0x800d24b0 [audited]: out when farther than 150 from the camera, or while Pac-Man runs to the goal (state 8, 0x800f3e94)
 bool cTaskBullet::IsOut() const
 {
 	float eye[3], aim[3], fovy;
@@ -98,7 +99,7 @@ bool cTaskBullet::IsOut() const
 	return cTaskPacman::s_pInstance != nullptr && cTaskPacman::s_pInstance->IsGoalRun();
 }
 
-// DOL 0x800d258c
+// DOL 0x800d258c [audited: also clears the collidable flag natively, the DOL only resets the state]
 void cTaskBullet::Die()
 {
 	m_b08 = false;
@@ -112,7 +113,7 @@ void cTaskBullet::UpdateModel()
 	m->vTrans() = Vector4(m_v20.x, m_v20.y, m_v20.z, 1.0f);
 }
 
-// DOL 0x800d26b4 (nothing while paused)
+// DOL 0x800d26b4 [audited: the world box (UpdateWorldAABB) is not updated, shots collide by distance] (nothing while paused)
 bool cTaskBullet::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -136,25 +137,24 @@ bool cTaskBullet::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800d27f4: only while active (+8) and shown (+9)
+// DOL 0x800d27f4 [audited]: only while active (+8) and shown (+9)
 void cTaskBullet::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08 || !m_b09) return;
 	cTaskModel::Draw(nStatus, pParam);
 }
 
-// DOL 0x800d25cc (cTaskBulletDummy 0x800d2bfc tests Pac-Man's aim point +0x2f0 instead)
+// DOL 0x800d25cc [audited] (cTaskBulletDummy 0x800d2bfc tests Pac-Man's aim point +0x2f0 instead)
 bool cTaskBullet::HitCheck(cObject* other)
 {
 	if (other->nKind() != 3 || other->bJumping()) return false;   // 0x800f4bc4
 	const float* p = m_nKind == 6 ? Target() : other->vPos();     // cTaskBulletDummy 0x800d2bfc: Pac-Man's +0x2f0
 	if (p == nullptr) return false;
 	const float d[3] = {p[0] - m_v20.x, p[1] - m_v20.y, p[2] - m_v20.z};
-	const float r = HIT_RADIUS + HIT_RADIUS;
-	return d[0] * d[0] + d[1] * d[1] + d[2] * d[2] <= r * r;
+	return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) < HIT_RADIUS + HIT_RADIUS;   // 0x801c1aa4: distance < r1 + r2
 }
 
-// DOL 0x800d2648
+// DOL 0x800d2648 [audited]
 void cTaskBullet::HitCallback(cObject* other)
 {
 	(void)other;

@@ -4,7 +4,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800d7908 (priority 0x80000002) + 0x800d7924: ANT_SCORE anita 0 at rate 60 (bit 0x20000 cleared, +0x14 = FLOAT_8047b4b8), anim 0 at
+// DOL 0x800d7908 [audited] (priority 0x80000002) + 0x800d7924: ANT_SCORE anita 0 at rate 60 (bit 0x20000 cleared, +0x14 = FLOAT_8047b4b8), anim 0 at
 // frame 0, hidden; the console manager starts it at once (0x800eb3b0: state 0, active)
 cTaskConsoleReadyString::cTaskConsoleReadyString()
 {
@@ -19,7 +19,7 @@ cTaskConsoleReadyString::cTaskConsoleReadyString()
 	m_b08 = true;
 }
 
-// DOL 0x800d79ec: sub-step 0 anim 0 from the start, visible, shown (+9); sub-step 1 once hidden or at the anim end: hidden, done
+// DOL 0x800d79ec [audited]: sub-step 0 anim 0 from the start, visible, shown (+9); sub-step 1 once hidden or at the anim end: hidden, done
 bool cTaskConsoleReadyString::ReadyStep()
 {
 	cKingdomAnita* a = pAnita(0);
@@ -38,7 +38,7 @@ bool cTaskConsoleReadyString::ReadyStep()
 	return false;
 }
 
-// DOL 0x800eb400 (active, not paused): state 1 runs the ready step, then state 2 (the other states' slots are empty for this console:
+// DOL 0x800eb400 [audited] (active, not paused): state 1 runs the ready step, then state 2 (the other states' slots are empty for this console:
 // 0x800d7ad4 / 0x800d7ad8 / 0x800d549c); the anitas update (FUN_80014d58)
 bool cTaskConsoleReadyString::Execute(cJetTask* pParam)
 {
@@ -52,7 +52,7 @@ bool cTaskConsoleReadyString::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x800eb548: only while active (+8) and shown (+9)
+// DOL 0x800eb548 [audited]: only while active (+8) and shown (+9)
 void cTaskConsoleReadyString::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_b08 || !m_b09) return;

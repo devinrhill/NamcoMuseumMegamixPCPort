@@ -54,7 +54,6 @@ private:
 
 	GameObject* m_SndHnd{};
 
-	float m_burstWaitTime{};
 
 public:
 	bool IsWait();

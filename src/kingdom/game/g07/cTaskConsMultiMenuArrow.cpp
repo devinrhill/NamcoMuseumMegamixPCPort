@@ -16,6 +16,7 @@ cTaskConsMultiMenuArrow::~cTaskConsMultiMenuArrow()
 {
 }
 
+// DOL 0x801cac1c [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuArrow::SetData(uint nType, bool bActive)
 {
 	CustomKingdomUtil::Assert(0 <= nType && nType < 2, "ArrowType Over");
@@ -29,6 +30,7 @@ void cTaskConsMultiMenuArrow::SetData(uint nType, bool bActive)
 	nHitPat() = array[nArrowType()];
 }
 
+// DOL 0x801cad2c [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuArrow::nGetArrowAnmNo(int nAnmState)
 {
 	int obj[2][4] = {{83, 84, 85, 86}, {87, 88, 89, 90}};

@@ -40,7 +40,7 @@ void Shuffle(cTaskConsMud::sSplat (&s)[N], cTaskConsole* con)
 }
 }
 
-// DOL 0x800632ac (cTaskPBAnita priority 0x8000000, then 0x8000001; see the header for the draw order)
+// DOL 0x800632ac [audited] (cTaskPBAnita priority 0x8000000, then 0x8000001; see the header for the draw order)
 cTaskConsMud::cTaskConsMud(cTaskConsole* pConsole, int nPlayer) : m_pConsole(pConsole)
 {
 	SetName("g02::cTaskConsMud");
@@ -82,7 +82,7 @@ cTaskConsMud::cTaskConsMud(cTaskConsole* pConsole, int nPlayer) : m_pConsole(pCo
 	}
 }
 
-// DOL 0x80123418
+// DOL 0x80123418 [audited]
 kingdom::cKingdomAnita* cTaskConsMud::Regist(uint idx, const char* name, int anim)
 {
 	kingdom::cKingdomAnita* a = pAnita(idx);
@@ -94,13 +94,13 @@ kingdom::cKingdomAnita* cTaskConsMud::Regist(uint idx, const char* name, int ani
 	return a;
 }
 
-// DOL 0x801233d8
+// DOL 0x801233d8 [audited]
 void cTaskConsMud::SetAnim(uint idx, int anim)
 {
 	pAnita(idx)->SetAnimNo(anim, false, 0.0f);
 }
 
-// DOL 0x8012351c
+// DOL 0x8012351c [audited]
 bool cTaskConsMud::SetPosLayer(uint idx, int pat, uint lay)
 {
 	Vector4 pos{};
@@ -117,7 +117,7 @@ void cTaskConsMud::HideAll()
 	for (uint i = 0; i < SMALL; i++) pAnita(i + BIG)->SetState(1u, false);
 }
 
-// the mud half of DOL 0x80065db0: the splat counts come from the car's cParamCar (+0x2d4 -> +0x78 / +0x7c), capped at 24 / 4
+// the mud half of DOL 0x80065db0 [audited]: the splat counts come from the car's cParamCar (+0x2d4 -> +0x78 / +0x7c), capped at 24 / 4
 void cTaskConsMud::SetCar(kingdom::cTaskModel* pCar)
 {
 	if (pCar == nullptr) return;
@@ -126,7 +126,7 @@ void cTaskConsMud::SetCar(kingdom::cTaskModel* pCar)
 	m_nSmall = std::min(m_nCarSmall, 4u);
 }
 
-// DOL 0x80068bac
+// DOL 0x80068bac [audited]
 bool cTaskConsMud::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -217,7 +217,7 @@ bool cTaskConsMud::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801235cc (the push-back draw: an orthographic projection of the render mode around the anita vector draw, only while +0x1d4).
+// DOL 0x801235cc [audited] (the push-back draw: an orthographic projection of the render mode around the anita vector draw, only while +0x1d4).
 // Equivalent of the cTaskPBAnita path the port does not have: cTaskPushBack::Draw 0x800362b0 -> vtable +0x54 0x8009abe0 (pushes the task
 // into the ScnRoot, FUN_8009c3f4) -> the scene calls vtable +0x40 = this; +0x48 0x8003629c returns the push-back depth (FLOAT_8047a014).
 void cTaskConsMud::Draw(int nStatus, cJetTask* pParam)

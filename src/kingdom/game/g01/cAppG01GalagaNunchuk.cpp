@@ -10,13 +10,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800b1658 (job 184)
+// DOL 0x800b1658 [audited] (job 184)
 void cAppG01GalagaNunchuk::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG01GalagaNunchuk());
 }
 
-// DOL 0x800af620: the menu archive (ANT_NUNCHUK 0x21d4da2a is in g01menu.lzs), next job the stage; RegistStageArcAS (the asynchronous load of
+// DOL 0x800af620 [audited]: the menu archive (ANT_NUNCHUK 0x21d4da2a is in g01menu.lzs), next job the stage; RegistStageArcAS (the asynchronous load of
 // the stage archives) is left out: the native stage job attaches its archives itself
 cAppG01GalagaNunchuk::cAppG01GalagaNunchuk()
 {
@@ -26,13 +26,13 @@ cAppG01GalagaNunchuk::cAppG01GalagaNunchuk()
 	SetName("cAppG01GalagaNunchuk");
 }
 
-// DOL 0x800af724
+// DOL 0x800af724 [audited]
 cAppG01GalagaNunchuk::~cAppG01GalagaNunchuk()
 {
 	cG01GalagaSys::DetachMenuArc();
 }
 
-// DOL 0x800af6a8: every player's remote (pad nWork(player)) has a Nunchuk (KPAD extension +0xb0 -> +0x5c == 1)
+// DOL 0x800af6a8 [audited]: every player's remote (pad nWork(player)) has a Nunchuk (KPAD extension +0xb0 -> +0x5c == 1)
 bool cAppG01GalagaNunchuk::IsSkip()
 {
 	cG01GalagaSys* sys = KingdomGlobal::GalagaSys;

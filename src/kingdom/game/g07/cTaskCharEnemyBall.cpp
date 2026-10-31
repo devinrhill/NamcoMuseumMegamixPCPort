@@ -30,6 +30,7 @@ void cTaskCharEnemyBall::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x8005033c [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBall::FallEffect(int nRefID)
 {
 	cTaskChar* cTaskChar2 = nullptr;
@@ -43,6 +44,7 @@ void cTaskCharEnemyBall::FallEffect(int nRefID)
 	}
 }
 
+// DOL 0x800503d4 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyBall::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -79,6 +81,7 @@ bool cTaskCharEnemyBall::Create(uint no)
 	return true;
 }
 
+// DOL 0x8005054c [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyBall::Input()
 {
 	switch (m_BallType)
@@ -93,7 +96,7 @@ uint cTaskCharEnemyBall::Input()
 		CustomKingdomUtil::Assert("error");
 		break;
 	}
-	return cTaskChar::Input();
+	return 0u; // DOL 0x8005054c returns 0 (the C# fell through to cTaskChar::Input)
 }
 
 }

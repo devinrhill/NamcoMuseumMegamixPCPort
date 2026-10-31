@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "kingdom/game/g03/cTaskConsoleBase.hpp"
-#include "MotosUIRollCaution.hpp"
 #include "cJetTask.hpp"
 
 namespace kingdom::game::g03
@@ -31,7 +30,6 @@ private:
 	uint m_nWaitCnt{};
 
 public:
-	MotosUIRollCaution* UnityUI{};
 
 	cTaskConsCookieWarning();
 

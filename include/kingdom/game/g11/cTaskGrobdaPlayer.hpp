@@ -21,7 +21,8 @@ class cTaskGrobdaShotGrenade;
 class cTaskGrobdaPlayer : public cTaskGrobdaModel
 {
 public:
-	cTaskGrobdaPlayer(int player, float x, float z);   // DOL 0x80194d0c + Init 0x80194e74
+	explicit cTaskGrobdaPlayer(int player);           // DOL 0x80194d0c + Init 0x80194e74
+	void SetStart(float x, float z, float angle);     // DOL 0x8003822c + 0x80199818
 	~cTaskGrobdaPlayer() override;
 	bool Execute(cJetTask* pParam) override;          // DOL 0x80195a0c
 	void Resolve(int a, int b) override;              // DOL 0x80198454
@@ -72,6 +73,7 @@ private:
 	cTaskGrobdaShotPlayer* m_pShot[16]{};             // +0xb5c
 	cTaskGrobdaShotGrenade* m_pGrenade{};             // +0xb9c
 	kingdom::cKingdomPtkHnd* m_pShield[3]{};          // +0xb50 (L / M / S)
+	kingdom::cKingdomPtkHnd* m_pMarker{};             // +0xb4c (multiplayer only)
 	WiiSnd::Handle m_ShieldSnd, m_AlarmSnd;           // +0xba0 / +0xbac
 };
 }

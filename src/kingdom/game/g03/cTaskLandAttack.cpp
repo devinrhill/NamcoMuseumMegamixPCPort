@@ -8,10 +8,12 @@
 namespace kingdom::game::g03
 {
 
+// DOL 0x8011f904 [audited: blr] (blr)
 void cTaskLandAttack::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x8011f428 [audited: per AUDIT_G03_G07 row] (members: gimmick +0x1b4, mesFlag +0x1b8, mesData +0x1bc, frameCount +0x1c0, kind +0x1c4, step +0x1c8, table +0x1cc; table rows are 0xc bytes: frame, kind, param)
 cTaskLandAttack::cTaskLandAttack(cJetTask* pParent, cTaskBgGimmick* pGimmick)
 {
 	SetName("cTaskLandAttack");
@@ -29,14 +31,15 @@ cTaskLandAttack::cTaskLandAttack(cJetTask* pParent, cTaskBgGimmick* pGimmick)
 	m_ppAttackTBL = nullptr;
 }
 
+// DOL 0x8011f59c [audited: per AUDIT_G03_G07 row]
 cTaskLandAttack::~cTaskLandAttack()
 {
 }
 
-// DOL 0x8011f600
+// DOL 0x8011f600 [audited: per AUDIT_G03_G07 row]
 bool cTaskLandAttack::Execute(cJetTask* pParam)
 {
-	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE())
+	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss() && !Constants::IS_NAKAJIMA_PAUSE(this))
 	{
 		if (m_ppAttackTBL != nullptr && m_nAttackKind != -1)
 		{
@@ -88,6 +91,7 @@ bool cTaskLandAttack::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8011f844 [audited: per AUDIT_G03_G07 row] (nActFlag >> 31)
 bool cTaskLandAttack::IsAttackEnd()
 {
 	if (CustomKingdomUtil::IF(m_pGimmick->nActFlag() & 0x80000000u))
@@ -97,6 +101,7 @@ bool cTaskLandAttack::IsAttackEnd()
 	return false;
 }
 
+// DOL 0x8011f854 [audited: per AUDIT_G03_G07 row]
 bool cTaskLandAttack::GetMsg(uint& pMes)
 {
 	if (m_nMesFlag)
@@ -108,6 +113,7 @@ bool cTaskLandAttack::GetMsg(uint& pMes)
 	return false;
 }
 
+// DOL 0x8011f880 [audited: per AUDIT_G03_G07 row] (nActFlag bit 0x40000000)
 void cTaskLandAttack::Pause(bool nFlag)
 {
 	if (nFlag)
@@ -120,11 +126,13 @@ void cTaskLandAttack::Pause(bool nFlag)
 	}
 }
 
+// DOL 0x8011f8b0 [audited: per AUDIT_G03_G07 row]
 void cTaskLandAttack::SetAttackTBL(const Constants::LAND_ATTACK_INFO* const* const* ppAtatckTBL)
 {
 	m_ppAttackTBL = ppAtatckTBL;
 }
 
+// DOL 0x8011f8b8 [audited: per AUDIT_G03_G07 row]
 void cTaskLandAttack::SetAttackKind(int nKind)
 {
 	if (nKind == m_nAttackKind)

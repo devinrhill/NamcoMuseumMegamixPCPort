@@ -47,7 +47,6 @@ public:
 
 	void MainExec() override;
 
-	void FadeOutEndCallBack() override;
 };
 
 }

@@ -1,3 +1,5 @@
+#include <GamePad.hpp>
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cTaskConsMenuMan.hpp"
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 
@@ -126,6 +128,7 @@ cTaskConsMenuBase*& cTaskConsMenuMan::pHitArray(uint nNo)
 	return m_pHitArray[nNo];
 }
 
+// DOL 0x801c72ec [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 cTaskConsMenuMan::cTaskConsMenuMan(cAppGameBaseMenu* pApp)
 	: cTaskConsMenuManBase(pApp)
 {
@@ -211,27 +214,24 @@ void cTaskConsMenuMan::Free()
 	KingdomGlobal::MotosSys->bNewStageApear() = false;
 }
 
+// DOL 0x801c7774 [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 void cTaskConsMenuMan::StageSetting()
 {
 	uint freeStage = KingdomGlobal::MotosSys->GetFreeStage();
 	nFreeWorldNo() = KingdomGlobal::MotosSys->Idx2World(freeStage) - 1;
 	nFreeStageNo() = KingdomGlobal::MotosSys->Idx2Stage(freeStage) - 1;
-	if (KingdomGlobal::SysCore->GetLastJobNo() == 140509184 || KingdomGlobal::SysCore->GetLastJobNo() == 288358400)
+	if (KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::SAVE || KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::MOTOS_GAME)
 	{
 		if (KingdomGlobal::MotosSys->IsNewStageApear())
 		{
 			nWorldNo() = nFreeWorldNo();
 			nStageNo() = nFreeStageNo();
 		}
-		else if (KingdomGlobal::MotosSys->IsStageOpen(KingdomGlobal::MotosSys->nStageIdx()))
-		{
-			nWorldNo() = KingdomGlobal::MotosSys->nWorld() - 1;
-			nStageNo() = KingdomGlobal::MotosSys->nStage() - 1;
-		}
 		else
 		{
-			nWorldNo() = nFreeWorldNo();
-			nStageNo() = nFreeStageNo();
+			// the DOL has no IsStageOpen test here (the C# added one that fell back to the free stage)
+			nWorldNo() = KingdomGlobal::MotosSys->nWorld() - 1;
+			nStageNo() = KingdomGlobal::MotosSys->nStage() - 1;
 		}
 	}
 	else if (KingdomGlobal::MotosSys->IsAllClear())
@@ -259,6 +259,7 @@ void cTaskConsMenuMan::FreeStageCheck()
 	}
 }
 
+// DOL 0x801c789c [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 void cTaskConsMenuMan::AddHitArray()
 {
 	for (uint num = 0u; num < 15; num++)
@@ -280,8 +281,8 @@ void cTaskConsMenuMan::AddHitArray()
 	pHitArray(13u) = pTaskConsMenuArrow(1u);
 }
 
-// DOL 0x801c8a0c: Back (+0x1dc) first, then Multi / Rule / World / Bar / Curtain / Map, the 7 stages and the 2 arrows (the C# dropped Back, so the
-// Back button kept its highlight after the selection moved on)
+// DOL 0x801c7934 [audited: described by the 43rd-session pass] (every console's vtable +0x64 = WaitState): Back (+0x1dc) first, then Multi / Rule / World / Bar / Curtain / Map, the 7 stages and
+// the 2 arrows (the C# dropped Back, so the Back button kept its highlight after the selection moved on)
 void cTaskConsMenuMan::AllWaitState()
 {
 	pTaskConsMenuBack()->WaitState();
@@ -301,6 +302,7 @@ void cTaskConsMenuMan::AllWaitState()
 	}
 }
 
+// DOL 0x801c7a4c [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 void cTaskConsMenuMan::_ObjProc()
 {
 	int num = nSelectObjNow();
@@ -312,7 +314,7 @@ void cTaskConsMenuMan::_ObjProc()
 	}
 }
 
-// DOL 0x801c8270 (Select, inlined): every hit object (15) the pad 0 pointer is over becomes the selection, the last one wins; nothing hit -> the
+// DOL 0x801c8270 [audited: described by the 43rd-session pass] (Select, inlined): every hit object (15) the pad 0 pointer is over becomes the selection, the last one wins; nothing hit -> the
 // keys select. UNVERIFIED as in g03: the native pad reports no pointer outside the window, so nothing is hit then.
 bool cTaskConsMenuMan::DpdSelect(int padNum)
 {
@@ -358,6 +360,7 @@ bool cTaskConsMenuMan::IsPointActive()
 	}
 }
 
+// DOL 0x801c7abc [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 void cTaskConsMenuMan::KeySelect(int padNum)
 {
 	// DOL 0x801c7abc: {object, up, down} table copied from 0x8037e7c8. The C# rerouted the three rows that lead to the Back button (1),
@@ -465,15 +468,20 @@ void cTaskConsMenuMan::KeySelect(int padNum)
 	}
 }
 
+// DOL 0x801c7fe4 [audited: described by the 43rd-session pass] (audited 44th): pressing 2 (pad trig & 0x80) moves the cursor to object 1 (the Back button) first
 void cTaskConsMenuMan::SelectProc(int padNum)
 {
+	if ((GamePad::Get(padNum).trig & GamePad::PAD_2) != 0)
+	{
+		nSelectObjNow() = 1;
+	}
 	if (nSelectObjNow() == 0)
 	{
 		return;
 	}
 	if (nSelectObjNow() != nSelectObjOld() && nSelectObjNow() + nSelectObjOld() != 26 && nSelectObjNow() + nSelectObjOld() != 27)
 	{
-		SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
+		SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE01_SELECT   /* DOL: m00se_01idou */);
 	}
 	if (nSelectObjNow() != nSelectObjOld())
 	{
@@ -506,6 +514,7 @@ void cTaskConsMenuMan::SelectProc(int padNum)
 	}
 }
 
+// DOL 0x801c819c [audited: described by the 43rd-session pass] (audited 44th): 2 (trig & 0x80) on the Back button = back; A / B / Z (trig & 0x860) = the table's state; left / right (trig & 4 / 8) only on object 14
 void cTaskConsMenuMan::DecideCheck(int padNum)
 {
 	int array[15][2] = {{0, -1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 8}, {6, 8}, {7, 8}, {8, 8}, {9, 8}, {10, 8}, {11, 8}, {12, 6}, {13, 7}, {-1, -1}};
@@ -513,11 +522,12 @@ void cTaskConsMenuMan::DecideCheck(int padNum)
 	{
 		return;
 	}
-	if (InGamePadManager::GetCancelKeyDown(padNum) && nSelectObjNow() == nSelectObjOld() && nSelectObjOld() == 1)
+	const uint trig = GamePad::Get(padNum).trig;
+	if ((trig & GamePad::PAD_2) != 0 && nSelectObjNow() == nSelectObjOld())
 	{
 		nState() = 2;
 	}
-	else if (InGamePadManager::GetEnterKeyDown(padNum))
+	else if ((trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)
 	{
 		for (uint num = 0u; array[num][0] != -1; num++)
 		{
@@ -527,14 +537,14 @@ void cTaskConsMenuMan::DecideCheck(int padNum)
 			}
 		}
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT))
+	else if ((trig & GamePad::PAD_LEFT) != 0)
 	{
 		if (nSelectObjNow() == 14)
 		{
 			nState() = 6;
 		}
 	}
-	else if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT)) && nSelectObjNow() == 14)
+	else if ((trig & GamePad::PAD_RIGHT) != 0 && nSelectObjNow() == 14)
 	{
 		nState() = 7;
 	}
@@ -562,6 +572,7 @@ void cTaskConsMenuMan::Reset()
 	nStep() = 0;
 }
 
+// DOL 0x801c8380 [audited: described by the 43rd-session pass] (audited 44th: menu sounds are the resident cues m00se_01idou / 02Kettei / 03Cancel / 07select / 08NG; cancel = trig & 0x80)
 bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::KingSys->pAppMain()->IsPause())
@@ -575,13 +586,13 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 		if (nStep() == 0)
 		{
 			pTaskConsMenuBack()->DecideState();
-			if (InGamePadManager::GetCancelKeyDown(pad1No))
+			if ((GamePad::Get(0).trig & GamePad::PAD_2) != 0)   // DOL 0x801c8380: get_pad1(0)->trig & 0x80
 			{
 				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE03_CANCEL);
 			}
 			else
 			{
-				SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE033_ITEM_);
+				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE02_DECIDE   /* DOL: m00se_02Kettei */);
 			}
 			nStep()++;
 		}
@@ -593,7 +604,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 		if (nStep() == 0)
 		{
 			pTaskConsMenuMulti()->DecideState();
-			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE033_ITEM_);
+			SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE02_DECIDE   /* DOL: m00se_02Kettei */);
 			nStep()++;
 		}
 		else if (nStep() != 1)
@@ -604,7 +615,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 		if (nStep() == 0)
 		{
 			pTaskConsMenuRule()->DecideState();
-			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE033_ITEM_);
+			SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE02_DECIDE   /* DOL: m00se_02Kettei */);
 			nStep()++;
 		}
 		else if (nStep() != 1)
@@ -616,7 +627,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 		{
 			pTaskConsMenuMap()->DecideState();
 			pTaskConsMenuStage(nStageNo())->DecideState();
-			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE033_ITEM_);
+			SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE02_DECIDE   /* DOL: m00se_02Kettei */);
 			nStep()++;
 		}
 		else if (nStep() != 1)
@@ -777,7 +788,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 			{
 				pTaskConsMenuStage(nStageNo())->DecideState();
 				pTaskConsMenuMap()->DecideState();
-				SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE033_ITEM_);
+				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE02_DECIDE   /* DOL: m00se_02Kettei */);
 				nStep()++;
 			}
 			else
@@ -796,9 +807,10 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x801c8a0c [audited: described by the 43rd-session pass] (vtable +0x6c = AppearState on the same 16 consoles, Back first)
 void cTaskConsMenuMan::AppearStart()
 {
-	pTaskConsMenuBack()->AppearState(); // UNVERIFIED for g07 (g03 DOL 0x8005c76c appears Back first)
+	pTaskConsMenuBack()->AppearState();
 	pTaskConsMenuMulti()->AppearState();
 	pTaskConsMenuRule()->AppearState();
 	pTaskConsMenuWorld()->AppearState();
@@ -817,9 +829,10 @@ void cTaskConsMenuMan::AppearStart()
 	if (UnityUI != nullptr) UnityUI->PlayBaseAnim(MotosUIMotosHome::EBaseAnim::In);
 }
 
+// DOL 0x801c8b24 [audited: described by the 43rd-session pass] (the Back button (+0x1dc) is tested first; the C# left it out, so the menu could go on while Back was still appearing)
 bool cTaskConsMenuMan::IsAppearEnd()
 {
-	bool flag = true;
+	bool flag = pTaskConsMenuBack()->IsAppearEndState();
 	if (flag)
 	{
 		flag = pTaskConsMenuMulti()->IsAppearEndState();
@@ -873,27 +886,31 @@ bool cTaskConsMenuMan::IsAppearEnd()
 	return flag;
 }
 
-// DOL 0x801c8c8c: the Back task (+0x1dc) -> IsDecideEndState (vtable slot 0x84, same as IsStageDecide); the C# returned false (Unity left through its own UI)
+// DOL 0x801c8c8c [audited: described by the 43rd-session pass]: the Back task (+0x1dc) -> IsDecideEndState (vtable slot 0x84, same as IsStageDecide); the C# returned false (Unity left through its own UI)
 bool cTaskConsMenuMan::IsBackDecide()
 {
 	return pTaskConsMenuBack() != nullptr && pTaskConsMenuBack()->IsDecideEndState();
 }
 
+// DOL 0x801c8ca0 [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 bool cTaskConsMenuMan::IsStageDecide()
 {
 	return pTaskConsMenuStage(nStageNo())->IsDecideEndState();
 }
 
+// DOL 0x801c8cc0 [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 bool cTaskConsMenuMan::IsMultiDecide()
 {
 	return pTaskConsMenuMulti()->IsDecideEndState();
 }
 
+// DOL 0x801c8cd4 [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 bool cTaskConsMenuMan::IsRuleDecide()
 {
 	return pTaskConsMenuRule()->IsDecideEndState();
 }
 
+// DOL 0x801c8ce8 [audited: KeySelect table 0x8037e7c8 and hit-array / decide helpers checked vs decomp; left-right wrap loops and the ctor not re-read line by line]
 void cTaskConsMenuMan::Uplode()
 {
 	KingdomGlobal::MotosSys->nStageIdx() = nWorldNo() * 7 + nStageNo() + 1;

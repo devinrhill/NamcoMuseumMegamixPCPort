@@ -1,5 +1,6 @@
 #pragma once
 
+#include "kingdom/cKingdomShadow.hpp"
 #include <memory>
 #include <random>
 #include <string>
@@ -20,7 +21,7 @@ namespace kingdom::menu
 // FUN_8011fe14 (loads the camera from the SCN0, CSV "eCSV_FAR,40.0" = vertical fov) and FUN_8011fff8 (applies position / aim / twist).
 // Model positions are the translations of the nodes of TITLE_SET_MDL (FUN_8001dd54 copies a node translation into the model holder).
 //
-// UNVERIFIED: animation rate (1 clip frame per game frame), the unlit shading (the scene lights are white ambient + one white
+// UNVERIFIED: animation rate (1 clip frame per game frame), fog slots not applied, the unlit shading (the scene lights are white ambient + one white
 // directional light, which saturates the materials), the effect task (cTaskEffect wind particles) and the pad-B freeze of the
 // original are not simulated beyond Update(frozen).
 class TitleScene
@@ -59,6 +60,7 @@ private:
 	wii::ChrAnim m_pacCha[10];             // TITLE_PACMAN_01..10_CHA (only 01, 04, 07 are used by the title)
 	wii::PatAnim m_pacTpa[6];              // TITLE_PACMAN_01..06_TPA
 	wii::CameraResult m_cam;
+	kingdom::cKingdomShadow m_shadow;      // the scene root's light camera (+0x1fc)
 	wii::LightResult m_lightBg, m_lightMdl; // TITLE_BG_SCA (sky, gate) / TITLE_MDL_SCA (tape, Pac-Man): light set 0 / 1 of the materials (FUN_8001e1f8)
 
 	float m_skyFrame{}, m_gateFrame{}, m_tapeFrame{};
@@ -71,7 +73,7 @@ private:
 	struct Layer { int tpa{}; int cha{}; float chaFrame{}; float tpaFrame{}; };
 	Layer m_pacCur, m_pacPrev;             // kind 0 (current) and kind 1 (outgoing)
 	std::mt19937 m_rng{0x20061206u};
-	std::unique_ptr<gfx::PtkSim> m_wind;   // TITLE_WIND_PTO leaves (cTaskEffect, DOL 0x801201c4; emitter at node ef_t_wind01, UNVERIFIED)
+	std::unique_ptr<gfx::PtkSim> m_wind;   // TITLE_WIND_PTO leaves (cTaskEffect, DOL 0x801201c4 [audited], step 1.0; emitter at node ef_t_wind01: 0x8011fa8c)
 };
 
 }

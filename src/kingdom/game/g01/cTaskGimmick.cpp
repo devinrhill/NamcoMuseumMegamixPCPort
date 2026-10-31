@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g01/cTaskGimmick.hpp"
 
 #include <algorithm>
@@ -24,7 +25,7 @@ constexpr float DEG2RAD = 0.017453292f;   // FLOAT_8047b5fc
 constexpr float ANM_SLOW = 0.1f;          // FLOAT_8047b5f4
 constexpr float ANM_ONE = 1.0f;           // FLOAT_8047b5f0
 
-// DOL 0x803759ac (node name parts) with the model CRCs 0x80373cf8 and the clip CRCs 0x80373e08 {cha, cla, tpa, tsa} resolved to their names
+// DOL 0x803759ac [audited] (node name parts) with the model CRCs 0x80373cf8 and the clip CRCs 0x80373e08 {cha, cla, tpa, tsa} resolved to their names
 struct Kind { const char* node; const char* model; const char* clip[4]; };
 const Kind KIND[68] = {
 	{"m01g_l_co01_", "GIM_L_COMET01_MDL", {"GIM_L_COMET01_ANM_CHA_01", "GIM_L_COMET01_ANM_CLA_01", nullptr, nullptr}},
@@ -97,7 +98,7 @@ const Kind KIND[68] = {
 	{"m01g_woodleaf01_", "GIM_WOODLEAF01_MDL", {}},
 };
 
-// DOL 0x80375548 (node name parts) with the model CRCs 0x80374278 and the clip CRCs 0x803742a8 (bone clips only)
+// DOL 0x80375548 [audited] (node name parts) with the model CRCs 0x80374278 and the clip CRCs 0x803742a8 (bone clips only)
 const Kind MCOMET[12] = {
 	{"m01g_m_co01_", "GIM_M_COMET01_MDL", {"GIM_M_COMET01_ANM_CHA_01", nullptr, nullptr, nullptr}},
 	{"m01g_m_co02_", "GIM_M_COMET02_MDL", {"GIM_M_COMET02_ANM_CHA_01", nullptr, nullptr, nullptr}},
@@ -123,11 +124,11 @@ bool Exists(const char* name)
 float RandomFrame(float frameMax)
 {
 	const unsigned range = (unsigned)(1000.0f * frameMax);
-	return range == 0 ? 0.0f : (float)((unsigned)std::rand() % range) / 1000.0f;
+	return range == 0 ? 0.0f : (float)((unsigned)kingdom::MslRand() % range) / 1000.0f;
 }
 }
 
-// DOL 0x800ec9a0: kind 9, priority 0x10002, the sound actor (+0x328, 0x801c1680: natively none, no cue plays on it), active
+// DOL 0x800ec9a0 [audited]: kind 9, priority 0x10002, the sound actor (+0x328, 0x801c1680: natively none, no cue plays on it), active
 cTaskGimmick::cTaskGimmick()
 {
 	SetName("g01::cTaskGimmick");
@@ -137,7 +138,7 @@ cTaskGimmick::cTaskGimmick()
 	m_b09 = true;
 }
 
-// DOL 0x800ed088 (every gimmick's draw, e.g. the comets' thunk 0x800ee018; cTaskGimmickMComet's 0x800edcbc is the same code): nothing once
+// DOL 0x800ed088 [audited] (every gimmick's draw, e.g. the comets' thunk 0x800ee018; cTaskGimmickMComet's 0x800edcbc is the same code): nothing once
 // inactive (a shot comet sets +8 = 0)
 void cTaskGimmick::Draw(int nStatus, cJetTask* pParam)
 {
@@ -171,7 +172,7 @@ void cTaskGimmick::Place(const wii::Mdl0Node& node)
 	m_v40 = m->vScale();
 }
 
-// DOL 0x800eca58: model and clips of the kind (light set 0, fog nFogIdx; 0x8001e16c), every clip at a random start frame
+// DOL 0x800eca58 [audited]: model and clips of the kind (light set 0, fog nFogIdx; 0x8001e16c), every clip at a random start frame
 void cTaskGimmick::Setup(const wii::Mdl0Node& node, int nIndex, int nFogIdx)
 {
 	if (nIndex < 0 || nIndex >= 68) return;
@@ -199,7 +200,7 @@ void cTaskGimmick::Setup(const wii::Mdl0Node& node, int nIndex, int nFogIdx)
 		m->SetUpdateRateAnmTexPat(0u, ANM_ONE);
 		// the pattern clip's start frame: rand % (uint)frameMax (whole frames, 0x8001b9e4)
 		const unsigned n = (unsigned)m->GetFrameMaxAnmTexPat(0u);
-		m->SetFrameAnmTexPat(0u, n == 0 ? 0.0f : (float)((unsigned)std::rand() % n));
+		m->SetFrameAnmTexPat(0u, n == 0 ? 0.0f : (float)((unsigned)kingdom::MslRand() % n));
 	}
 	if (Exists(k.clip[3]))
 	{
@@ -211,12 +212,15 @@ void cTaskGimmick::Setup(const wii::Mdl0Node& node, int nIndex, int nFogIdx)
 	// vtable +0xac (0x800ecff0): the sound actor follows +0x20 (natively none)
 }
 
-// DOL 0x800ed000: the clips advance while the object is active and the game is not paused
+// DOL 0x800ed000 [audited]: the clips advance while the object is active and the game is not paused
 bool cTaskGimmick::Execute(cJetTask* pParam)
 {
-	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
-	if (m_b08 && m_b09) UpdateFrame();   // 0x8001ded4
-	return cTaskModel::Execute(pParam);
+	if (m_b08 && m_b09 && !cG01GalagaSys::IsPause())   // DAT_80479118: nothing while paused (the model task runs only inside the test)
+	{
+		UpdateFrame();   // 0x8001ded4
+		cTaskModel::Execute(pParam);
+	}
+	return true;
 }
 
 // ---- cTaskGimmickMComet -------------------------------------------------------------------------------------------------------------
@@ -226,7 +230,7 @@ cTaskGimmickMComet::cTaskGimmickMComet()
 	SetName("g01::cTaskGimmickMComet");
 }
 
-// DOL 0x800ed128: like the generic setup without the random frames (all rates 0.1, pattern 1.0); collidable (+0x14) with an AABB
+// DOL 0x800ed128 [audited: the AABB is the model's vertex box (UNVERIFIED vs the g3d bounding volume)]: like the generic setup without the random frames (all rates 0.1, pattern 1.0); collidable (+0x14) with an AABB
 void cTaskGimmickMComet::Setup(const wii::Mdl0Node& node, int nIndex, int nFogIdx)
 {
 	if (nIndex < 0 || nIndex >= 12) return;
@@ -236,6 +240,7 @@ void cTaskGimmickMComet::Setup(const wii::Mdl0Node& node, int nIndex, int nFogId
 	m->RegistModel(k.model, 0x36f);
 	m->SetLightSetIdx(0);
 	m->SetFogIdx(nFogIdx);
+	m->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800ed22c
 	if (Exists(k.clip[0]))
 	{
 		m->RegistAnm(0u, k.clip[0]);
@@ -256,15 +261,14 @@ void cTaskGimmickMComet::Setup(const wii::Mdl0Node& node, int nIndex, int nFogId
 	UpdateWorldAABB();
 }
 
-// DOL 0x800ed5dc
+// DOL 0x800ed5dc [audited]
 bool cTaskGimmickMComet::Execute(cJetTask* pParam)
 {
-	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
-	UpdateWorldAABB();   // 0x801c1950
+	UpdateWorldAABB();   // 0x801c1950 (before the pause test in the DOL)
 	return cTaskGimmick::Execute(pParam);
 }
 
-// DOL 0x800ed66c: a shot hit it: PTK_M_COMET01 (slot 0x1c) at the shot's hit point (beam +0x260), m01se_03hit1 (DAT_8047b5e8) on the
+// DOL 0x800ed66c [audited]: a shot hit it: PTK_M_COMET01 (slot 0x1c) at the shot's hit point (beam +0x260), m01se_03hit1 (DAT_8047b5e8) on the
 // player's sound handle
 void cTaskGimmickMComet::HitCallback(cObject* other)
 {
@@ -279,21 +283,21 @@ void cTaskGimmickMComet::HitCallback(cObject* other)
 
 namespace
 {
-// DOL 0x80374398: models of the types 0..2, then per type {cha, cla, tsa, tpa, via} (the colour clips are named CLAR_... on the disc)
+// DOL 0x80374398 [audited]: models of the types 0..2, then per type {cha, cla, tsa, tpa, via} (the colour clips are named CLAR_... on the disc)
 const char* const BREAK_MODEL[3] = {"CHAR_ENEMY_COMET01_MDL", "CHAR_ENEMY_COMET02_MDL", "CHAR_ENEMY_COMET03_MDL"};
 const char* const BREAK_CLIP[3][2] = {{"CHAR_ENEMY_COMET01_ANM_CHA_01", "CLAR_ENEMY_COMET01_ANM_CLA_01"},
                                       {"CHAR_ENEMY_COMET02_ANM_CHA_01", "CLAR_ENEMY_COMET02_ANM_CLA_01"},
                                       {"CHAR_ENEMY_COMET03_ANM_CHA_01", "CLAR_ENEMY_COMET03_ANM_CLA_01"}};
 }
 
-// DOL 0x800ed7a0 (vtable +0xa4 after the gimmick's): kind 10
+// DOL 0x800ed7a0 [audited] (vtable +0xa4 after the gimmick's): kind 10
 cTaskGimmickBreakComet::cTaskGimmickBreakComet()
 {
 	SetName("g01::cTaskGimmickBreakComet");
 	m_nKind = 10;
 }
 
-// DOL 0x800ed7ac: model of the type (light set 0, fog nFogIdx), bone clip at 0.1 * fRate, colour clip at 0.1; the given SRT; collidable,
+// DOL 0x800ed7ac [audited: the AABB is the model's vertex box (UNVERIFIED vs the g3d bounding volume)]: model of the type (light set 0, fog nFogIdx), bone clip at 0.1 * fRate, colour clip at 0.1; the given SRT; collidable,
 // its AABB (vtable +0x14 = 0x801c1780 from the vertex box)
 void cTaskGimmickBreakComet::Setup(int nType, float fRate, const Vector4& pos, const Vector4& rot, const Vector4& scale, int nScore, int nFogIdx)
 {
@@ -304,6 +308,7 @@ void cTaskGimmickBreakComet::Setup(int nType, float fRate, const Vector4& pos, c
 	m->RegistModel(BREAK_MODEL[nType], 0x36f);
 	m->SetLightSetIdx(0);
 	m->SetFogIdx(nFogIdx);
+	m->IsDrawShadowDepth(true);   // vtable +0x20 (1) at 0x800ed8c0
 	if (Exists(BREAK_CLIP[nType][0]))
 	{
 		m->RegistAnm(0u, BREAK_CLIP[nType][0]);
@@ -332,15 +337,14 @@ void cTaskGimmickBreakComet::Setup(int nType, float fRate, const Vector4& pos, c
 	UpdateWorldAABB();
 }
 
-// DOL 0x800edae8
+// DOL 0x800edae8 [audited]
 bool cTaskGimmickBreakComet::Execute(cJetTask* pParam)
 {
-	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
-	UpdateWorldAABB();   // 0x801c1950
+	UpdateWorldAABB();   // 0x801c1950 (before the pause test in the DOL)
 	return cTaskGimmick::Execute(pParam);
 }
 
-// DOL 0x800edb78: the player scores (0x800d73cc), PTK_COMET0x (slot 9 + type) at the comet, m01se_08bak4 (DAT_8047b5ec); the comet is gone
+// DOL 0x800edb78 [audited]: the player scores (0x800d73cc), PTK_COMET0x (slot 9 + type) at the comet, m01se_08bak4 (DAT_8047b5ec); the comet is gone
 void cTaskGimmickBreakComet::HitCallback(cObject* other)
 {
 	cTaskConsolePlayer* player = dynamic_cast<cTaskConsolePlayer*>(other);

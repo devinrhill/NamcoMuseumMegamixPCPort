@@ -46,6 +46,7 @@ void cTaskConsSingleClear::Term()
 {
 }
 
+// DOL 0x80103e00 [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsSingleClear::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) != 3)

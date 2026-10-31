@@ -46,11 +46,9 @@ public:
 
 	void Draw(int nStatus, cJetTask* pParam) override;
 
-	static bool s_CheckLimit(const Vector4& vPos);
 
 	int GetGear(const Vector4& vPos);
 
-	bool LimitLargeArea(Vector4& vOut, const Vector4& vPos, const Vector4& vVec);
 };
 
 }

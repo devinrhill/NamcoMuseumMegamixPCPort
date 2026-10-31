@@ -28,6 +28,7 @@ struct Voice
 	float gain[2]{1, 1};        // 3D volume x pan ratio per output channel (SetSpatial)
 	float fade{0};              // volume change per output frame while fading out
 	bool fading{false};
+	float pauseVol{1}, pauseStep{0};   // nw4r BasicSound::Pause: fades to 0, then the voice stands still; pauseStep < 0 = pausing
 	float ext{1}, extTarget{1}, extStep{0};   // nw4r BasicSound::SetVolume: the external volume, moving to its target (MoveValue)
 	double step{1};             // source frames per output frame
 	double frac{0};
@@ -45,6 +46,8 @@ bool g_tried = false, g_ready = false;
 Archive g_archive;
 std::map<int, std::shared_ptr<Wave>> g_waveCache;
 std::string g_soundDir;
+std::string g_dumpPath;
+std::vector<std::int16_t> g_dump;
 
 bool PullFrame(Voice& v, std::int16_t out[2])
 {
@@ -74,14 +77,20 @@ void Generate(std::int16_t* out, unsigned frames)
 		{
 			Voice& v = *vp;
 			if (v.ended) continue;
+			if (v.pauseStep < 0.0f && v.pauseVol <= 0.0f) continue;
 			if (!v.primed)
 			{
 				if (!PullFrame(v, v.a) || !PullFrame(v, v.b)) { v.ended = true; continue; }
 				v.primed = true;
 			}
 			const float t = (float)v.frac;
-			l += (v.a[0] + (v.b[0] - v.a[0]) * t) * v.volume * v.ext * v.gain[0];
-			r += (v.a[1] + (v.b[1] - v.a[1]) * t) * v.volume * v.ext * v.gain[1];
+			l += (v.a[0] + (v.b[0] - v.a[0]) * t) * v.volume * v.ext * v.pauseVol * v.gain[0];
+			r += (v.a[1] + (v.b[1] - v.a[1]) * t) * v.volume * v.ext * v.pauseVol * v.gain[1];
+			if (v.pauseStep != 0.0f)
+			{
+				v.pauseVol = std::max(0.0f, std::min(1.0f, v.pauseVol + v.pauseStep));
+				if (v.pauseStep > 0.0f && v.pauseVol >= 1.0f) v.pauseStep = 0.0f;
+			}
 			if (v.ext != v.extTarget)
 			{
 				v.ext += v.extStep;
@@ -120,6 +129,7 @@ bool Init()
 		return false;
 	}
 	g_soundDir = path.substr(0, path.find_last_of('/') + 1);
+	if (!g_dumpPath.empty()) { g_ready = true; return true; }
 	if (!audio::OpenGenerated(kRate, 2, Generate))
 	{
 		std::fprintf(stderr, "sound: no audio device, running silent\n");
@@ -129,8 +139,32 @@ bool Init()
 	return true;
 }
 
+void SetDumpFile(const std::string& path) { g_dumpPath = path; }
+
+void PumpDump()
+{
+	if (g_dumpPath.empty() || !Init()) return;
+	std::int16_t buf[2 * (kRate / 60)];
+	Generate(buf, kRate / 60);
+	g_dump.insert(g_dump.end(), buf, buf + 2 * (kRate / 60));
+}
+
 void Shutdown()
 {
+	if (!g_dumpPath.empty() && !g_dump.empty())
+	{
+		if (FILE* f = std::fopen(g_dumpPath.c_str(), "wb"))
+		{
+			const std::uint32_t bytes = (std::uint32_t)(g_dump.size() * 2), rate = kRate, br = kRate * 4, riff = 36 + bytes, fmt = 16;
+			const std::uint16_t pcm = 1, ch = 2, ba = 4, bits = 16;
+			std::fwrite("RIFF", 1, 4, f); std::fwrite(&riff, 4, 1, f); std::fwrite("WAVEfmt ", 1, 8, f); std::fwrite(&fmt, 4, 1, f);
+			std::fwrite(&pcm, 2, 1, f); std::fwrite(&ch, 2, 1, f); std::fwrite(&rate, 4, 1, f); std::fwrite(&br, 4, 1, f);
+			std::fwrite(&ba, 2, 1, f); std::fwrite(&bits, 2, 1, f); std::fwrite("data", 1, 4, f); std::fwrite(&bytes, 4, 1, f);
+			std::fwrite(g_dump.data(), 2, g_dump.size(), f);
+			std::fclose(f);
+		}
+		g_dump.clear();
+	}
 	audio::CloseGenerated();
 	std::lock_guard<std::mutex> lock(g_mutex);
 	g_voices.clear();
@@ -189,7 +223,7 @@ int Play(const std::string& cue, float volume3d, float pan3d)
 	v->id = g_nextId++;
 	const int id = v->id;
 	g_voices.push_back(std::move(v));
-	if (std::getenv("MEGAMIX_SND_LOG")) std::fprintf(stderr, "sound: play '%s' (voice %d, %s)\n", cue.c_str(), id, def->type == 2 ? "stream" : "wave");
+	if (std::getenv("MEGAMIX_SND_LOG")) std::fprintf(stderr, "sound: play '%s' (voice %d, %s) at frame %d\n", cue.c_str(), id, def->type == 2 ? "stream" : "wave", (int)(g_dump.size() / 2 / (kRate / 60)));
 	return id;
 }
 
@@ -208,6 +242,14 @@ void FadeOut(int voice, int ms)
 			v->fading = true;
 			v->fade = v->volume / std::max(1.0f, ms * kRate / 1000.0f);
 		}
+}
+
+void Pause(int voice, bool pause, int ms)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	const float step = 1.0f / std::max(1.0f, ms * kRate / 1000.0f);
+	for (auto& v : g_voices)
+		if (v->id == voice) v->pauseStep = pause ? -step : step;
 }
 
 void SetVolume(int voice, float volume, int ms)

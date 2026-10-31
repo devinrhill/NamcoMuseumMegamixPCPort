@@ -1,4 +1,5 @@
 #include "kingdom/game/g07/cTaskCharEnemy.hpp"
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskMap.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 
@@ -154,7 +155,7 @@ bool cTaskCharEnemy::ActionLocal()
 
 bool cTaskCharEnemy::ActionOther()
 {
-	vMTransOLD() = vMTrans();
+	vMTransOLD()[0] = vMTrans()[0]; // DOL 0x801ea8b4 [audited: described by the 43rd-session pass] copies the x component only (lfs/stfs 0(r3))
 	return true;
 }
 
@@ -194,9 +195,10 @@ int cTaskCharEnemy::Mms2Kind(int mmsKind)
 	return 0;
 }
 
+// DOL 0x801eac28 [audited: per AUDIT_G03_G07 row]
 int cTaskCharEnemy::Kind2ChipColor(int nKind)
 {
-	int obj[27] = {7, 7, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 5, 7, 8, 8, 8, 8, 8, 8, 5, 8, 5, 7, 5, 8, 8};
+	int obj[27] = {7, 7, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 5, 7, 8, 8, 8, 8, 8, 8, 5, 5, 7, 5, 8, 8, 8}; // DOL 0x801eac28 (table 0x80380c48, 26 words: the C# had kinds 21..24 shifted by one; kind 26 reads past the table in the DOL, 8 kept)
 	int num = (int)std::size(obj);
 	CustomKingdomUtil::Assert(nKind <= num, "error");
 	return obj[nKind];
@@ -343,14 +345,14 @@ ushort cTaskCharEnemy::nSlantDir(ushort dir)
 	case 6: idx = 5; break;
 	case 4: idx = 6; break;
 	case 5: idx = 7; break;
-	default: idx = Random::Range(0, 8); break;
+	default: idx = kingdom::MslRand() % 8; break;   // DOL 0x801eacd0 [audited: call-site address checked in the disassembly]: MSL rand() % 8
 	}
-	return array[(idx + Random::Range(0, 4) * 2 + 1) % 8];
+	return array[(idx + kingdom::MslRand() % 4 * 2 + 1) % 8];   // rand() % 4
 }
 
 ushort cTaskCharEnemy::nRandomDir()
 {
-	switch (Random::Range(0, 8))     // evaluated once (the C# switch expression)
+	switch (kingdom::MslRand() % 8)     // DOL 0x801eadd4 [audited: described by the 43rd-session pass]: MSL rand() % 8, evaluated once
 	{
 	case 0: return 4;
 	case 1: return 8;
@@ -1267,6 +1269,7 @@ int cTaskCharEnemy::FormMove_Children()
 	return 4;
 }
 
+// DOL 0x801efadc [audited: type switch 0x400002..5 and result mapping vs decomp]
 int cTaskCharEnemy::Form_MMS2MeetFunc(int mmsType)
 {
 	int num = -1;
@@ -1299,6 +1302,7 @@ int cTaskCharEnemy::Form_MMS2MeetFunc(int mmsType)
 	}
 }
 
+// DOL 0x801efba0 [audited: type switch 0x400002..5 and result mapping vs decomp]
 int cTaskCharEnemy::Form_MMS2MoveFunc(int mmsType)
 {
 	int num = -1;
@@ -1339,6 +1343,7 @@ int cTaskCharEnemy::Form_MMS2MoveFunc(int mmsType)
 	}
 }
 
+// DOL 0x801efc8c [audited: class row done in the 43rd session; function not individually re-read]
 bool cTaskCharEnemy::Form_MMS2MeetOrder(int mmsType)
 {
 	pFormInfo()->m_ID = 0;

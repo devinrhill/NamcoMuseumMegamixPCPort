@@ -82,7 +82,7 @@ bool cTaskGameBasePause::RegistData(string key, string cursor, sMatchingData* pM
 		pAnita(num)->RegistData(key, drawLayer);
 		pAnita(num)->SetState(3u, false);
 	}
-	// DOL 0x80147a64: cTaskMenuCursor x 4 (pad i, idle anim 2i, pressed anim 2i + 1 on A / B / Z = 0x860), hidden until the pause opens
+	// DOL 0x80147a64 [audited: cursors compared; matching block copy native]: cTaskMenuCursor x 4 (pad i, idle anim 2i, pressed anim 2i + 1 on A / B / Z = 0x860), hidden until the pause opens
 	for (int i = 0; i < 4; i++)
 	{
 		m_pCursor[i] = new kingdom::cTaskCursor();
@@ -90,7 +90,7 @@ bool cTaskGameBasePause::RegistData(string key, string cursor, sMatchingData* pM
 		m_pCursor[i]->AddButton(0x860u, i * 2 + 1);
 		m_pCursor[i]->nDrawPriority(0x8ffffffeu);
 		m_pCursor[i]->SetEnable(false);
-		if (pMatchingData != nullptr && pMatchingData->Info[i] != nullptr) m_pCursor[i]->SetPadNo((int)pMatchingData->Info[i]->nWork);
+		if (pMatchingData != nullptr && pMatchingData->Info[i] != nullptr) m_pCursor[i]->SetPadNo((int)pMatchingData->Info[i]->nCtrl); // block +0x50 + 0x54 i = info +0x4c = nCtrl
 		ConnectChild(m_pCursor[i]);
 	}
 	if (pMatchingData != nullptr)
@@ -190,7 +190,7 @@ bool cTaskGameBasePause::Execute(cJetTask* pParam)
 				{
 					UnityUI->SetEnable(true);
 				}
-				ShowCursors(true);   // DOL 0x80147cb0 state 1: +0x1e1 = 1 for each controller
+				ShowCursors(true);   // DOL 0x80147cb0 [audited: pause states compared in structure; pointer test and rumble stop mirrored] state 1: +0x1e1 = 1 for each controller
 				for (uint i = 0; i < m_nCtrlNum; i++) GamePad::Rumble((int)i, 0);   // 0x80147f80: every controller's motor stops
 				SoundManager::get_SE()->Suspend();
 				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE10_PAUSE);

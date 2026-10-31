@@ -14,7 +14,7 @@ constexpr float LOW = 0.2f;             // FLOAT_8047b44c
 bool AnimDone(cKingdomAnita* a) { return a->IsState(cJetAnita::JET_ANITA_STATE_ANIM_END); }
 }
 
-// DOL 0x801ba1f4 (cObject + cTaskAnita, vtable 0x80438db0) + 0x800cff48: priority 0x80000008, the boss, the life (+0x18) as maximum / shown /
+// DOL 0x801ba1f4 [audited] (cObject + cTaskAnita, vtable 0x80438db0) + 0x800cff48: priority 0x80000008, the boss, the life (+0x18) as maximum / shown /
 // target, the three ANT_BOSS anitas (frame: anim 1, hidden; bar: anim 4, hidden; shake: anim 3 at its end, AnimUpdate(0)), 0 and 1 at +0x220
 cTaskBossLife::cTaskBossLife(cTaskBoss* pBoss) : m_pBoss(pBoss)
 {
@@ -41,7 +41,7 @@ cTaskBossLife::cTaskBossLife(cTaskBoss* pBoss) : m_pBoss(pBoss)
 	for (uint i = 0; i < 2; i++) pAnita(i)->vTrans() = Vector4(m_vBase[0], m_vBase[1], m_vBase[2], 1.0f);
 }
 
-// DOL 0x800d02ac
+// DOL 0x800d02ac [audited]
 int cTaskBossLife::FrameAnm(int n)
 {
 	switch (n)
@@ -55,20 +55,20 @@ int cTaskBossLife::FrameAnm(int n)
 	}
 }
 
-// DOL 0x800d0308
+// DOL 0x800d0308 [audited]
 int cTaskBossLife::BarAnm(int n)
 {
 	return n == 0 ? 6 : n == 1 ? 4 : -1;
 }
 
-// DOL 0x800d0228: the shake anitas (2) plays anim 3 and has not ended
+// DOL 0x800d0228 [audited]: the shake anitas (2) plays anim 3 and has not ended
 bool cTaskBossLife::IsShaking()
 {
 	cKingdomAnita* a = pAnita(2);
 	return a->GetAnimNo() == FrameAnm(2) && !a->IsState(cJetAnita::JET_ANITA_STATE_ANIM_END);
 }
 
-// DOL 0x800d0438
+// DOL 0x800d0438 [audited]
 void cTaskBossLife::AppearStep()
 {
 	if (m_nStep == 0)
@@ -90,7 +90,7 @@ void cTaskBossLife::AppearStep()
 	}
 }
 
-// DOL 0x800d05f8
+// DOL 0x800d05f8 [audited]
 void cTaskBossLife::GaugeStep()
 {
 	m_fTarget = m_pBoss != nullptr ? (float)m_pBoss->nLife() : 0.0f;
@@ -108,7 +108,7 @@ void cTaskBossLife::GaugeStep()
 	Shake();
 }
 
-// DOL 0x800d07c4
+// DOL 0x800d07c4 [audited]
 void cTaskBossLife::OutStep()
 {
 	if (m_nStep == 0)
@@ -125,7 +125,7 @@ void cTaskBossLife::OutStep()
 	}
 }
 
-// DOL 0x800d0334: while the shake plays, anitas 0 and 1 sit at base + the shake's layer 0 position
+// DOL 0x800d0334 [audited]: while the shake plays, anitas 0 and 1 sit at base + the shake's layer 0 position
 void cTaskBossLife::Shake()
 {
 	Vector4 ofs(0.0f, 0.0f, 0.0f, 0.0f);
@@ -133,7 +133,7 @@ void cTaskBossLife::Shake()
 	for (uint i = 0; i < 2; i++) pAnita(i)->vTrans() = Vector4(m_vBase[0] + ofs.x, m_vBase[1] + ofs.y, m_vBase[2] + ofs.z, 1.0f);
 }
 
-// DOL 0x800d08bc (active, not paused); hidden while inactive (Draw 0x800d0970 draws only then)
+// DOL 0x800d08bc [audited] (active, not paused); hidden while inactive (Draw 0x800d0970 draws only then)
 bool cTaskBossLife::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -142,8 +142,9 @@ bool cTaskBossLife::Execute(cJetTask* pParam)
 		if (m_nState == 0) AppearStep();
 		else if (m_nState == 1) GaugeStep();
 		else if (m_nState == 2) OutStep();
+		return cTaskAnita::Execute(pParam);   // zz_80014d58: the anitas only update while active
 	}
-	return cTaskAnita::Execute(pParam);
+	return true;
 }
 
 }

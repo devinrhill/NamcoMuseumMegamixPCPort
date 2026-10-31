@@ -8,6 +8,8 @@
 // Records keep their raw bytes: only the named fields change (savedata.py: the unused words hold stale memory of the original tool). Files are
 // arrays of big-endian records padded to 32 bytes; the ghost files are one big record each (areas / move points / ghosts, route points + rider).
 #include "platform/devtools.hpp"
+#include "platform/devtools_g03gray.hpp"
+#include "platform/devtools_g03pac.hpp"
 #include "platform/devtools_view.hpp"
 #include "platform/devui.hpp"
 
@@ -19,6 +21,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -561,7 +564,8 @@ void Save()
 		out.write((const char*)b.data(), (std::streamsize)b.size());
 		n += out.good() ? 1 : 0;
 	}
-	g_msg = "saved " + std::to_string(n) + " files to " + dir.string();
+	GraySave(dir.string());
+	g_msg = "saved " + std::to_string(n) + " files and the graybox to " + dir.string();
 }
 
 void Load()
@@ -580,7 +584,8 @@ void Load()
 		n++;
 	}
 	g_sel.clear();
-	g_msg = n == 0 ? "nothing saved in " + dir.string() : "loaded " + std::to_string(n) + " files: Apply to play them";
+	if (fs::exists(dir / "graybox.json")) { GrayLoad(dir.string()); n++; }
+	g_msg = n == 0 ? "nothing saved in " + dir.string() : "loaded " + std::to_string(n) + " files: Apply to play them (the graybox is live)";
 }
 
 // ------------------------------------------------------------------------------------------------ the view: matrices, rays, the stage's faces
@@ -758,7 +763,7 @@ void ViewInput()
 	const devui::Rect gv = devui::GameView();
 	const bool over = in.mx >= gv.x && in.mx < gv.x + gv.w && in.my >= gv.y && in.my < gv.y + gv.h;   // the panel lies outside GameView
 	if (!g_editView) { g_dragging = false; return; }
-	if (over || g_dragging || g_leftPending) devui::CaptureInput(true, true);
+	if (over || g_dragging || g_leftPending || GrayDragging() || PacDragging()) devui::CaptureInput(true, true);
 	float vp[16];
 	if (!ViewProj(vp)) return;
 
@@ -779,12 +784,20 @@ void ViewInput()
 
 	float o[3], d[3];
 	const bool ray = MouseRay(vp, in.mx, in.my, o, d);
+	PacTouch();
+	if (ray) { GrayDrag(in, o, d); PacDrag(in, o, d); }
+	if (!in.down[0] && GrayDragging()) GrayDrag(in, o, d);   // ends the drag
+	if (!in.down[0] && PacDragging()) PacDrag(in, o, d);
 	if (over && in.pressed[0] && ray)
 	{
-		if (g_tool == T_SELECT)
+		if (g_tool == T_SELECT && GrayPressGizmo(in, vp, o, d)) g_sel.clear();   // a graybox handle
+		else if (g_tool == T_SELECT && PacPress(in, vp, o, d)) { g_sel.clear(); GrayDeselect(); }   // Pac-Man himself
+		else if (g_tool == T_SELECT)
 		{
 			const Ref r = Pick(vp, in.mx, in.my);
-			if (r.file < 0)
+			const std::function<bool(float[3])> ground = [&](float out[3]) { return Ground(o, d, out); };
+			if (r.file < 0 && GrayPressBody(in, o, d, ground)) g_sel.clear();   // a graybox primitive (or a new one)
+			else if (r.file < 0)
 			{
 				g_leftPending = true;   // deselect on release, or pan
 				g_leftPanning = false;
@@ -793,6 +806,7 @@ void ViewInput()
 			}
 			else
 			{
+				GrayDeselect();
 				if (in.shift)
 				{
 					auto it = std::find(g_sel.begin(), g_sel.end(), r);
@@ -832,7 +846,7 @@ void ViewInput()
 		g_leftPending = false;
 		if (!g_leftPanning && over && ray && g_tool == T_SELECT)
 		{
-			if (!in.shift) g_sel.clear();
+			if (!in.shift) { g_sel.clear(); GrayDeselect(); }
 		}
 		else if (!g_leftPanning && over && ray)
 		{
@@ -898,11 +912,15 @@ void ViewInput()
 	if (!over) return;
 	// keys (editor.py): Delete / X / Backspace, Ctrl Z / Y / D / S, R turns 15 degrees (Shift back), Page Up / Down = up / down, Esc, Enter = apply
 	if (devui::KeyPressed(devui::K_DELETE) || devui::KeyPressed(devui::K_BACKSPACE) || (!in.ctrl && devui::KeyPressed('X'))) DeleteRefs(g_sel);
-	if (in.ctrl && devui::KeyPressed('Z')) { if (in.shift) Redo(); else Undo(); }
-	if (in.ctrl && devui::KeyPressed('Y')) Redo();
+	GrayKeys(in);
+	{
+		const bool grayNewer = GrayLastEditFrame() > g_lastEditFrame;   // undo whichever was edited last: the graybox or the placement files
+		if (in.ctrl && devui::KeyPressed('Z')) { if (in.shift) { if (grayNewer && GrayCanRedo()) GrayRedo(); else Redo(); } else if (grayNewer && GrayCanUndo()) GrayUndo(); else Undo(); }
+		if (in.ctrl && devui::KeyPressed('Y')) { if (grayNewer && GrayCanRedo()) GrayRedo(); else Redo(); }
+	}
 	if (in.ctrl && devui::KeyPressed('D')) Duplicate();
 	if (in.ctrl && devui::KeyPressed('S')) Save();
-	if (devui::KeyPressed(devui::K_ESCAPE)) { g_sel.clear(); g_tool = T_SELECT; }
+	if (devui::KeyPressed(devui::K_ESCAPE)) { g_sel.clear(); GrayDeselect(); g_tool = T_SELECT; }
 	if (devui::KeyPressed(devui::K_ENTER)) Apply();
 	if (!in.ctrl && devui::KeyPressed('R') && !g_sel.empty())
 	{
@@ -1300,10 +1318,10 @@ void EditorPanel(devui::UI& ui)
 	const bool cam = ui.Checkbox(ui.Row(), "Editor camera: right drag turns, middle / left drag pans, wheel", g_camOn);
 	if (cam != g_camOn) { g_camOn = cam; g_camInit = false; }
 	ui.Space();
-	static const char* const pages[] = {"Tools", "Selection", "Show", "Delete", "Check"};
+	static const char* const pages[] = {"Tools", "Selection", "Show", "Delete", "Check", "Graybox"};
 	{
-		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1.3f, 1, 1, 1});
-		for (int i = 0; i < 5; i++)
+		std::vector<devui::Rect> c = devui::UI::Split(ui.Row(), {1, 1.3f, 1, 1, 1, 1.3f});
+		for (int i = 0; i < 6; i++)
 			if (ui.Button(c[i], pages[i], true, g_page == i)) g_page = i;
 	}
 	ui.Space(4);
@@ -1313,6 +1331,16 @@ void EditorPanel(devui::UI& ui)
 	case 1: SelectionPage(ui); break;
 	case 2: ShowPage(ui); break;
 	case 3: DeletePage(ui); break;
+	case 5:
+	{
+		float at[3] = {g_camOn ? g_target[0] : 0.0f, g_camOn ? g_target[1] : 0.0f, g_camOn ? g_target[2] : 0.0f};
+		kingdom::game::g03::cAppG03PacnRollGame* app = kingdom::game::g03::Constants::PACN_APP();
+		if (!g_camOn && app != nullptr && app->pTaskCharPacman() != nullptr)
+			for (int i = 0; i < 3; i++) at[i] = app->pTaskCharPacman()->vTrans()[i];
+		else if (g_camOn) at[1] = PacmanY() - 0.4f;   // the editor camera's target height is eye level: new ones go to Pac-Man's floor
+		GrayPage(ui, at, EditDir(g_data.round).string(), [] { Restart(); });
+		break;
+	}
 	default: CheckPage(ui); break;
 	}
 	ui.Space();

@@ -12,7 +12,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x80370438: [open, closed][world][stage][appear, wait, point, decide, delete]
+// DOL 0x80370438 [audited]: [open, closed][world][stage][appear, wait, point, decide, delete]
 const int cTaskConsMenuStage::ANM_LIST[2][3][3][eANM_MAX] = {
 	{
 		{{0x5e, 0x5f, 0x60, 0x61, 0x62}, {0x66, 0x67, 0x68, 0x69, 0x6a}, {0x6e, 0x6f, 0x70, 0x71, 0x72}},
@@ -47,7 +47,7 @@ int cTaskConsMenuStage::nGetStageAnm(int nAnm)
 	return ANM_LIST[bActive() ? 0 : 1][nWorldNo()][nStageNo()][nAnm];
 }
 
-// DOL 0x800bf388: priority 0x80000001, layout ANT_MENU loaded hidden, vTrans = position of layer nStageNo in pattern 1
+// DOL 0x800bf388 [audited]: priority 0x80000001, layout ANT_MENU loaded hidden, vTrans = position of layer nStageNo in pattern 1
 // (FUN_80014408 into a stack vector, then copied to anita +0x400 = vTrans; the DOL copies even when the lookup fails)
 cTaskConsMenuStage::cTaskConsMenuStage(cTaskConsMenuManBase* const& pConsMan, uint nWorldNo, uint nStageNo, uint bMulti)
 	: cTaskConsMenuBase(pConsMan)
@@ -65,12 +65,12 @@ cTaskConsMenuStage::cTaskConsMenuStage(cTaskConsMenuManBase* const& pConsMan, ui
 	pAnita(0u)->vTrans() = pos;
 }
 
-// DOL 0x800bf4c8
+// DOL 0x800bf4c8 [audited]
 cTaskConsMenuStage::~cTaskConsMenuStage()
 {
 }
 
-// DOL 0x800bf520: world store, then bActive = (GalagaSys->pStageRecord(world, nStageNo)->bOpen == 1)
+// DOL 0x800bf520 [audited]: world store, then bActive = (GalagaSys->pStageRecord(world, nStageNo)->bOpen == 1)
 void cTaskConsMenuStage::LoadStageData(uint nWorldNo)
 {
 	this->nWorldNo() = nWorldNo;
@@ -78,7 +78,7 @@ void cTaskConsMenuStage::LoadStageData(uint nWorldNo)
 	if (devtools::PreviewAll()) bActive() = true; // devtools: --preview-all (not 1:1)
 }
 
-// DOL 0x800bf57c: only while active, hit test of anita 0, pattern 11
+// DOL 0x800bf57c [audited]: only while active, hit test of anita 0, pattern 11
 bool cTaskConsMenuStage::IsDpdHit(float x, float y)
 {
 	if (!bActive())
@@ -88,7 +88,7 @@ bool cTaskConsMenuStage::IsDpdHit(float x, float y)
 	return DpdHitPat(x, y, HIT_PAT);
 }
 
-// DOL 0x800bfaf4
+// DOL 0x800bfaf4 [audited]
 void cTaskConsMenuStage::WaitState()
 {
 	nDrawPriority(0x80000001u);
@@ -96,7 +96,7 @@ void cTaskConsMenuStage::WaitState()
 	nStep() = 0;
 }
 
-// DOL 0x800bfb44
+// DOL 0x800bfb44 [audited]
 void cTaskConsMenuStage::PointState()
 {
 	nDrawPriority(0x80000004u);
@@ -104,13 +104,13 @@ void cTaskConsMenuStage::PointState()
 	nStep() = 0;
 }
 
-// DOL 0x800bf6c8
+// DOL 0x800bf6c8 [audited]
 void cTaskConsMenuStage::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetStageAnm(eANM_WAIT), false);
 }
 
-// DOL 0x800bf76c
+// DOL 0x800bf76c [audited]
 bool cTaskConsMenuStage::AppearExec()
 {
 	if (nStep() == 0)
@@ -126,7 +126,7 @@ bool cTaskConsMenuStage::AppearExec()
 	return false;
 }
 
-// DOL 0x800bf870: only while active (a closed stage has no point anim)
+// DOL 0x800bf870 [audited]: only while active (a closed stage has no point anim)
 void cTaskConsMenuStage::PointExec()
 {
 	if (bActive())
@@ -135,7 +135,7 @@ void cTaskConsMenuStage::PointExec()
 	}
 }
 
-// DOL 0x800bf91c (no bActive check: a closed stage would play anim -1, UNVERIFIED what cJetAnita does with it; the manager
+// DOL 0x800bf91c [audited] (no bActive check: a closed stage would play anim -1, UNVERIFIED what cJetAnita does with it; the manager
 // presumably never decides a closed stage)
 bool cTaskConsMenuStage::DecideExec()
 {
@@ -151,7 +151,7 @@ bool cTaskConsMenuStage::DecideExec()
 	return false;
 }
 
-// DOL 0x800bfa08
+// DOL 0x800bfa08 [audited]
 bool cTaskConsMenuStage::DeleteExec()
 {
 	if (nStep() == 0)

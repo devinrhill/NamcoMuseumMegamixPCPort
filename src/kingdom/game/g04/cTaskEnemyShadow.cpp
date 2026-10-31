@@ -39,7 +39,7 @@ void Normalize(float out[3], const float v[3])
 }
 }
 
-// DOL 0x8009a730 (cTaskPBModel ctor) + 0x801b0100 (the model part's Init, vtable +0x50 slot +8)
+// DOL 0x8009a730 [audited: push-back onto node wani fails in g3d (documented); native shadow model] (cTaskPBModel ctor) + 0x801b0100 (the model part's Init, vtable +0x50 slot +8)
 cTaskEnemyShadow::cTaskEnemyShadow(cTaskEnemy* pOwner, uint nModel) : m_pOwner(pOwner), m_nModel(nModel)
 {
 	SetName("g04::cTaskEnemyShadow");
@@ -51,7 +51,7 @@ cTaskEnemyShadow::cTaskEnemyShadow(cTaskEnemy* pOwner, uint nModel) : m_pOwner(p
 	m_vLight[3] = 1.0f;                                // +0x2ac = FLOAT_8047ccd8
 }
 
-// DOL 0x801b0550, mode 0 (the only one used): d = N.L, f = -1 / d (FLOAT_8047cce8); row r = f * (N_c L_r - d [r == c]), column 3 = -f L_r,
+// DOL 0x801b0550 [audited], mode 0 (the only one used): d = N.L, f = -1 / d (FLOAT_8047cce8); row r = f * (N_c L_r - d [r == c]), column 3 = -f L_r,
 // row 3 = (0, 0, 0, -f d)
 void cTaskEnemyShadow::ShadowMatrix(float m[4][4], const float light[3], const float normal[3])
 {
@@ -69,16 +69,16 @@ void cTaskEnemyShadow::ShadowMatrix(float m[4][4], const float light[3], const f
 	m[3][3] = f * -d;
 }
 
-// DOL 0x801b0348
+// DOL 0x801b0348 [audited]
 void cTaskEnemyShadow::ClipA() { Model->RegistAnm(0u, "WANI_SH_A_CLA"); }   // 0x13924592 (0x8001a4d8(m, 0, crc, 0, 1))
 
-// DOL 0x801b0360
+// DOL 0x801b0360 [audited]
 void cTaskEnemyShadow::ClipNormal() { Model->RegistAnm(0u, "WANI_SH_CLA"); }   // 0xe059b96b
 
-// DOL 0x801b0378
+// DOL 0x801b0378 [audited]
 void cTaskEnemyShadow::SetClrRate(float rate) { Model->SetUpdateRateMatClr(0u, rate); }   // 0x8001cd4c
 
-// DOL 0x801b0380
+// DOL 0x801b0380 [audited: Execute compared in structure; matrix goes through SetNativeMtxRaw]
 bool cTaskEnemyShadow::Execute(cJetTask* pParam)
 {
 	if (m_pOwner == nullptr || Model == nullptr) return true;
@@ -110,7 +110,7 @@ bool cTaskEnemyShadow::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8009aad0 (kingdom::cTaskPBModel::Draw, the task vtable's thunk 0x80088c10): the model's slot +0x18 (= 0x801b0380, run as Execute
+// DOL 0x8009aad0 [audited] (kingdom::cTaskPBModel::Draw, the task vtable's thunk 0x80088c10): the model's slot +0x18 (= 0x801b0380, run as Execute
 // natively), then when visible (+0x44) the push-back's +0x54 = this frame's submission. The port's engine cTaskPBModel::Draw is empty.
 void cTaskEnemyShadow::Draw(int, cJetTask*)
 {

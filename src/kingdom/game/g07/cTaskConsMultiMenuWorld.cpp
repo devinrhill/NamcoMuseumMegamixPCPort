@@ -16,6 +16,7 @@ cTaskConsMultiMenuWorld::~cTaskConsMultiMenuWorld()
 {
 }
 
+// DOL 0x801cf690 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuWorld::SetData(uint nWorld)
 {
 	nDrawPriority(2147483656u);
@@ -25,6 +26,7 @@ void cTaskConsMultiMenuWorld::SetData(uint nWorld)
 	pAnita(0u)->SetState(1u, false);
 }
 
+// DOL 0x801cf774 [audited: anim tables and priorities compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuWorld::nGetWorldAnmNo(int nAnmState)
 {
 	int obj[10][3] = {{36, 37, 38}, {39, 40, 41}, {42, 43, 44}, {45, 46, 47}, {48, 49, 50}, {51, 52, 53}, {54, 55, 56}, {57, 58, 59}, {60, 61, 62}, {63, 64, 65}};

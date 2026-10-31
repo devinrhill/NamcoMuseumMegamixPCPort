@@ -29,11 +29,13 @@ void cTaskConsSlopeEffect::Free()
 	cTaskConsoleBase::Free();
 }
 
+// DOL 0x801f6abc [audited: per AUDIT_G03_G07 row] (console table entry)
 cTaskAnita* cTaskConsSlopeEffect::Construct()
 {
 	return new cTaskConsSlopeEffect();
 }
 
+// DOL 0x8010508c [audited: per AUDIT_G03_G07 row]
 void cTaskConsSlopeEffect::Init()
 {
 	m_nTimer = 0u;
@@ -50,6 +52,7 @@ void cTaskConsSlopeEffect::Term()
 {
 }
 
+// DOL 0x80105150 [audited: per AUDIT_G03_G07 row] (SE 0x25 = SE037: stop when the step leaves 8, restart on a new side, stop after 90 frames)
 bool cTaskConsSlopeEffect::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) != 8)

@@ -22,6 +22,7 @@ cTaskConsItemMultiPlayIcon::~cTaskConsItemMultiPlayIcon()
 	Term();
 }
 
+// DOL 0x800fe1d4 [audited: per AUDIT_G03_G07 row] (minus the Mii face icon task)
 void cTaskConsItemMultiPlayIcon::Init()
 {
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())
@@ -76,6 +77,8 @@ void cTaskConsItemMultiPlayIcon::Term()
 {
 }
 
+// DOL 0x800feb04 [audited: per AUDIT_G03_G07 row] (anim tables 0x803761c8 / 0x803761d8). Not ported: the Mii face icon (+0x204, cTaskFaceIcon, 7 expressions picked
+// from the player's state +0x294 / flag 0x200000), out of scope (no Mii)
 bool cTaskConsItemMultiPlayIcon::Execute(cJetTask* pParam)
 {
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())

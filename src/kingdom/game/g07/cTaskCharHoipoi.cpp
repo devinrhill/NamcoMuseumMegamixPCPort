@@ -17,6 +17,7 @@ Vector4& cTaskCharHoipoi::vTarget()
 	return m_vTarget;
 }
 
+// DOL 0x800ad628 [audited: per AUDIT_G03_G07 row]: Create(0), rotate unit, scale (1, 1, 1)
 void cTaskCharHoipoi::Init()
 {
 	Create(0u);
@@ -34,6 +35,7 @@ void cTaskCharHoipoi::Term()
 	cTaskChar::Term();
 }
 
+// DOL 0x800ad6d0 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharHoipoi::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -52,6 +54,7 @@ bool cTaskCharHoipoi::Create(uint no)
 	return true;
 }
 
+// DOL 0x800ad8d4 [audited: per AUDIT_G03_G07 row]: model trans / rotate / scale <- +0x1e0 / +0x200 / scale
 void cTaskCharHoipoi::UpdateMatrix()
 {
 	cKingdomModel* cKingdomModel2;
@@ -63,6 +66,7 @@ void cTaskCharHoipoi::UpdateMatrix()
 	}
 }
 
+// DOL 0x800ad980 [audited: per AUDIT_G03_G07 row]: ActionLocal (+0xa0), Move (+0x94), UpdateFrame 0x801e3234, UpdateMatrix (+0x50)
 bool cTaskCharHoipoi::Execute(cJetTask* pParam)
 {
 	ActionLocal();
@@ -72,6 +76,7 @@ bool cTaskCharHoipoi::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x800ad9ec [audited: per AUDIT_G03_G07 row]
 bool cTaskCharHoipoi::AnimateModel(uint model)
 {
 	float frameAnmTexSrt = pModel(model)->GetFrameAnmTexSrt(0u);

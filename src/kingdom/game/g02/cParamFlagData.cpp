@@ -3,7 +3,7 @@
 namespace kingdom::game::g02
 {
 
-// the inline part of DOL 0x80077190: cJetCSV ctor (FUN_801393c0), vtable 0x80391ab4, Init (vtable +0x08), CSV_FLAG -> SetData, +0x20 = 1
+// the inline part of DOL 0x80077190 [audited]: cJetCSV ctor (FUN_801393c0), vtable 0x80391ab4, Init (vtable +0x08), CSV_FLAG -> SetData, +0x20 = 1
 cParamFlagData::cParamFlagData()
 {
 	Init();
@@ -11,10 +11,10 @@ cParamFlagData::cParamFlagData()
 	m_bLoaded = true;
 }
 
-// DOL 0x80063214 (Term vtable +0x0c is empty, then the cJetCSV dtor)
+// DOL 0x80063214 [audited] (Term vtable +0x0c is empty, then the cJetCSV dtor)
 cParamFlagData::~cParamFlagData() {}
 
-// DOL 0x80063208
+// DOL 0x80063208 [audited]
 void cParamFlagData::Init() { m_bLoaded = false; }
 
 // the lookup inline in DOL 0x80077190 (cJetCSV::S32(csv, r4 = row, r5 = column 1, 0))

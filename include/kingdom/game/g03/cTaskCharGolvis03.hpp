@@ -75,7 +75,7 @@ public:
 	Constants::gmSGolvisAttack* GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum) override;
 
 protected:
-	void ReleaseTerm() override { cTaskCharGolvis03::Term(); cTaskModelBase::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
+	void ReleaseTerm() override { cTaskCharGolvis03::Term(); cTaskCharGolvis::ReleaseTerm(); }   // DOL dtor chain: ~cTaskCharGolvis03 (Term = blr) then ~cTaskCharGolvis (its Term)
 };
 
 }

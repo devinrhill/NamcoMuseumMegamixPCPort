@@ -36,6 +36,7 @@ cTaskConsMultiMenuTime::cTaskConsMultiMenuTime(cTaskConsMenuManBase* const& pCon
 {
 }
 
+// DOL 0x801cef28 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 int cTaskConsMultiMenuTime::nGetNumberAnmNo(uint nNo, int nAnmState)
 {
 	int obj[10][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, 10, 11}, {12, 13, 14}, {15, 16, 17}, {18, 19, 20}, {21, 22, 23}, {24, 25, 26}, {27, 28, 29}};
@@ -51,6 +52,7 @@ int cTaskConsMultiMenuTime::nGetConmaAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
+// DOL 0x801cefa8 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuTime::SetData(uint nTime)
 {
 	nDrawPriority(2147483652u);
@@ -68,6 +70,7 @@ void cTaskConsMultiMenuTime::SetData(uint nTime)
 	pAnita(3u)->GetLayerPos(pAnita(3u)->vTrans(), SET_CONMA_LAY, SET_CONMA_PAT);
 }
 
+// DOL 0x801cf14c [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuTime::SetTimeAnm(int nAnmState)
 {
 	uint nNo = nTime() / 1000 / 60;
@@ -91,11 +94,13 @@ void cTaskConsMultiMenuTime::SetTimeAnm(int nAnmState)
 	pAnita(3u)->SetState(1u);
 }
 
+// DOL 0x801cf350 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 void cTaskConsMultiMenuTime::WaitExec()
 {
 	SetTimeAnm(1);
 }
 
+// DOL 0x801cf364 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuTime::AppearExec()
 {
 	if (nStep() == 0)
@@ -110,6 +115,7 @@ bool cTaskConsMultiMenuTime::AppearExec()
 	return false;
 }
 
+// DOL 0x801cf3e8 [audited: number anim table (identity 3 per digit), priorities, digit layout and step logic vs decomp]
 bool cTaskConsMultiMenuTime::DeleteExec()
 {
 	if (nStep() == 0)

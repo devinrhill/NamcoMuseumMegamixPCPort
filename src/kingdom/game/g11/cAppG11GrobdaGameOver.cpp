@@ -8,14 +8,14 @@
 namespace kingdom::game::g11
 {
 
-// DOL 0x8000f380 (job 341)
+// DOL 0x8000f380 [audited] (job 341)
 void cAppG11GrobdaGameOver::JobInit()
 {
 	if (KingdomGlobal::GrobdaSys == nullptr) KingdomGlobal::GrobdaSys = new cG11GrobdaSys();   // NATIVE: the sys is made by job 336 in the DOL; --job skips it
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG11GrobdaGameOver());
 }
 
-// DOL 0x80122d10
+// DOL 0x80122d10 [audited]
 cAppG11GrobdaGameOver::cAppG11GrobdaGameOver()
 {
 	SetName("cAppG11GrobdaGameOver");

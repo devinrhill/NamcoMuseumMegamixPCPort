@@ -47,8 +47,8 @@ float AngleY(const float from[3], const float to[3])
 }
 }
 
-// DOL 0x80194d0c + Init 0x80194e74
-cTaskGrobdaPlayer::cTaskGrobdaPlayer(int player, float x, float z)
+// DOL 0x80194d0c [audited] + Init 0x80194e74
+cTaskGrobdaPlayer::cTaskGrobdaPlayer(int player)
 	: m_nPlayer(player)
 {
 	SetName("cTaskGrobdaPlayer");
@@ -93,17 +93,15 @@ cTaskGrobdaPlayer::cTaskGrobdaPlayer(int player, float x, float z)
 	m->RegistModel(BODY[player & 3], 0x36f);
 	m->SetLightSetIdx(1);
 	m->SetFogIdx(1);
+	m->IsDrawShadowDepth(true);   // 0x80195354: vtable +0x20 (1)
 	// FUN_8001f798: the cannon (model slot 1 in the DOL) rides node "cannon" of the body
 	m->RegistExpand(0, "cannon", "BIN_MDL_PLAYER_CANNON", 0x36f);
 	if (cKingdomModel* c = m->pExpandMdl(0))
 	{
 		c->SetLightSetIdx(1);
 		c->SetFogIdx(1);
+		c->IsDrawShadowDepth(true);   // 0x8019536c
 	}
-	m->vTrans() = Vector4(x, 0.0f, z, 1.0f);
-	m_vSpawn[0] = x;
-	m_vSpawn[2] = z;
-	std::memcpy(GetOldPos(), GetPos(), 16);
 	m_fRadius = 0.8f;   // +0x24 (FLOAT_80478370)
 	{
 		const float box[4][4] = {{1.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 1.0f, 0.0f}};   // FUN_8019334c(2, 2)
@@ -114,6 +112,11 @@ cTaskGrobdaPlayer::cTaskGrobdaPlayer(int player, float x, float z)
 		m_pShield[i] = new kingdom::cKingdomPtkHnd();
 		m_pShield[i]->Generate((uint)(4 * i + player), false, true, true, 0.0f, Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 		if (m_pShield[i]->IsValid()) { m_pShield[i]->Inactive(); m_pShield[i]->Invisible(); }
+	}
+	if (cG11GrobdaSys::Instance()->IsMulti())   // +0xb4c: the player marker of a multiplayer match (slot 0x21 + player), follows the tank
+	{
+		m_pMarker = new kingdom::cKingdomPtkHnd();
+		m_pMarker->Generate((uint)(cTaskGrobdaEffect::eP1P + player), false, true, false, 0.0f, Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 	for (int i = 0; i < 16; i++)   // 16 x cTaskGrobdaShotPlayer (0xb40) as children of the model task
 	{
@@ -128,6 +131,32 @@ cTaskGrobdaPlayer::cTaskGrobdaPlayer(int player, float x, float z)
 cTaskGrobdaPlayer::~cTaskGrobdaPlayer()
 {
 	for (kingdom::cKingdomPtkHnd* h : m_pShield) delete h;
+	delete m_pMarker;
+}
+// DOL 0x8003822c [audited] (the placement) + 0x80199818 (the heading): the start of the map's record; the cannon and the body face (0, 0, 1) turned by `angle` around Y
+void cTaskGrobdaPlayer::SetStart(float x, float z, float angle)
+{
+	float* pos = GetPos();
+	pos[0] = x;
+	pos[1] = 0.0f;
+	pos[2] = z;
+	pos[3] = 0.0f;
+	std::memcpy(GetOldPos(), pos, 16);
+	m_vSpawn[0] = x;
+	m_vSpawn[1] = 0.0f;
+	m_vSpawn[2] = z;
+	m_vSpawn[3] = 0.0f;
+	const float dir[4] = {0.0f, 0.0f, 1.0f, 0.0f};   // 0x8037c070
+	std::memcpy(m_vAim, dir, 16);
+	std::memcpy(m_vBody, dir, 16);
+	if (angle != 0.0f)
+	{
+		RotY(m_vAim, angle);
+		RotY(m_vBody, angle);
+	}
+	Normalize(m_vAim);
+	Normalize(m_vBody);
+	if (cKingdomModel* m = pModel(0)) m->vRotate() = Vector4(0.0f, angle, 0.0f, 0.0f);
 }
 
 // the clip pair of the body (c) and the pilot (p): "m11m_%c01_a%02d_cha.brres" (PTR 0x80449210 ..)
@@ -159,10 +188,10 @@ bool cTaskGrobdaPlayer::AnimDone()
 	return m_fTo < cur || cur < m_fFrom;
 }
 
-// DOL 0x801970d0: the first free shot leaves the cannon tip (pos + rotY(aim) * (0, 0, 1), y + 0.8 = FLOAT_8047ca28) along the aim
+// DOL 0x801970d0 [audited]: the first free shot leaves the cannon tip (pos + rotY(aim) * (0, 0, 1), y + 0.8 = FLOAT_8047ca28) along the aim; needs EN_SHOT of energy
 void cTaskGrobdaPlayer::Fire()
 {
-	if (m_nShotWait > 0) return;
+	if (m_fEnergy < (float)m_nEnShot || m_nShotWait > 0) return;
 	for (cTaskGrobdaShotPlayer* s : m_pShot)
 	{
 		if (s == nullptr || s->IsActive()) continue;
@@ -170,28 +199,30 @@ void cTaskGrobdaPlayer::Fire()
 		const float* p = GetPos();
 		const float pos[3] = {p[0] + std::sin(aim), p[1] + 0.8f, p[2] + std::cos(aim)};
 		s->Fire(m_fShotSpeed, pos, aim);
-		m_bFiring = true;
 		m_nShotWait = m_nShotInterval;   // +0xbd4 = SHOT_INTERVAL
+		if (!HasFlag(4)) SetAnim(2);     // standing: the a03 clip (restarted by every shot)
+		m_bFiring = true;
 		return;
 	}
 }
 
-// DOL 0x80196124 (+ the input 0x80196054)
+// DOL 0x80196124 [audited] (+ the input 0x80196054)
 void cTaskGrobdaPlayer::Steer()
 {
 	float* pos = GetPos();
 	std::memcpy(GetOldPos(), pos, 16);
 	m_vMove[0] = m_vMove[2] = m_vMove[3] = 0.0f;
 	float in[3] = {0.0f, 0.0f, 0.0f};
-	if (WiiPad::NunchukConnected(m_nPlayer))
+	const int padNo = cG11GrobdaSys::Instance()->nPad(m_nPlayer);   // the matching block's player +0x4c
+	if (WiiPad::NunchukConnected(padNo))
 	{
-		const WiiPad::Stick s = WiiPad::NunchukStick(m_nPlayer);
+		const WiiPad::Stick s = WiiPad::NunchukStick(padNo);
 		in[0] = s.x;
 		in[2] = -s.y;
 	}
 	else
 	{
-		const uint hold = GamePad::Get(m_nPlayer).hold;
+		const uint hold = GamePad::Get(padNo).hold;
 		if (hold & GamePad::PAD_RIGHT) in[2] = -1.0f;
 		else if (hold & GamePad::PAD_LEFT) in[2] = 1.0f;
 		if (hold & GamePad::PAD_DOWN) in[0] = 1.0f;
@@ -265,14 +296,14 @@ void cTaskGrobdaPlayer::Steer()
 	}
 }
 
-// DOL 0x80197508: the swing throws the grenade when the energy is full enough and the last one is gone
+// DOL 0x80197508 [audited]: the swing throws the grenade when the energy is full enough and the last one is gone
 void cTaskGrobdaPlayer::Grenade()
 {
 	if (m_fEnergy < (float)m_nEnGrenade) return;
 	if (m_pGrenade == nullptr || m_pGrenade->nState() != 0) return;
 	const float yaw = std::atan2(m_vAim[0], m_vAim[2]);
 	const float* p = GetPos();
-	const float pos[3] = {p[0], p[1] + 1.75f, p[2]};   // DOUBLE_8047ca38
+	const float pos[3] = {p[0], p[1] + 0.5f, p[2]};   // DOUBLE_8047ca38
 	const float rot[3] = {-m_fGreAngle, yaw, 0.0f};
 	m_pGrenade->Throw(m_fGreSpeed, pos, rot);
 	m_fSpeed = m_fSpeedMin;
@@ -282,10 +313,11 @@ void cTaskGrobdaPlayer::Grenade()
 	if (m_nAnim != 2) SetAnim(2);
 }
 
-// DOL 0x801987c8
+// DOL 0x801987c8 [audited]
 void cTaskGrobdaPlayer::Control()
 {
-	const GamePad::State& pad = GamePad::Get(m_nPlayer);
+	const int padNo = cG11GrobdaSys::Instance()->nPad(m_nPlayer);   // the matching block's player +0x4c
+	const GamePad::State& pad = GamePad::Get(padNo);
 	cTaskGrobdaStage* st = cTaskGrobdaStage::Instance();
 	if (st != nullptr && st->IsFinishing())   // FUN_8009ffb4
 	{
@@ -301,7 +333,7 @@ void cTaskGrobdaPlayer::Control()
 			if (cKingdomModel* m = pModel(i)) m->Visible();
 	}
 	if (m_nShotWait > 0) m_nShotWait--;
-	const bool nunchuk = WiiPad::NunchukConnected(m_nPlayer);
+	const bool nunchuk = WiiPad::NunchukConnected(padNo);
 	bool fire = nunchuk ? (pad.hold & (GamePad::PAD_Z | GamePad::PAD_B)) != 0 : (pad.hold & GamePad::PAD_1) != 0;
 	if (fire) Fire();
 	const float acc = std::sqrt(pad.acc[0] * pad.acc[0] + pad.acc[1] * pad.acc[1] + pad.acc[2] * pad.acc[2]);
@@ -324,7 +356,7 @@ void cTaskGrobdaPlayer::Control()
 	if (AnimDone() && m_nAnim == 2) SetAnim(0);   // the grenade throw ended
 }
 
-// DOL 0x80197894: the energy: it recovers each frame (EN_RECV_STOP, EN_RECV_MOVE while moving), the shield and the laser cost, the bar shows it, the alarm sounds at the small level
+// DOL 0x80197894 [audited]: the energy: it recovers each frame (EN_RECV_STOP, EN_RECV_MOVE while moving), the shield and the laser cost, the bar shows it, the alarm sounds at the small level
 void cTaskGrobdaPlayer::Energy()
 {
 	m_fEnergy += (float)(HasFlag(4) ? m_nEnRecvMove : m_nEnRecvStop);
@@ -348,7 +380,7 @@ void cTaskGrobdaPlayer::Energy()
 	if (st != nullptr && st->Console() != nullptr) st->Console()->SetGauge(m_nPlayer, m_fEnMax > 0.0f ? m_fEnergy / m_fEnMax : 0.0f);   // 0x80130ce4
 }
 
-// DOL 0x80197ae4: while the shield is held the effect of its level (L above half the energy, M above a quarter, S below) follows the tank; at S it breaks
+// DOL 0x80197ae4 [audited]: while the shield is held the effect of its level (L above half the energy, M above a quarter, S below) follows the tank; at S it breaks
 void cTaskGrobdaPlayer::ShieldEffects()
 {
 	if (!HasFlag(2))
@@ -359,7 +391,7 @@ void cTaskGrobdaPlayer::ShieldEffects()
 		return;
 	}
 	const float* p = GetPos();
-	const Vector4 at(p[0], p[1] + 1.75f, p[2], 1.0f);
+	const Vector4 at(p[0], p[1] + 0.5f, p[2], 1.0f);   // DOUBLE_8047ca38
 	const float fr = m_fEnMax > 0.0f ? m_fEnergy / m_fEnMax : 0.0f;
 	const int lv = fr > m_fShieldSmall ? (fr > m_fShieldMiddle ? 0 : 1) : 2;
 	for (int i = 0; i < 3; i++)
@@ -386,7 +418,7 @@ void cTaskGrobdaPlayer::ShieldEffects()
 		WiiSnd::Play(m_ShieldSnd, "m11se_shield");   // DAT_8047c9f8
 }
 
-// DOL 0x80198454: wrecks under the tank (kind 4) slow it; shots, blasts and crushes (5, 6, 3, 8) hurt
+// DOL 0x80198454 [audited]: wrecks under the tank (kind 4) slow it; shots, blasts and crushes (5, 6, 3, 8) hurt
 void cTaskGrobdaPlayer::Resolve(int a, int b)
 {
 	(void)b;
@@ -400,7 +432,7 @@ void cTaskGrobdaPlayer::Resolve(int a, int b)
 	if (!hits.empty()) Damage(hits);
 }
 
-// DOL 0x80197d30: the shield absorbs (L: everything, M: shots but not blasts, S / none: nothing); a crush (kind 8) always kills; the nearest killer's owner may steal
+// DOL 0x80197d30 [audited]: the shield absorbs (L: everything, M: shots but not blasts, S / none: nothing); a crush (kind 8) always kills; the nearest killer's owner may steal
 // score in multiplayer; the tank's own blast joins the combo
 void cTaskGrobdaPlayer::Damage(std::vector<const sGrobdaHit*>& hits)
 {
@@ -450,7 +482,7 @@ void cTaskGrobdaPlayer::Damage(std::vector<const sGrobdaHit*>& hits)
 	m_bEnter = true;
 }
 
-// DOL 0x80199094: the respawn: back at the start, RECV_HEIGHT up, recovering (blinking, invulnerable) with a full energy bar; it falls and lands in state 1
+// DOL 0x80199094 [audited]: the respawn: back at the start, RECV_HEIGHT up, recovering (blinking, invulnerable) with a full energy bar; it falls and lands in state 1
 void cTaskGrobdaPlayer::Respawn()
 {
 	if (m_bEnter)
@@ -486,7 +518,7 @@ void cTaskGrobdaPlayer::Respawn()
 	}
 }
 
-// DOL 0x80199478: the stage is over: on entering the tank shows itself and idles; then it settles on the ground
+// DOL 0x80199478 [audited]: the stage is over: on entering the tank shows itself and idles; then it settles on the ground
 void cTaskGrobdaPlayer::Settle()
 {
 	if (!m_bEnter)
@@ -501,15 +533,20 @@ void cTaskGrobdaPlayer::Settle()
 	m_bEnter = false;
 	for (uint i = 0; i < 2; i++)
 		if (cKingdomModel* m = pModel(i)) m->Visible();
-	SetAnim(0);
+	if (m_nAnim != 0) SetAnim(0);
 	SetFlags(0);
 	m_nShotWait = 0;
 }
 
-// DOL 0x80195a0c
+// DOL 0x80195a0c [audited]
 bool cTaskGrobdaPlayer::Execute(cJetTask* pParam)
 {
-	if (!cTaskGrobdaCollision::Running()) return cTaskGrobdaModel::Execute(pParam);
+	if (!cTaskGrobdaCollision::Running())
+	{
+		WiiSnd::Stop(m_AlarmSnd);    // FUN_80026318(+0xbac, 5): the loops stop while paused
+		WiiSnd::Stop(m_ShieldSnd);   // FUN_80026318(+0xba0, 5)
+		return cTaskGrobdaModel::Execute(pParam);
+	}
 	m_bFiring = false;   // +0xbbe = 0
 	if (cKingdomModel* m = pModel(0)) m_fFrom = m->GetFrameAnmChr(0);
 	UpdateFrame();   // FUN_8009a478
@@ -562,6 +599,12 @@ bool cTaskGrobdaPlayer::Execute(cJetTask* pParam)
 	}
 	Energy();
 	ShieldEffects();
+	if (m_pMarker != nullptr)
+	{
+		if (m_pMarker->IsValid() && !m_pMarker->IsActive()) { m_pMarker->Active(); m_pMarker->Visible(); }
+		const float* p = GetPos();
+		m_pMarker->vSetTrans(Vector4(p[0], p[1], p[2], 1.0f));
+	}
 	m_bOnDebris = false;
 	return cTaskGrobdaModel::Execute(pParam);
 }

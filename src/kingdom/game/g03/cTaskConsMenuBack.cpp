@@ -21,7 +21,7 @@ cTaskConsMenuBack::~cTaskConsMenuBack()
 {
 }
 
-// DOL 0x8005a7f0: pattern 0x16 of anita 0
+// DOL 0x8005a7f0 [audited: described by the 43rd-session pass]: pattern 0x16 of anita 0
 bool cTaskConsMenuBack::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, 22);

@@ -64,6 +64,12 @@ struct Wave
 	std::uint32_t loopStart{}, loopEnd{};
 	float volume{1.0f};              // note volume (0..1)
 	float pitch{1.0f};               // playback rate multiplier
+	// RWSD note / wave sound info (nw4r WaveSoundNoteInfo / WaveSoundInfo): the envelope the channel runs, the sound's pan and pitch
+	int attack{127}, hold{0}, decay{127}, sustain{127}, release{127};   // EnvGenerator values 0..127 (the channel's defaults are these)
+	int pan{64};                     // WsdInfo pan: 0 and 1 = hard left? (nw4r: <= 1 -> (pan - 63) / 63, else centre), see WaveSoundPan()
+	float wsdPitch{1.0f}, notePitch{1.0f};
+	int noteVolume{127}, originalKey{60};
+	int mainSend{127};
 };
 
 class WaveSource : public Source

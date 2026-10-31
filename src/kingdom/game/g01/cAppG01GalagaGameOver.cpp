@@ -7,13 +7,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800b1250 (job 181)
+// DOL 0x800b1250 [audited] (job 181)
 void cAppG01GalagaGameOver::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG01GalagaGameOver());
 }
 
-// DOL 0x800fbfd4
+// DOL 0x800fbfd4 [audited]
 cAppG01GalagaGameOver::cAppG01GalagaGameOver()
 {
 	pAnita(0u)->RegistData("ANT_GAMEOVER");

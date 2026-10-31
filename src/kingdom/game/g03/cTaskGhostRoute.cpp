@@ -31,6 +31,7 @@ cTaskGhostRoute::cTaskGhostRoute(sEnemyRouteData& data)
 	RegistData(data);
 }
 
+// DOL 0x8017e874 [audited: Init fields, Execute speed = base * pct / 100, ride switch checked vs decomp]
 void cTaskGhostRoute::Init()
 {
 	m_pTaskCharRouteGhost = nullptr;
@@ -38,14 +39,13 @@ void cTaskGhostRoute::Init()
 	m_bBottomCheck = false;
 }
 
+// DOL 0x8017e888 [audited: blr]
 void cTaskGhostRoute::Term()
 {
-	if (m_pTaskCharRouteGhost != nullptr)
-	{
-		m_pTaskCharRouteGhost->TermOnce();
-	}
+	// DOL: blr. The ghost is a child task and runs its own Term when the tree is released.
 }
 
+// DOL 0x8017e88c [audited: Init fields, Execute speed = base * pct / 100, ride switch checked vs decomp]
 bool cTaskGhostRoute::Execute(cJetTask* pParam)
 {
 	if (Constants::IS_PAC_PAUSE())
@@ -60,6 +60,7 @@ bool cTaskGhostRoute::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x8017e97c [audited: Init fields, Execute speed = base * pct / 100, ride switch checked vs decomp]
 bool cTaskGhostRoute::RegistData(sEnemyRouteData& data)
 {
 	m_pEnemyRouteData = data;

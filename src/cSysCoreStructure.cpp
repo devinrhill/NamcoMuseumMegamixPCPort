@@ -34,13 +34,15 @@ cSysCoreStructure::cSysCoreStructure()
 	m_pTaskUsr->nDrawPriority(65536u);
 	m_pTaskRoot->ConnectChild(m_pTaskSys);
 	m_pTaskRoot->ConnectChild(m_pTaskUsr);
-	// DOL 0x80133000: after ROOT / Sys Root / Usr Root the constructor builds the six system nodes and
+	// DOL 0x80133000 [audited: cSysTask* subclasses (pad sync, GX start/finish, EFB2XFB, VSync) are the platform loop's; priorities set]: after ROOT / Sys Root / Usr Root the constructor builds the six system nodes and
 	// connects them under Sys Root; names from 0x804420f8, 0x80477f28, 0x804420ec, 0x80477f20, 0x804420e0, 0x80477f18.
 	static const char* const kSysNodeNames[6] = {"Pad Sync", "G Start", "G Finish", "G Sync", "EFB 2 XFB", "V Sync"};
 	for (int i = 0; i < 6; i++)
 	{
 		m_pSysTaskNode[i] = new cJetTask();
 		m_pSysTaskNode[i]->SetName(kSysNodeNames[i]);
+		static const uint kSysNodePrio[6] = {0u, 1u, 0xffff0001u, 0xffff0002u, 0xffff0003u, 0xffff0004u};   // vtable +0x30 in 0x80133000
+		m_pSysTaskNode[i]->nDrawPriority(kSysNodePrio[i]);
 		m_pTaskSys->ConnectChild(m_pSysTaskNode[i]);
 	}
 	int pDrawStatus = 0;
@@ -118,7 +120,7 @@ void cSysCoreStructure::ReleaseMainTask()
 	}
 }
 
-// DOL 0x80133a08: switch over the six nodes (any other id is ignored); ConnectChild(node, tsk, 0)
+// DOL 0x80133a08 [audited]: switch over the six nodes (any other id is ignored); ConnectChild(node, tsk, 0)
 void cSysCoreStructure::RegistSysTaskChild(uint systsk_name, cJetTask* tsk)
 {
 	if (systsk_name < 6)
@@ -127,7 +129,7 @@ void cSysCoreStructure::RegistSysTaskChild(uint systsk_name, cJetTask* tsk)
 	}
 }
 
-// DOL 0x80133aa0: releases the node's first child, if any
+// DOL 0x80133aa0 [audited]: releases the node's first child, if any
 void cSysCoreStructure::ReleaseSysTaskChild(uint systsk_name)
 {
 	if (systsk_name < 6 && m_pSysTaskNode[systsk_name]->pChild() != nullptr)

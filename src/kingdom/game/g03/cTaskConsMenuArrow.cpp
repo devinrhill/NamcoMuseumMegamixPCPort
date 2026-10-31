@@ -47,7 +47,7 @@ cTaskConsMenuArrow::~cTaskConsMenuArrow()
 {
 }
 
-// DOL 0x8005a258: only while active (byte +0x1d8), pattern nHitPat (+0x1e0) of anita 0
+// DOL 0x8005a258 [audited: described by the 43rd-session pass]: only while active (byte +0x1d8), pattern nHitPat (+0x1e0) of anita 0
 bool cTaskConsMenuArrow::IsDpdHit(float x, float y)
 {
 	return bActive() && DpdHitPat(x, y, nHitPat());

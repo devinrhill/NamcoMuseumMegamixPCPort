@@ -5,6 +5,7 @@
 namespace kingdom::game::g07
 {
 
+// DOL 0x801fe368 [audited: per AUDIT_G03_G07 row] (+0x20 valid = 0); ctor 0x801fe374 / dtor slot 0x801fe408 (blr Term)
 void cParamSlope::Init()
 {
 	m_bValid = false;

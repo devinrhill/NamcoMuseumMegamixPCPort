@@ -59,6 +59,9 @@ cTaskItem::cTaskItem()
 	Init();
 }
 
+// DOL 0x80181bc4 [audited: described by the 43rd-session pass] (members +0x1cc cookie max, +0x1d0 ate, +0x1d4 have, +0x1d8 pizza eaten, +0x1dc the yahoo sound handle,
+// +0x1e8 the item vector (0x40-byte records), +0x1f4 the three boss cookie index vectors). Retry branch: sys +7 (IsRetry) and not
+// 0x8012a8a8 (IsBossStage: rounds 8, 13, 19, 24, 25)
 void cTaskItem::Init()
 {
 	m_nCookieMax = 0u;
@@ -182,11 +185,13 @@ void cTaskItem::Init()
 	InitBossCookie();
 }
 
+// DOL 0x80182ba8 [audited: described by the 43rd-session pass]: blr (the models go with the cTaskModelEx part of the dtor chain, ReleaseTerm)
 void cTaskItem::Term()
 {
-	cTaskModelEx::Term();
 }
 
+// DOL 0x80182bac [audited: described by the 43rd-session pass] (HitCheck and Homing are inline there; ends with UpdateFrame 0x80187098 unless paused / HOME, then
+// cTaskModelEx::Execute 0x8018710c)
 bool cTaskItem::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -309,11 +314,13 @@ bool cTaskItem::Execute(cJetTask* pParam)
 	return cTaskModelEx::Execute(pParam);
 }
 
+// DOL 0x8018337c [audited: described by the 43rd-session pass]: b cTaskModelEx::Draw
 void cTaskItem::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskModelEx::Draw(nStatus, pParam);
 }
 
+// DOL 0x80183380 [audited: class row done in the 43rd session; function not individually re-read]
 string cTaskItem::Kind2Key(uint kind)
 {
 	switch (kind)
@@ -362,6 +369,7 @@ string cTaskItem::Kind2Key(uint kind)
 	}
 }
 
+// inline in Execute 0x80182bac: (pac +0x1f0 - item)^2 against (0.4 + pac radius +0x1dc)^2 [+ vacuum range +0x4f4 = 2]
 uint cTaskItem::HitCheck(cItem* item)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -382,6 +390,7 @@ uint cTaskItem::HitCheck(cItem* item)
 	return result;
 }
 
+// inline in Execute 0x80182bac: speed += 0.02 (FLOAT_8047c7fc), moves only when the squared distance >= 0x01000000
 void cTaskItem::Homing(cItem* item)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -399,6 +408,7 @@ void cTaskItem::Homing(cItem* item)
 	}
 }
 
+// DOL 0x8018348c [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskItem::EatItem(cItem* item)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -449,7 +459,9 @@ void cTaskItem::EatItem(cItem* item)
 	{
 		if (cAppG03PacnRollGame2->pTaskCharPacman()->IsState(1u))
 		{
-			if (nullptr == m_SndYahoo)
+			// DOL: Goal_3 into the handle +0x1dc when it no longer plays (SoundSeBank::IsPlaying 0x80026424), else Goal_2 (43rd: was
+			// "handle == null", so every later fruit while dashing played Goal_2)
+			if (!SoundManager::get_SE()->IsPlaying(m_SndYahoo))
 			{
 				m_SndYahoo = SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE109_GOAL_3);
 			}
@@ -463,10 +475,7 @@ void cTaskItem::EatItem(cItem* item)
 			SoundManager::get_SE()->PlaySE(ESEKind::PACN_ROLL_SND_SE016_FLUIT);
 		}
 	}
-	if (item->nKind() != 0 && item->nKind() != 1)
-	{
-		KingdomGlobal::PacnRollSys->AddGetItemCnt();
-	}
+	// (43rd: the C#'s AddGetItemCnt here fed a Steam statistic; the DOL has none)
 }
 
 void cTaskItem::PushBackItem(cItem* item)
@@ -475,6 +484,7 @@ void cTaskItem::PushBackItem(cItem* item)
 	m_vecItem.push_back(item);
 }
 
+// DOL 0x80183684 [audited: described by the 43rd-session pass] (angles through CosFIdx / SinFIdx: (deg * pi/180 - rotY) * 256/2pi)
 bool cTaskItem::SetBoxItem(Vector4 trans, float rotY, uint treasure, cTaskBgBox* box)
 {
 	CustomKingdomUtil::Assert("nullpo");
@@ -618,6 +628,7 @@ bool cTaskItem::SetBoxItem(Vector4 trans, float rotY, uint treasure, cTaskBgBox*
 	return true;
 }
 
+// DOL 0x801840f0 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskItem::SetEnemyItem(uint kind, cTaskCharGhost* ghost, Vector4 trans)
 {
 	CustomKingdomUtil::Assert(ghost != nullptr, "nullpo");
@@ -664,17 +675,18 @@ void cTaskItem::SetEnemyItem(uint kind, cTaskCharGhost* ghost, Vector4 trans)
 	}
 }
 
+// DOL 0x80184898 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskItem::SetRetryData()
 {
 	KingdomGlobal::PacnRollSys->pRetryData()->nAteCookie = m_nAteCookie;
 	KingdomGlobal::PacnRollSys->pRetryData()->nHaveCookie = m_nHaveCookie;
 	for (cItem* item : m_vecItem)
 	{
-		cG03PacnRollSys::sRetryItem* sRetryItem = new cG03PacnRollSys::sRetryItem();
 		if ((item->pBox() != nullptr && !item->pBox()->IsBreak()) || (item->pGhost() != nullptr && !item->pGhost()->IsDead()))
 		{
 			continue;
 		}
+		cG03PacnRollSys::sRetryItem* sRetryItem = new cG03PacnRollSys::sRetryItem();
 		sRetryItem->nKind = item->nKind();
 		sRetryItem->nDFlag = item->nDFlag();
 		::Constants::jetGeoVecCopy(sRetryItem->vInitTrans, item->vInitTrans());
@@ -694,6 +706,7 @@ void cTaskItem::SetRetryData()
 	}
 }
 
+// DOL 0x80184ddc [audited: described by the 43rd-session pass] (BIN_CSV_BOSS_PARAM = CRC 0xbb63a2a0, row "COOKIE_REVIVAL" column 1)
 int cTaskItem::BossCookieRevivalTime()
 {
 	cKingdomCSV* cKingdomCSV2 = new cKingdomCSV();
@@ -715,6 +728,7 @@ int cTaskItem::BossCookieRevivalTime()
 	return 0;
 }
 
+// DOL 0x80184f40 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskItem::InitBossCookie()
 {
 	for (int i = 0; i < (int)std::size(m_pvecBossItem); i++)
@@ -769,6 +783,7 @@ void cTaskItem::InitBossCookie()
 	}
 }
 
+// DOL 0x80185a38 [audited: class row done in the 43rd session; function not individually re-read]
 void cTaskItem::SetBossCookie(uint nLife)
 {
 	for (uint num = 0u; num < 3; num++)

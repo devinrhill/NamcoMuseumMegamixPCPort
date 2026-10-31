@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g02/cTaskMap.hpp"
 
 #include <algorithm>
@@ -37,7 +38,7 @@ const int RING1[8][2] = {{0, -2}, {1, -1}, {2, 0}, {1, 1}, {0, 2}, {-1, 1}, {-2,
 const int RING2[12][2] = {{0, -3}, {1, -2}, {2, -1}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {-1, 2}, {-2, 1}, {-3, 0}, {-2, -1}, {-1, -2}};
 }
 
-// DOL 0x8012490c (ctor) + 0x80076cb0 (Init; priority 0x10002)
+// DOL 0x8012490c [audited] (ctor) + 0x80076cb0 (Init; priority 0x10002)
 cTaskMap::cTaskMap()
 {
 	SetName("g02::cTaskMap");
@@ -82,7 +83,7 @@ u32 cTaskMap::Attr(int x, int z) const
 	return m_Attr[(std::size_t)z * nWidth() + x];
 }
 
-// DOL 0x80077190 (the cell loop) + 0x80077b54
+// DOL 0x80077190 [audited] (the cell loop) + 0x80077b54
 void cTaskMap::BuildCells()
 {
 	if (m_pMap == nullptr) return;
@@ -145,7 +146,7 @@ bool cTaskMap::PlayerStart(int n, int& x, int& z) const
 	return false;
 }
 
-// DOL 0x80079fe4 / 0x8007a004 / 0x8007a024 / 0x8007a044: the idx-th spawn point of a record type into the item's cell
+// DOL 0x80079fe4 [audited] / 0x8007a004 / 0x8007a024 / 0x8007a044: the idx-th spawn point of a record type into the item's cell
 bool cTaskMap::SpawnCell(int nRecType, int nIdx, int cell[2]) const
 {
 	if ((unsigned)nRecType >= 6u || nIdx < 0 || (std::size_t)nIdx >= m_Spawn[nRecType].size()) return false;
@@ -154,7 +155,7 @@ bool cTaskMap::SpawnCell(int nRecType, int nIdx, int cell[2]) const
 	return true;
 }
 
-// DOL 0x80079ad0
+// DOL 0x80079ad0 [audited]
 int cTaskMap::nFlagTotal() const
 {
 	if (Hooks.FlagCount != nullptr && m_pFlagMan != nullptr) return Hooks.FlagCount(m_pFlagMan);   // FUN_800705ec(+0x1e0)
@@ -188,7 +189,7 @@ void cTaskMap::RegistFlags(cTaskConsole* pConsole)
 		if (f != nullptr) pConsole->RegistFlag(f, f->nType());
 }
 
-// DOL 0x80079fbc
+// DOL 0x80079fbc [audited]
 void cTaskMap::ResetGimmicks()
 {
 	if (Hooks.SmokeReset != nullptr && m_pSmokeMan != nullptr)
@@ -200,13 +201,13 @@ void cTaskMap::ResetGimmicks()
 		if (s != nullptr && s->IsActive()) s->Disable();
 }
 
-// DOL 0x80079b50
+// DOL 0x80079b50 [audited]
 void cTaskMap::Contact(cTaskUnit* pUnit, int x, int z)
 {
 	if (m_pGimmickMan != nullptr) m_pGimmickMan->Contact(pUnit, x, z, true);   // FUN_80073a2c(+0x1dc, unit, x, z, 1)
 }
 
-// DOL 0x80079b5c
+// DOL 0x80079b5c [audited]
 bool cTaskMap::DropFlag(int n, const float pPos[4], int nDir)
 {
 	for (int i = 0; i < n; i++)
@@ -230,7 +231,7 @@ bool cTaskMap::DropFlag(int n, const float pPos[4], int nDir)
 	return true;
 }
 
-// DOL 0x80078574: a free road cell for a dropped flag around the car's cell (cx, cz). Ring 1 (two steps, 8 cells) / ring 2 (three steps, 12
+// DOL 0x80078574 [audited]: a free road cell for a dropped flag around the car's cell (cx, cz). Ring 1 (two steps, 8 cells) / ring 2 (three steps, 12
 // cells) are marked reachable through the road cells next to the car, then dropped when a gimmick is on them, they are no road, or a flag is
 // already flying there. rand % 1000 < 750 prefers ring 2. The search walks the sides {-z 0, +z 1, +x 2, -x 3, behind the car} in a random
 // order (the side behind = the car direction 0 -> 1, 1 -> 0, 2 -> 3, 3 -> 2, so that side is twice as likely), each side a few cells from a
@@ -361,7 +362,7 @@ bool cTaskMap::FindDropCell(float out[4], const float pPos[4], int nDir)
 	return !(out[0] == pPos[0] && out[2] == pPos[2]);
 }
 
-// DOL 0x80079c1c (the DOL unrolls the retry four times and recurses through 0x80079e3c)
+// DOL 0x80079c1c [audited] (the DOL unrolls the retry four times and recurses through 0x80079e3c)
 bool cTaskMap::PutSmoke(int nOwner, int nMax, const float pPos[4], int nIndex)
 {
 	const int cell[2] = {Round(pPos[0]) + 4, Round(pPos[2]) + 8};
@@ -392,7 +393,7 @@ bool cTaskMap::PutSmoke(int nOwner, int nMax, const float pPos[4], int nIndex)
 	}
 }
 
-// DOL 0x80079fc4
+// DOL 0x80079fc4 [audited]
 bool cTaskMap::SmokeFree(int nOwner)
 {
 	if (Hooks.SmokeFree != nullptr && m_pSmokeMan != nullptr) return Hooks.SmokeFree(m_pSmokeMan, nOwner);   // FUN_8007c59c(+0x1e4, id)
@@ -401,7 +402,7 @@ bool cTaskMap::SmokeFree(int nOwner)
 	return true;
 }
 
-// DOL 0x80079fcc
+// DOL 0x80079fcc [audited]
 bool cTaskMap::NextFlag(int nIndex, float out[4]) const
 {
 	const cTaskItemFlag* f = nullptr;
@@ -417,7 +418,7 @@ bool cTaskMap::NextFlag(int nIndex, float out[4]) const
 	return true;
 }
 
-// DOL 0x800780f4 (+ the unit part 0x80078260)
+// DOL 0x800780f4 [audited] (+ the unit part 0x80078260)
 bool cTaskMap::PlaceCar(cTaskUnit* pCar, int nType, int nIndex, bool bReset)
 {
 	if (m_pObj == nullptr || pCar == nullptr) return false;
@@ -484,12 +485,12 @@ void cTaskMap::PlaceObjects()
 	std::vector<std::pair<u32, u32>> order;
 	for (u32 i = 0; i < nCand; i++)
 	{
-		order.push_back({i, (u32)std::rand()});
+		order.push_back({i, (u32)kingdom::MslRand()});
 		for (std::size_t k = order.size() - 1; k > 0 && order[k].second < order[k - 1].second; k--) std::swap(order[k], order[k - 1]);
 	}
 	const std::size_t sorted = std::min<std::size_t>(order.size(), (std::size_t)nFlag + 1);
 	std::sort(order.begin(), order.begin() + (std::ptrdiff_t)sorted, [](const auto& a, const auto& b) { return a.first < b.first; });
-	// multiplayer (DOL 0x8007765c): the spawn points of the four item kinds (record types 3 / 4 / 2 / 5, counted first), one random point of each
+	// multiplayer (DOL 0x8007765c [audited]): the spawn points of the four item kinds (record types 3 / 4 / 2 / 5, counted first), one random point of each
 	// kind gets its item now (a random index per list, drawn in the order paint, armor, fuel, smoke), the other points only respawn them later
 	int chosen[6] = {};
 	if (multi)
@@ -504,7 +505,7 @@ void cTaskMap::PlaceObjects()
 			ObjCell(rec, x, z);
 			m_Spawn[type].push_back({x, z});
 		}
-		for (int t : {3, 4, 2, 5}) chosen[t] = m_Spawn[t].empty() ? -1 : (int)((u32)std::rand() % (u32)m_Spawn[t].size());
+		for (int t : {3, 4, 2, 5}) chosen[t] = m_Spawn[t].empty() ? -1 : (int)((u32)kingdom::MslRand() % (u32)m_Spawn[t].size());
 		m_nPlayer = m_nEnemy = 0;
 	}
 	u32 cand = 0, placed = 0;

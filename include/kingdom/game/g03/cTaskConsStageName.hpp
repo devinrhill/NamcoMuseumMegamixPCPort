@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "kingdom/game/g03/cTaskConsoleBase.hpp"
-#include "MotosUIRollStageName.hpp"
 #include "cJetTask.hpp"
 
 namespace kingdom::game::g03
@@ -30,7 +29,6 @@ private:
 	uint m_nTimeCnt{};
 
 public:
-	MotosUIRollStageName* UnityUI{};
 
 	cTaskConsStageName();
 

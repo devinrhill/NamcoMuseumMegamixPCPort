@@ -21,6 +21,7 @@ cTaskConsMenuBack::~cTaskConsMenuBack()
 {
 }
 
+// DOL 0x801c5d20 [audited: anim tables, priorities and step logic checked vs decomp]
 int cTaskConsMenuBack::nGetBackAnmNo(int nAnmState)
 {
 	int obj[4] = {334, 335, 336, 337};
@@ -28,6 +29,7 @@ int cTaskConsMenuBack::nGetBackAnmNo(int nAnmState)
 	return obj[nAnmState];
 }
 
+// DOL 0x801c5d5c [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuBack::SetData()
 {
 	nDrawPriority(2147483657u);
@@ -37,17 +39,19 @@ void cTaskConsMenuBack::SetData()
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x801c5e40: hit test of anita 0, pattern +0x1d8 (nHitPat) (the C# returned false: Unity used colliders)
+// DOL 0x801c5e40 [audited: described by the 43rd-session pass]: hit test of anita 0, pattern +0x1d8 (nHitPat) (the C# returned false: Unity used colliders)
 bool cTaskConsMenuBack::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, nHitPat());
 }
 
+// DOL 0x801c5f84 [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuBack::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(nGetBackAnmNo(1), false);
 }
 
+// DOL 0x801c5fe8 [audited: anim tables, priorities and step logic checked vs decomp]
 bool cTaskConsMenuBack::AppearExec()
 {
 	if (nStep() == 0)
@@ -64,11 +68,13 @@ bool cTaskConsMenuBack::AppearExec()
 	return false;
 }
 
+// DOL 0x801c60e4 [audited: anim tables, priorities and step logic checked vs decomp]
 void cTaskConsMenuBack::PointExec()
 {
 	pAnita(0u)->SetAnimNo(nGetBackAnmNo(2), false);
 }
 
+// DOL 0x801c6148 [audited: anim tables, priorities and step logic checked vs decomp]
 bool cTaskConsMenuBack::DecideExec()
 {
 	if (nStep() == 0)

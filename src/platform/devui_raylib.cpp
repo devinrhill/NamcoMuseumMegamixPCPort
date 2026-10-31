@@ -898,7 +898,8 @@ std::vector<Panel> g_panels;
 UI g_ui;
 bool g_enabled = std::getenv("MEGAMIX_DEVUI") != nullptr && std::string(std::getenv("MEGAMIX_DEVUI")) != "0";
 bool g_wantsMouse = false;
-int g_reserved = 0;   // screen pixels the window was widened by for the panel (ReservedWidth)
+int g_reserved = 0;   // screen pixels the dev window takes from the right edge (ReservedWidth): the game area is the rest
+int g_winReserved = 0;   // of those, the pixels the real window was widened by (a fullscreen window cannot be, so it differs there)
 std::string g_tab;   // the active tab's title (the one the user picked; the first tab shows while it is hidden)
 constexpr int WINDOW_W = 300;                   // panel units
 
@@ -913,6 +914,7 @@ void UiPanel(UI& ui)
 		float z = (float)ui.Number(c[1], MakeId("devui.zoom"), "Zoom", Scale(), 0.1, "%.2f");
 		if (z != Scale()) SetScale(z);
 	}
+	if (ui.Button(ui.Row(), "Fullscreen on / off (F11, Alt+Enter)")) ToggleBorderlessWindowed();
 	ui.Label("Ctrl + = / - / 0 zoom, F9 hides this window", &Color(DIM));
 	ui.Space();
 	ui.Heading("Widgets");
@@ -1007,11 +1009,15 @@ void Frame()
 	SetExitKey(Typing() ? KEY_NULL : KEY_ESCAPE);   // Esc cancels a field instead of closing the window
 	// the window grows by the panel's width (F9, zoom) so the game keeps its own size beside it; takes effect next frame
 	const int want = g_enabled ? (int)std::ceil(WINDOW_W * Scale()) : 0;
-	if (want != g_reserved && !IsWindowFullscreen())
+	const bool full = IsWindowFullscreen() || IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
+	if (!full && want != g_winReserved)
 	{
-		SetWindowSize(GetScreenWidth() - g_reserved + want, GetScreenHeight());
+		SetWindowSize(GetScreenWidth() - g_winReserved + want, GetScreenHeight());
+		g_winReserved = want;
 		g_reserved = want;
 	}
+	else if (full) g_reserved = want;   // the panel takes its width out of the screen instead of widening the window
+	else g_reserved = g_winReserved;
 	g_captureMouse = g_wantMouse;   // what the tools asked for last frame holds until they draw again
 	g_captureKeys = g_wantKeys;
 	g_wantMouse = g_wantKeys = false;

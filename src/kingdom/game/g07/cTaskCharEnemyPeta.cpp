@@ -28,6 +28,7 @@ bool& cTaskCharEnemyPeta::bStop()
 	return m_bStop;
 }
 
+// DOL 0x80057944 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyPeta::Init()
 {
 	OnFlag(2048u);
@@ -42,6 +43,7 @@ void cTaskCharEnemyPeta::Term()
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x800579b8 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPeta::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -59,6 +61,7 @@ bool cTaskCharEnemyPeta::Create(uint no)
 	return true;
 }
 
+// DOL 0x80057a9c [audited: per AUDIT_G03_G07 row]
 uint cTaskCharEnemyPeta::Input()
 {
 	float num = 1.0f - HereticRate();
@@ -130,6 +133,7 @@ uint cTaskCharEnemyPeta::Input()
 	return num2;
 }
 
+// DOL 0x80057e18 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPeta::FallMove()
 {
 	::Constants::jetGeoVecCopy(vMTransOLD(), vMTrans());
@@ -167,6 +171,7 @@ bool cTaskCharEnemyPeta::FallMove()
 	return false;
 }
 
+// DOL 0x8005800c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyPeta::ActionBoth()
 {
 	if (IsFall())
@@ -193,6 +198,7 @@ bool cTaskCharEnemyPeta::ActionBoth()
 	return true;
 }
 
+// DOL 0x800581f8 [audited: part = p1, group = p2 only when part != 0, vs disassembly]
 void cTaskCharEnemyPeta::SetMMSParam(int para1, int para2, int para3)
 {
 	nFormPart() = para1;

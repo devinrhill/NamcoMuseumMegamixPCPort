@@ -11,13 +11,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800b13d0 (job 182)
+// DOL 0x800b13d0 [audited] (job 182)
 void cAppG01GalagaMatching::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG01GalagaMatching());
 }
 
-// DOL 0x801059f4 (the menu archive is already attached by the stage select)
+// DOL 0x801059f4 [audited] (the menu archive is already attached by the stage select)
 cAppG01GalagaMatching::cAppG01GalagaMatching()
 {
 	cG01GalagaSys::AttachMenuArc();   // native: the archive of ANT_MATCHING when the job is entered directly (UNVERIFIED: not in 0x801059f4)
@@ -26,7 +26,7 @@ cAppG01GalagaMatching::cAppG01GalagaMatching()
 	nMultiJob() = job::GALAGA_MENU;   // +0x284
 }
 
-// DOL 0x80105a4c: +0x29a set -> the matching data (0x154 bytes) into cG01GalagaSys +4, else back to 1 player. The port's sMatchingData is
+// DOL 0x80105a4c [audited]: +0x29a set -> the matching data (0x154 bytes) into cG01GalagaSys +4, else back to 1 player. The port's sMatchingData is
 // the converted structure (name / controller / work per player): mapped field by field (UNVERIFIED mapping; +0x29a taken as bConfirmDecide).
 void cAppG01GalagaMatching::Free()
 {

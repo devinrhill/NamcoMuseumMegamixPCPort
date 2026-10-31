@@ -67,6 +67,10 @@ public:
 
 	bool IsManagerVisible();
 
+	// DOL 0x8018a200 (the cursors' IsInScreen): a world position through the game camera's view / projection and the 640 x 480 viewport; false when it is
+	// behind the camera, beyond the far plane or outside the screen. out = the HUD (Anita) coordinates: x right, y up, origin at the screen centre
+	static bool WorldToHud(const Vector4& world, Vector4& out);
+
 protected:
 	void ReleaseTerm() override { cTaskConsoleBase::Term(); cTaskAnita::ReleaseTerm(); }   // DOL dtor chain (cTaskKingdom::TermOnce)
 };

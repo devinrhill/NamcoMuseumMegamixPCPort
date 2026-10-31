@@ -16,6 +16,7 @@ cTaskConsMultiMenuCurtain::~cTaskConsMultiMenuCurtain()
 {
 }
 
+// DOL 0x801cb3a4 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuCurtain::SetData()
 {
 	nDrawPriority(2147483649u);
@@ -24,6 +25,7 @@ void cTaskConsMultiMenuCurtain::SetData()
 	pAnita(0u)->SetState(1u, false);
 }
 
+// DOL 0x801cb480 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuCurtain::nGetCurtainAnmNo(int nAnmState)
 {
 	int obj[2] = {111, 112};

@@ -51,7 +51,7 @@ uint Digit(uint n, int k)
 
 // ---- cTaskScoreNum ----
 
-// DOL 0x801b6788
+// DOL 0x801b6788 [audited: checked]
 cTaskScoreNum::cTaskScoreNum()
 {
 	SetName("g04::cTaskScoreNum");
@@ -69,7 +69,7 @@ cTaskScoreNum::cTaskScoreNum()
 	SetMode(0);
 }
 
-// DOL 0x801b688c
+// DOL 0x801b688c [audited]
 void cTaskScoreNum::Reset()
 {
 	m_nNum = 0;
@@ -82,7 +82,7 @@ void cTaskScoreNum::Reset()
 	}
 }
 
-// DOL 0x801b691c
+// DOL 0x801b691c [audited: table 0x8037d660 = identity so d*3+k]
 void cTaskScoreNum::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -107,7 +107,7 @@ void cTaskScoreNum::SetMode(int mode)
 		}
 }
 
-// DOL 0x801b6c9c: a changed digit plays "change" (+8, state 2), then "appear" (+4 -> state 1 / 0 ...), then shows (+0)
+// DOL 0x801b6c9c [audited]: a changed digit plays "change" (+8, state 2), then "appear" (+4 -> state 1 / 0 ...), then shows (+0)
 void cTaskScoreNum::Step()
 {
 	for (uint i = 0; i < 3; i++)
@@ -137,7 +137,7 @@ void cTaskScoreNum::Step()
 	}
 }
 
-// DOL 0x801b6ebc (mode 4: the new record blinks)
+// DOL 0x801b6ebc [audited: frame reset + unknown helper call after write checked] (mode 4: the new record blinks)
 void cTaskScoreNum::StepBlink()
 {
 	if (!m_bBlink)
@@ -176,7 +176,7 @@ void cTaskScoreNum::StepBlink()
 	}
 }
 
-// DOL 0x801b6c04
+// DOL 0x801b6c04 [audited]
 bool cTaskScoreNum::Execute(cJetTask* pParam)
 {
 	if (Paused() || (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0) return true;
@@ -185,7 +185,7 @@ bool cTaskScoreNum::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x801b713c (at most 999)
+// DOL 0x801b713c [audited] (at most 999)
 void cTaskScoreNum::SetNumber(uint n)
 {
 	if (0x3e6u < n) n = 999u;
@@ -207,7 +207,7 @@ void cTaskScoreNum::SetNumber(uint n)
 	}
 }
 
-// DOL 0x801b72e4
+// DOL 0x801b72e4 [audited]
 void cTaskScoreNum::ShowNumber(uint n)
 {
 	if (0x3e6u < n) n = 999u;
@@ -221,13 +221,13 @@ void cTaskScoreNum::ShowNumber(uint n)
 	}
 }
 
-// DOL 0x801b7458
+// DOL 0x801b7458 [audited]
 void cTaskScoreNum::SetPos(uint digit, const Vector4& v)
 {
 	pAnita(digit)->vTrans() = v;
 }
 
-// DOL 0x801b74a0
+// DOL 0x801b74a0 [audited]
 void cTaskScoreNum::SetBlink(bool b, int which)
 {
 	m_bBlink = b;
@@ -239,9 +239,19 @@ void cTaskScoreNum::SetBlink(bool b, int which)
 	}
 }
 
+// DOL 0x801b75e0 [audited: written from the decomp]: the mask's state bits cleared / set on the three digits, their frame back to 0 (no clip change)
+void cTaskScoreNum::SetStateBits(uint mask, bool set)
+{
+	for (uint i = 0; i < 3; i++)
+	{
+		pAnita(i)->SetState(mask, set);
+		pAnita(i)->SetFrame(0.0f);
+	}
+}
+
 // ---- cTaskConsComboScore ----
 
-// DOL 0x8019dc8c
+// DOL 0x8019dc8c [audited]
 cTaskConsComboScore::cTaskConsComboScore()
 {
 	SetName("g04::cTaskConsComboScore");
@@ -258,7 +268,7 @@ cTaskConsComboScore::cTaskConsComboScore()
 	SetMode(0);
 }
 
-// DOL 0x8019e060
+// DOL 0x8019e060 [audited]
 void cTaskConsComboScore::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -277,7 +287,7 @@ void cTaskConsComboScore::SetMode(int mode)
 	for (uint i = 0; i < 2; i++) pAnita(i + 1u)->SetAnimNo(0x24 + (int)Digit(m_nNum, (int)i) * 3 + OFS[mode & 3], true);
 }
 
-// DOL 0x8019df84: shown for 60 frames, then leaves (3)
+// DOL 0x8019df84 [audited]: shown for 60 frames, then leaves (3)
 bool cTaskConsComboScore::Execute(cJetTask* pParam)
 {
 	if (!Paused())
@@ -297,7 +307,7 @@ bool cTaskConsComboScore::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8019e378 (2 COMBO appears)
+// DOL 0x8019e378 [audited] (2 COMBO appears)
 void cTaskConsComboScore::First(uint n)
 {
 	if (n == 2) SetMode(2);
@@ -321,7 +331,7 @@ void cTaskConsComboScore::ScoreNumMode3()
 	}
 }
 
-// DOL 0x8019e444
+// DOL 0x8019e444 [audited]
 void cTaskConsComboScore::Set(uint n)
 {
 	if (m_nNum == n)
@@ -342,7 +352,7 @@ void cTaskConsComboScore::Set(uint n)
 
 // ---- cTaskConsScore ----
 
-// DOL 0x801a6160
+// DOL 0x801a6160 [audited: checked (priority set by the builder in the DOL, in the ctor natively)]
 cTaskConsScore::cTaskConsScore()
 {
 	SetName("g04::cTaskConsScore");
@@ -371,7 +381,7 @@ cTaskConsScore::cTaskConsScore()
 	nDrawPriority(0x80000003u);
 }
 
-// DOL 0x801a6548
+// DOL 0x801a6548 [audited]
 void cTaskConsScore::Reset()
 {
 	static const int ANIM[4] = {0x6c, 0x72, 0x6f, 0x69};
@@ -393,7 +403,7 @@ uint cTaskConsScore::Score() const
 	return s < 0 ? 0u : (uint)s;
 }
 
-// DOL 0x801a669c: the boards' entry animation (mode 2) ends -> their game animations (mode 3)
+// DOL 0x801a669c [audited: checked]: the boards' entry animation (mode 2) ends -> their game animations (mode 3)
 bool cTaskConsScore::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;   // KingSys +0xa40 -> +0x1b4
@@ -401,7 +411,7 @@ bool cTaskConsScore::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x801a671c
+// DOL 0x801a671c [audited: modes 0-3,6,7 vs decomp; mode 2 now uses 0x801b75e0 (SetStateBits) instead of SetBlink]
 void cTaskConsScore::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -434,7 +444,7 @@ void cTaskConsScore::SetMode(int mode)
 		m_pNum[2]->SetMode(1);
 		m_pNum[1]->SetMode(1);
 		m_pNum[3]->SetMode(2);
-		m_pNum[3]->SetBlink(false, 2);   // 0x801b75e0(+0x1f4, 2, 0): the state bits cleared
+		m_pNum[3]->SetStateBits(2u, false);   // 0x801b75e0(+0x1f4, 2, 0): bit 2 cleared, frame 0
 		m_pNum[3]->ShowNumber((uint)KingdomGlobal::WaniWaniSys->nHighScore());
 	}
 	else if (mode == 3)
@@ -478,7 +488,7 @@ void cTaskConsScore::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a6bc4
+// DOL 0x801a6bc4 [audited]
 void cTaskConsScore::SetHits(cTaskPacmanBase*, int n)
 {
 	m_nHits = n;
@@ -492,7 +502,7 @@ void cTaskConsScore::SetHits(cTaskPacmanBase*, int n)
 	}
 }
 
-// DOL 0x801a6c38
+// DOL 0x801a6c38 [audited]
 void cTaskConsScore::SetDamage(cTaskPacmanBase*, int n)
 {
 	if (m_nDamage == n) return;
@@ -507,13 +517,13 @@ void cTaskConsScore::SetDamage(cTaskPacmanBase*, int n)
 	}
 }
 
-// DOL 0x801a6cb8
+// DOL 0x801a6cb8 [audited]
 bool cTaskConsScore::CanPay(cTaskPacmanBase*, int n)
 {
 	return 0 <= m_nCombo + m_nBonus + m_nHits - n;
 }
 
-// DOL 0x801a6cdc
+// DOL 0x801a6cdc [audited]
 void cTaskConsScore::Combo(cTaskPacmanBase*, int combo, uint chain)
 {
 	if (chain < 2u) return;
@@ -524,7 +534,7 @@ void cTaskConsScore::Combo(cTaskPacmanBase*, int combo, uint chain)
 
 // ---- cTaskConsReadly ----
 
-// DOL 0x801a42b8
+// DOL 0x801a42b8 [audited]
 cTaskConsReadly::cTaskConsReadly()
 {
 	SetName("g04::cTaskConsReadly");
@@ -537,7 +547,7 @@ cTaskConsReadly::cTaskConsReadly()
 	nDrawPriority(0x80000008u);
 }
 
-// DOL 0x801a4440
+// DOL 0x801a4440 [audited]
 void cTaskConsReadly::Reset()
 {
 	pAnita(0u)->SetAnimNo(99, true);
@@ -546,7 +556,7 @@ void cTaskConsReadly::Reset()
 	for (uint i = 0; i < 2; i++) pAnita(i)->SetState(3u, false);
 }
 
-// DOL 0x801a4544
+// DOL 0x801a4544 [audited]
 void cTaskConsReadly::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -561,14 +571,14 @@ void cTaskConsReadly::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a461c
+// DOL 0x801a461c [audited]
 void cTaskConsReadly::Ready()
 {
 	m_nMode = 1;
 	pAnita(0u)->SetState(3u, true);
 }
 
-// DOL 0x801a46e4 (GO's end calls the tortoise's 0x801b87a4, which does nothing)
+// DOL 0x801a46e4 [audited] (GO's end calls the tortoise's 0x801b87a4, which does nothing)
 bool cTaskConsReadly::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -587,7 +597,7 @@ int cTaskConsTimer::Anim(int digit, int which) const
 	return (m_nColor == 0 ? 0x86 : 0x42) + digit * 3 + which;
 }
 
-// DOL 0x801a6e90
+// DOL 0x801a6e90 [audited: colon anim fixed to 0x1e (was 0x1f)]
 cTaskConsTimer::cTaskConsTimer()
 {
 	SetName("g04::cTaskConsTimer");
@@ -605,7 +615,7 @@ cTaskConsTimer::cTaskConsTimer()
 	}
 	cKingdomAnita* c = pAnita(3u);
 	c->RegistData("GAME_ANITA");
-	c->SetAnimNo(m_nColor == 0 ? 0x1f : 0x61, true);   // DAT_8037cd10 (+0x78)
+	c->SetAnimNo(m_nColor == 0 ? 0x1e : 0x60, true);   // DAT_8037cd10 (+0x78) = 0x1e (word 0 of the colon set; SetMode 2 does not change it)
 	Vector4 v;
 	if (c->GetLayerPos(v, 2u, 0x13)) c->vTrans() = v;
 	m_nStep = 0;
@@ -615,7 +625,7 @@ cTaskConsTimer::cTaskConsTimer()
 	SetMode(0);
 }
 
-// DOL 0x801a70ac
+// DOL 0x801a70ac [audited: colon anim fixed to 0x1e]
 void cTaskConsTimer::Reset()
 {
 	m_nColor = 0;
@@ -629,14 +639,14 @@ void cTaskConsTimer::Reset()
 		m_nDigit[i] = 0;
 		m_nChange[i] = 1;
 	}
-	pAnita(3u)->SetAnimNo(0x1f, true);
+	pAnita(3u)->SetAnimNo(0x1e, true);   // DAT_8037cd10
 	SetMode(0);
 	m_nStep = 0;
 	m_bRun = true;
 	m_nFrames = 0xb4;
 }
 
-// DOL 0x801a7918
+// DOL 0x801a7918 [audited]
 void cTaskConsTimer::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -665,7 +675,7 @@ void cTaskConsTimer::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a7bec
+// DOL 0x801a7bec [audited]
 void cTaskConsTimer::SetTime(uint frames)
 {
 	m_nFrames = (int)frames;
@@ -676,7 +686,7 @@ void cTaskConsTimer::SetTime(uint frames)
 	m_nStep = 1;
 }
 
-// DOL 0x801a7234
+// DOL 0x801a7234 [audited]
 bool cTaskConsTimer::Execute(cJetTask* pParam)
 {
 	if (Paused() || (GamePad::Get(0).hold & GamePad::PAD_HOME) != 0) return true;
@@ -772,12 +782,12 @@ bool cTaskConsTimer::Execute(cJetTask* pParam)
 
 namespace
 {
-// DOL 0x8037c590: {appear, wait, point, decide} per item; 0x8037c5d0: the layout pattern the pointer tests
+// DOL 0x8037c590 [audited]: {appear, wait, point, decide} per item; 0x8037c5d0: the layout pattern the pointer tests
 const int MENU_ANIM[4][4] = {{0x2b, 0x2c, 0x2d, 0x2e}, {0x24, 0x25, 0x26, 0x27}, {0x2f, 0x30, 0x31, 0x32}, {0x34, 0x35, 0x36, 0x37}};
 const int MENU_PAT[4] = {0xc, 0xb, 0xd, 0xe};
 }
 
-// DOL 0x8019e5a0
+// DOL 0x8019e5a0 [audited: checked (+0x1e4 float 1.0 not kept: unread)]
 cTaskConsMenu::cTaskConsMenu()
 {
 	SetName("g04::cTaskConsMenu");
@@ -792,7 +802,7 @@ cTaskConsMenu::cTaskConsMenu()
 	nDrawPriority(0x80000003u);
 }
 
-// DOL 0x8019e880
+// DOL 0x8019e880 [audited]
 void cTaskConsMenu::Reset()
 {
 	for (uint i = 0; i < 4; i++)
@@ -805,7 +815,7 @@ void cTaskConsMenu::Reset()
 	m_bDecided = false;
 }
 
-// DOL 0x8019ea3c
+// DOL 0x8019ea3c [audited]
 void cTaskConsMenu::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -840,7 +850,7 @@ void cTaskConsMenu::SetMode(int mode)
 		for (uint i = 0; i < 4; i++) pAnita(i)->SetState(3u, true);
 }
 
-// DOL 0x8019f41c: every item plays its animation backwards from the middle
+// DOL 0x8019f41c [audited]: every item plays its animation backwards from the middle
 void cTaskConsMenu::Close()
 {
 	SetMode(5);
@@ -854,7 +864,7 @@ void cTaskConsMenu::Close()
 	}
 }
 
-// DOL 0x8019f50c
+// DOL 0x8019f50c [audited]
 bool cTaskConsMenu::IsClosed()
 {
 	for (uint i = 0; i < 4; i++)
@@ -862,7 +872,7 @@ bool cTaskConsMenu::IsClosed()
 	return false;
 }
 
-// DOL 0x8019f134: up / down move (wrapping), A / B / Z decide, TWO goes to "back"
+// DOL 0x8019f134 [audited]: up / down move (wrapping), A / B / Z decide, TWO goes to "back"
 bool cTaskConsMenu::Keys(int pad)
 {
 	const uint trig = GamePad::Get(pad).trig;
@@ -901,7 +911,7 @@ bool cTaskConsMenu::Keys(int pad)
 	return used;
 }
 
-// DOL 0x8019ee04: the pointer over an item's pattern (x = px * 320, y = -py * 240) selects it; A / B / Z decide
+// DOL 0x8019ee04 [audited]: the pointer over an item's pattern (x = px * 320, y = -py * 240) selects it; A / B / Z decide
 bool cTaskConsMenu::Pointer(int pad)
 {
 	const GamePad::State& s = GamePad::Get(pad);
@@ -930,7 +940,7 @@ bool cTaskConsMenu::Pointer(int pad)
 	return used;
 }
 
-// DOL 0x8019ec48 (TWO without a pointer action: "back" is decided when it is selected, else the cursor jumps to it)
+// DOL 0x8019ec48 [audited: checked (stick direction store +0x1e0 unread)] (TWO without a pointer action: "back" is decided when it is selected, else the cursor jumps to it)
 // (FUN_80199c30, the Nunchuk stick as a direction 1 / 2 / 4 / 8, is stored at +0x1e0, which nothing reads: not ported)
 void cTaskConsMenu::Input()
 {
@@ -957,7 +967,7 @@ void cTaskConsMenu::Input()
 	}
 }
 
-// DOL 0x8019e924
+// DOL 0x8019e924 [audited]
 bool cTaskConsMenu::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -980,10 +990,10 @@ bool cTaskConsMenu::Execute(cJetTask* pParam)
 
 namespace
 {
-const int MULTI_TIMES[3] = {0x3c, 0xb4, 0x12c};   // DOL 0x8037c8b0 (seconds)
+const int MULTI_TIMES[3] = {0x3c, 0xb4, 0x12c};   // DOL 0x8037c8b0 [audited] (seconds)
 }
 
-// DOL 0x801a219c
+// DOL 0x801a219c [audited]
 cTaskConsMultiMenuTime::cTaskConsMultiMenuTime()
 {
 	SetName("g04::cTaskConsMultiMenuTime");
@@ -1003,7 +1013,7 @@ cTaskConsMultiMenuTime::cTaskConsMultiMenuTime()
 	SetMode(0);
 }
 
-// DOL 0x801a24a4
+// DOL 0x801a24a4 [audited]
 void cTaskConsMultiMenuTime::Reset()
 {
 	m_nIndex = 1;
@@ -1025,13 +1035,13 @@ void cTaskConsMultiMenuTime::Reset()
 	SetMode(0);
 }
 
-// DOL 0x801a2e5c
+// DOL 0x801a2e5c [audited]
 int cTaskConsMultiMenuTime::Time() const
 {
 	return MULTI_TIMES[m_nIndex];
 }
 
-// DOL 0x801a27c0 (checked: anim numbers go through the table 0x8037c8c0, which is the identity 0..29, so digit * 3 / i * 3 + 2
+// DOL 0x801a27c0 [audited: checked earlier] (checked: anim numbers go through the table 0x8037c8c0, which is the identity 0..29, so digit * 3 / i * 3 + 2
 // are used directly; case 5 sets the colon twice like the DOL)
 void cTaskConsMultiMenuTime::SetMode(int mode)
 {
@@ -1073,7 +1083,7 @@ void cTaskConsMultiMenuTime::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a2bd0 (left arrow)
+// DOL 0x801a2bd0 [audited] (left arrow)
 void cTaskConsMultiMenuTime::Left()
 {
 	const uint old = (uint)MULTI_TIMES[m_nIndex];
@@ -1086,7 +1096,7 @@ void cTaskConsMultiMenuTime::Left()
 	KingdomGlobal::WaniWaniSys->nTimeIndex() = m_nIndex;
 }
 
-// DOL 0x801a2d14 (right arrow)
+// DOL 0x801a2d14 [audited] (right arrow)
 void cTaskConsMultiMenuTime::Right()
 {
 	const uint old = (uint)MULTI_TIMES[m_nIndex];
@@ -1099,7 +1109,7 @@ void cTaskConsMultiMenuTime::Right()
 	KingdomGlobal::WaniWaniSys->nTimeIndex() = m_nIndex;
 }
 
-// DOL 0x801a271c
+// DOL 0x801a271c [audited]
 bool cTaskConsMultiMenuTime::Execute(cJetTask* pParam)
 {
 	if (m_nMode == 1)
@@ -1115,14 +1125,14 @@ bool cTaskConsMultiMenuTime::Execute(cJetTask* pParam)
 
 namespace
 {
-// DOL 0x8037c6b8: player panel {appear, wait}; 0x8037c6d8: item {appear, wait, point, decide}
+// DOL 0x8037c6b8 [audited]: player panel {appear, wait}; 0x8037c6d8: item {appear, wait, point, decide}
 const int MM_PLAYER[4][2] = {{0x27, 0x28}, {0x29, 0x2a}, {0x2b, 0x2c}, {0x2d, 0x2e}};
 const int MM_ITEM[5][4] = {{0x3e, 0x3f, 0x40, 0x41}, {0x2f, 0x30, 0x31, 0x32}, {0x3b, 0x3c, 0x3c, 0x3d}, {0x42, 0x43, 0x44, 0x45}, {0x47, 0x48, 0x49, 0x4a}};
-const int MM_MARK_PAT[4] = {0, 1, 2, 3};   // DOL 0x8037c738
+const int MM_MARK_PAT[4] = {0, 1, 2, 3};   // DOL 0x8037c738 [audited]
 const int MM_HIT_PAT[6] = {0xc, 0xb, 0xd, 0xe, 0xf, 0x10};
 }
 
-// DOL 0x801a00d0
+// DOL 0x801a00d0 [audited: names drawn natively (gfx::DrawText); CSV_GAME text params read by cParamGame]
 cTaskConsMultiMenu::cTaskConsMultiMenu()
 {
 	SetName("g04::cTaskConsMultiMenu");
@@ -1134,7 +1144,7 @@ cTaskConsMultiMenu::cTaskConsMultiMenu()
 	nDrawPriority(0x80000003u);   // the console's builder sets 0x80000003 (checked); kept here for a menu built alone
 }
 
-// DOL 0x801a0480
+// DOL 0x801a0480 [audited]
 void cTaskConsMultiMenu::Reset()
 {
 	for (uint i = 0; i < 4; i++) pAnita(i)->SetAnimNo(MM_PLAYER[i][0], true);
@@ -1157,14 +1167,14 @@ void cTaskConsMultiMenu::Reset()
 	m_pTime->Reset();
 }
 
-// DOL 0x801a1d3c / 0x801a1d64 / 0x801a1d8c / 0x801a1db4 (interface +0x10..+0x1c: focus 0 / 4 / 1 / 3 and decided, the single menu's IsSel(0 / 3 / 1 / 2))
+// DOL 0x801a1d3c [audited: IsSel/interface slots 0x801a1d3c..1db4 checked in the earlier pass] / 0x801a1d64 / 0x801a1d8c / 0x801a1db4 (interface +0x10..+0x1c: focus 0 / 4 / 1 / 3 and decided, the single menu's IsSel(0 / 3 / 1 / 2))
 bool cTaskConsMultiMenu::IsSel(int i) const
 {
 	static const int FOCUS[4] = {0, 1, 3, 4};   // IsSel(0 back / 1 how to play / 2 start / 3 players)
 	return m_bDecided && m_nFocus == FOCUS[i & 3];
 }
 
-// DOL 0x801a0810 (checked against the decomp)
+// DOL 0x801a0810 [audited: checked earlier] (checked against the decomp)
 void cTaskConsMultiMenu::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -1259,7 +1269,7 @@ void cTaskConsMultiMenu::Arrow(bool right)
 	}
 }
 
-// DOL 0x801a0fe4: the pointer over the six hit patterns (back, how to play, time left / right, start, players)
+// DOL 0x801a0fe4 [audited]: the pointer over the six hit patterns (back, how to play, time left / right, start, players)
 bool cTaskConsMultiMenu::Pointer(int pad)
 {
 	const GamePad::State& s = GamePad::Get(pad);
@@ -1294,7 +1304,7 @@ bool cTaskConsMultiMenu::Pointer(int pad)
 	return true;   // 0x801a1944 li r3, 1 on every path: TWO (back) is never taken while the pointer is on screen (unlike the single menu)
 }
 
-// DOL 0x801a197c
+// DOL 0x801a197c [audited]
 // (FUN_80199c30, the Nunchuk stick as a direction 1 / 2 / 4 / 8, is stored at +0x1e0, which nothing reads: not ported)
 bool cTaskConsMultiMenu::Keys(int pad)
 {
@@ -1337,7 +1347,7 @@ bool cTaskConsMultiMenu::Keys(int pad)
 	return used;
 }
 
-// DOL 0x801a0ce4
+// DOL 0x801a0ce4 [audited]
 void cTaskConsMultiMenu::Input()
 {
 	const int pad = 0;
@@ -1382,7 +1392,7 @@ void cTaskConsMultiMenu::Input()
 	}
 }
 
-// DOL 0x801a0658
+// DOL 0x801a0658 [audited]
 bool cTaskConsMultiMenu::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -1410,10 +1420,10 @@ void DrawName(float x, float y, const char* name, uint color, int size, float wi
 }
 }
 
-// DOL 0x801a3cd8 (called by Draw 0x801a36a0)
+// DOL 0x801a3cd8 [audited: checked, threshold 160] (called by Draw 0x801a36a0)
 void cTaskConsMultiScore::DrawNames()
 {
-	static const int PAT[4] = {0xf, 0x10, 0x11, 0x12};   // DOL 0x8037c9b8, layer 0 of anita 0
+	static const int PAT[4] = {0xf, 0x10, 0x11, 0x12};   // DOL 0x8037c9b8 [audited], layer 0 of anita 0
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
 	cG04WaniWaniSys* sys = KingdomGlobal::WaniWaniSys;
 	if (app == nullptr || sys == nullptr) return;
@@ -1425,14 +1435,14 @@ void cTaskConsMultiScore::DrawNames()
 	}
 }
 
-// DOL 0x801a36a0: the anita, then (modes 1..4) the names
+// DOL 0x801a36a0 [audited: checked]: the anita, then (modes 1..4) the names
 void cTaskConsMultiScore::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nStatus, pParam);
 	if (m_nMode >= 1 && m_nMode <= 4) DrawNames();
 }
 
-// DOL 0x801a5e4c: one winner name at layer 0 of anita 0xb's pattern `pat` (set 1 / size row 17 for the tie boards, set 2 / row 18 for the single winner)
+// DOL 0x801a5e4c [audited: checked (colour/size sets from the earlier pass)]: one winner name at layer 0 of anita 0xb's pattern `pat` (set 1 / size row 17 for the tie boards, set 2 / row 18 for the single winner)
 void cTaskConsResult::DrawName(int pat, int player, bool tie)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -1444,10 +1454,10 @@ void cTaskConsResult::DrawName(int pat, int player, bool tie)
 	::kingdom::game::g04::DrawName(320.0f + v.x, 240.0f - v.y, sys->pMatchingData()->player[player].szName, pg.nNameColor[tie ? 1 : 2][player], pg.nNameSize[tie ? 1 : 2], 170.0f);
 }
 
-// DOL 0x801a5c68 (mode 5): count 1 = the winner at pattern 0; 4 / 3 / 2 = the leaders on patterns 5.. (count 3: 0xc.., count 4: 5..8, count 2: 5..)
+// DOL 0x801a5c68 [audited: checked] (mode 5): count 1 = the winner at pattern 0; 4 / 3 / 2 = the leaders on patterns 5.. (count 3: 0xc.., count 4: 5..8, count 2: 5..)
 void cTaskConsResult::DrawNames()
 {
-	static const int PAT[10] = {5, 6, 7, 8, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11};   // DOL 0x8037cbb4
+	static const int PAT[10] = {5, 6, 7, 8, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11};   // DOL 0x8037cbb4 [audited]
 	if (m_nMode != 5) return;
 	if (m_nWinCount == 1)
 	{
@@ -1466,21 +1476,21 @@ void cTaskConsResult::DrawNames()
 	}
 }
 
-// DOL 0x801a5674: the anita, then (modes 4 / 5) the names
+// DOL 0x801a5674 [audited: modes 4/5 names]: the anita, then (modes 4 / 5) the names
 void cTaskConsResult::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nStatus, pParam);
 	if (m_nMode == 4 || m_nMode == 5) DrawNames();
 }
 
-// DOL 0x801a070c: the anita, then (modes 2 / 3) the names
+// DOL 0x801a070c [audited]: the anita, then (modes 2 / 3) the names
 void cTaskConsMultiMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nStatus, pParam);
 	if (m_nMode == 2 || m_nMode == 3) DrawNames();
 }
 
-// DOL 0x801a1ddc: each player's name at layer 0 of SELECT02 anita 4's pattern 4 + i (table 0x8037c748), screen (320 + x, 240 - y), left aligned
+// DOL 0x801a1ddc [audited]: each player's name at layer 0 of SELECT02 anita 4's pattern 4 + i (table 0x8037c748), screen (320 + x, 240 - y), left aligned
 // on the baseline (writer mode 0), size = CSV_GAME row 16 (2 less when the name is 160 px or wider), colour = CSV_GAME rows 4 + i.
 // The font: KingSys +0xa68 = RESIDENT_FONT_MII (0x5fd151b6, stored by 0x8000aa90).
 void cTaskConsMultiMenu::DrawNames()
@@ -1512,44 +1522,44 @@ namespace
 {
 using kingdom::game::menu::sTutorialData;
 using kingdom::game::menu::sTutorialPage;
-sTutorialPage s_Page[2] = {{0, 1, "TUTORIAL01_ANITA"}, {1, 2, "TUTORIAL01_ANITA"}};   // DOL 0x80394340
-sTutorialData* TutorialData()   // DOL 0x8036d548 (2 pages, MENU_TEXT_TUTORIAL)
+sTutorialPage s_Page[2] = {{0, 1, "TUTORIAL01_ANITA"}, {1, 2, "TUTORIAL01_ANITA"}};   // DOL 0x80394340 [audited]
+sTutorialData* TutorialData()   // DOL 0x8036d548 [audited] (2 pages, MENU_TEXT_TUTORIAL)
 {
 	static sTutorialData s{2u, "MENU_TEXT_TUTORIAL", {&s_Page[0], &s_Page[1]}};
 	return &s;
 }
 }
 
-// DOL 0x80094870 (base ctor 0x80145a9c with COMMON_ANITA_TUTORIAL)
+// DOL 0x80094870 [audited] (base ctor 0x80145a9c with COMMON_ANITA_TUTORIAL)
 cTaskConsMenuTutorial::cTaskConsMenuTutorial(kingdom::cTaskCursor* pCursor)
 {
 	SetCursor(pCursor);
 	RegistData("COMMON_ANITA_TUTORIAL", TutorialData());
 }
 
-bool cTaskConsMenuTutorial::IsDeleteEnd()   // DOL 0x800948cc
+bool cTaskConsMenuTutorial::IsDeleteEnd()   // DOL 0x800948cc [audited]
 {
 	return cTaskConsMenuTutorialBase::IsDeleteEnd();
 }
 
 namespace
 {
-sTutorialPage s_MultiPage[3] = {{0, 4, "TUTORIAL01_ANITA"}, {2, 5, "TUTORIAL01_ANITA"}, {1, 6, "TUTORIAL01_ANITA"}};   // DOL 0x80394270
-sTutorialData* MultiTutorialData()   // DOL 0x8036d508 (3 pages, MENU_TEXT_TUTORIAL)
+sTutorialPage s_MultiPage[3] = {{0, 4, "TUTORIAL01_ANITA"}, {2, 5, "TUTORIAL01_ANITA"}, {1, 6, "TUTORIAL01_ANITA"}};   // DOL 0x80394270 [audited]
+sTutorialData* MultiTutorialData()   // DOL 0x8036d508 [audited] (3 pages, MENU_TEXT_TUTORIAL)
 {
 	static sTutorialData s{3u, "MENU_TEXT_TUTORIAL", {&s_MultiPage[0], &s_MultiPage[1], &s_MultiPage[2]}};
 	return &s;
 }
 }
 
-// DOL 0x80094688 (base ctor 0x80145a9c with COMMON_ANITA_TUTORIAL)
+// DOL 0x80094688 [audited] (base ctor 0x80145a9c with COMMON_ANITA_TUTORIAL)
 cTaskConsMenuMultiTutorial::cTaskConsMenuMultiTutorial(kingdom::cTaskCursor* pCursor)
 {
 	SetCursor(pCursor);
 	RegistData("COMMON_ANITA_TUTORIAL", MultiTutorialData());
 }
 
-bool cTaskConsMenuMultiTutorial::IsDeleteEnd()   // DOL 0x800946e4
+bool cTaskConsMenuMultiTutorial::IsDeleteEnd()   // DOL 0x800946e4 [audited]
 {
 	return cTaskConsMenuTutorialBase::IsDeleteEnd();
 }
@@ -1564,7 +1574,7 @@ const int MULTI_NUM_PAT[4] = {6, 7, 8, 9};        // DAT_8037c9a8: the digit pat
 const int MULTI_CROWN_PAT[4] = {0xb, 0xc, 0xd, 0xe};   // DAT_8037c9c8: where the crown of player p sits
 }
 
-// DOL 0x801a2e7c (the console's 0x801b0808 builds the object: priority 0x80000003, child of the console)
+// DOL 0x801a2e7c [audited: ctor/tables 0x8037c968/c9a8/c9c8 verified; text params natively] (the console's 0x801b0808 builds the object: priority 0x80000003, child of the console)
 cTaskConsMultiScore::cTaskConsMultiScore()
 {
 	SetName("g04::cTaskConsMultiScore");
@@ -1594,7 +1604,7 @@ cTaskConsMultiScore::cTaskConsMultiScore()
 	nDrawPriority(0x80000003u);
 }
 
-// DOL 0x801a34d0
+// DOL 0x801a34d0 [audited]
 void cTaskConsMultiScore::Reset()
 {
 	const int n = KingdomGlobal::WaniWaniSys->nPlayers();
@@ -1612,7 +1622,7 @@ void cTaskConsMultiScore::Reset()
 	for (uint i = 0; i < 8; i++) pAnita(i)->SetState(3u, false);
 }
 
-// DOL 0x801a393c: 0 hidden, 1 appear (the boards slide in, the crowns wait), 2 the boards' idle animation, 3 numbers only, 5 the numbers only / crowns off (result)
+// DOL 0x801a393c [audited]: 0 hidden, 1 appear (the boards slide in, the crowns wait), 2 the boards' idle animation, 3 numbers only, 5 the numbers only / crowns off (result)
 void cTaskConsMultiScore::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -1651,7 +1661,7 @@ void cTaskConsMultiScore::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a35cc: a crown whose appear animation ended switches to its loop (0x67)
+// DOL 0x801a35cc [audited]: a crown whose appear animation ended switches to its loop (0x67)
 bool cTaskConsMultiScore::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -1665,7 +1675,7 @@ bool cTaskConsMultiScore::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
-// DOL 0x801a3ef4
+// DOL 0x801a3ef4 [audited]
 void cTaskConsMultiScore::Leaders(uint& mask, int& count) const
 {
 	const int n = KingdomGlobal::WaniWaniSys->nPlayers();
@@ -1688,7 +1698,7 @@ void cTaskConsMultiScore::Leaders(uint& mask, int& count) const
 	}
 }
 
-// DOL 0x801a3fc0
+// DOL 0x801a3fc0 [audited]
 uint cTaskConsMultiScore::Hits() const
 {
 	uint sum = 0;
@@ -1696,7 +1706,7 @@ uint cTaskConsMultiScore::Hits() const
 	return sum;
 }
 
-// DOL 0x801a37a4: the player's number, then every crown follows the leaders (a new leader's crown appears, one that fell behind leaves)
+// DOL 0x801a37a4 [audited]: the player's number, then every crown follows the leaders (a new leader's crown appears, one that fell behind leaves)
 void cTaskConsMultiScore::Refresh(uint p)
 {
 	m_pNum[p]->SetNumber((uint)Score(p));
@@ -1746,7 +1756,7 @@ bool cTaskConsMultiScore::CanPay(cTaskPacmanBase* p, int n)
 	return m_nHits[p->nPlayer()] + m_nCombo[p->nPlayer()] - n >= 0;
 }
 
-// DOL 0x801a4078: after the round the single leader's number blinks
+// DOL 0x801a4078 [audited]: after the round the single leader's number blinks
 void cTaskConsMultiScore::Finish()
 {
 	uint mask = 0;
@@ -1758,7 +1768,7 @@ void cTaskConsMultiScore::Finish()
 	SetMode(4);
 }
 
-// DOL 0x801a6000
+// DOL 0x801a6000 [audited]
 void cTaskConsResult::SetWinners(uint mask, int count)
 {
 	const int n = KingdomGlobal::WaniWaniSys->nPlayers();
@@ -1776,7 +1786,7 @@ void cTaskConsResult::SetWinners(uint mask, int count)
 
 // ---- cTaskConsResult ----
 
-// DOL 0x801a488c
+// DOL 0x801a488c [audited]
 cTaskConsResult::cTaskConsResult()
 {
 	SetName("g04::cTaskConsResult");
@@ -1789,7 +1799,7 @@ cTaskConsResult::cTaskConsResult()
 	nDrawPriority(0x80000002u);
 }
 
-// DOL 0x801a4d7c
+// DOL 0x801a4d7c [audited]
 void cTaskConsResult::Reset()
 {
 	static const int ANIM[16] = {0, -1, 1, 2, 3, 4, 5, 6, 8, 10, 0xc, 0xe, 0xf, 0x11, 0x13, 0x15};
@@ -1800,7 +1810,7 @@ void cTaskConsResult::Reset()
 	SetMode(0);
 }
 
-// DOL 0x801a609c
+// DOL 0x801a609c [audited]
 void cTaskConsResult::SetScore(uint score)
 {
 	int r = 0;
@@ -1808,7 +1818,7 @@ void cTaskConsResult::SetScore(uint score)
 	m_nRank = r;
 }
 
-// DOL 0x801a60fc
+// DOL 0x801a60fc [audited]
 int cTaskConsResult::Rank(uint score) const
 {
 	for (int r = 0; r < 5; r++)
@@ -1816,7 +1826,7 @@ int cTaskConsResult::Rank(uint score) const
 	return 5;
 }
 
-// DOL 0x801a5778 (modes 0..3 single player, 4 the multiplayer board; checked against the decomp, tables 0x8037cb98 / 0x8037cba8 / 0x8037cbd0)
+// DOL 0x801a5778 [audited: checked earlier] (modes 0..3 single player, 4 the multiplayer board; checked against the decomp, tables 0x8037cb98 / 0x8037cba8 / 0x8037cbd0)
 void cTaskConsResult::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -1871,7 +1881,7 @@ void cTaskConsResult::SetMode(int mode)
 	}
 }
 
-// DOL 0x801a5194 (checked against the decomp, modes 1 / 3 / 4 / 5 / 6): the board, the rank message, its voice, then (180 frames or a button) the console is told
+// DOL 0x801a5194 [audited] (checked against the decomp, modes 1 / 3 / 4 / 5 / 6): the board, the rank message, its voice, then (180 frames or a button) the console is told
 bool cTaskConsResult::Execute(cJetTask* pParam)
 {
 	if (Paused()) return true;
@@ -1926,7 +1936,7 @@ bool cTaskConsResult::Execute(cJetTask* pParam)
 
 // ---- cTaskGameConsole ----
 
-// DOL 0x801b07f0 + 0x801b0808 (single player)
+// DOL 0x801b07f0 [audited: ctor incl. priorities (3/3/2/3/3/8/5/7/6) checked vs disassembly] + 0x801b0808 (single player)
 cTaskGameConsole::cTaskGameConsole()
 {
 	SetName("g04::cTaskGameConsole");
@@ -1949,7 +1959,7 @@ cTaskGameConsole::cTaskGameConsole()
 	{
 		m_pMenu = new cTaskConsMenu();
 		m_pMenu->nDrawPriority(0x80000003u);
-		m_pMenu->onDecide = [this] { m_bMenuDecided = true; };   // the cMenuMessageListener (+0x1b4) +0xc = DOL 0x801b1a70 (+0x208 = 1)
+		m_pMenu->onDecide = [this] { m_bMenuDecided = true; };   // the cMenuMessageListener (+0x1b4) +0xc = DOL 0x801b1a70 [audited] (+0x208 = 1)
 		ConnectChild(m_pMenu);
 	}
 	else
@@ -1986,7 +1996,7 @@ cTaskGameConsole::cTaskGameConsole()
 	m_bResultDone = false;
 }
 
-// DOL 0x801b1434: the menu pointers live in modes 2 / 3 / 6; the tutorial's end returns to the menu (3)
+// DOL 0x801b1434 [audited]: the menu pointers live in modes 2 / 3 / 6; the tutorial's end returns to the menu (3)
 bool cTaskGameConsole::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -2009,7 +2019,7 @@ bool cTaskGameConsole::Execute(cJetTask* pParam)
 	return cTaskKingdom::Execute(pParam);
 }
 
-// DOL 0x801b1678
+// DOL 0x801b1678 [audited]
 void cTaskGameConsole::SetMode(int mode)
 {
 	m_nMode = mode;
@@ -2073,7 +2083,7 @@ void cTaskGameConsole::SetMode(int mode)
 	}
 }
 
-// DOL 0x801b13b4
+// DOL 0x801b13b4 [audited: checked (+0x204 cleared: unread)]
 void cTaskGameConsole::Restart()
 {
 	m_bResultDone = false;
@@ -2092,14 +2102,14 @@ sScoreListener* cTaskGameConsole::pListener()
 	return m_pScore;
 }
 
-// DOL 0x801b1a1c
+// DOL 0x801b1a1c [audited]
 uint cTaskGameConsole::Hits() const
 {
 	if (m_pMultiScore != nullptr) return m_pMultiScore->Hits();   // 0x801a3fc0
 	return m_pScore->nHits();
 }
 
-// DOL 0x801b1afc (single): the rank of the score
+// DOL 0x801b1afc [audited] (single): the rank of the score
 int cTaskGameConsole::ResultRank() const
 {
 	if (m_pMultiScore != nullptr)   // the single winner's index, 4 = a tie
@@ -2114,20 +2124,20 @@ int cTaskGameConsole::ResultRank() const
 	return m_pResult->Rank(m_pScore->Score());
 }
 
-// DOL 0x801b1c0c
+// DOL 0x801b1c0c [audited]
 bool cTaskGameConsole::MenuClosed()
 {
 	return m_pMenu != nullptr ? m_pMenu->IsClosed() : m_pMultiMenu->IsClosed();
 }
 
-// DOL 0x801b1c20
+// DOL 0x801b1c20 [audited]
 void cTaskGameConsole::StartGame()
 {
 	if (m_pMenu != nullptr) m_pMenu->Close();   // single player only
 	SetMode(7);
 }
 
-// DOL 0x801b1ab4
+// DOL 0x801b1ab4 [audited]
 int cTaskGameConsole::MultiTime() const
 {
 	return m_pMultiMenu == nullptr ? 0xb4 : m_pMultiMenu->MultiTime();

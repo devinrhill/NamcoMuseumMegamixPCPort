@@ -47,7 +47,7 @@ endif()
 include(cmake/sources.cmake)
 
 add_executable(megamix src/platform/main.cpp src/platform/devtools.cpp src/platform/devtools_g03.cpp src/platform/devtools_arcade.cpp src/platform/devui_raylib.cpp src/platform/devtools_jobs.cpp src/platform/devtools_menu.cpp src/platform/devtools_save.cpp src/platform/devtools_scnedit.cpp
-    src/platform/devtools_g03edit.cpp src/platform/devtools_g07edit.cpp src/platform/devtools_g01edit.cpp src/platform/devtools_view.cpp src/platform/boot.cpp src/platform/platform_raylib.cpp src/platform/input_raylib.cpp src/platform/gfx_raylib.cpp src/platform/audio_raylib.cpp ${MEGAMIX_SOURCES})
+    src/platform/devtools_g03edit.cpp src/platform/devtools_g03gray.cpp src/platform/devtools_g03pac.cpp src/platform/devtools_g07edit.cpp src/platform/devtools_g01edit.cpp src/platform/devtools_view.cpp src/platform/boot.cpp src/platform/platform_raylib.cpp src/platform/input_raylib.cpp src/platform/gfx_raylib.cpp src/platform/audio_raylib.cpp ${MEGAMIX_SOURCES})
 target_include_directories(megamix PRIVATE include)
 target_compile_options(megamix PRIVATE -w -fpermissive)
 # nlohmann json (header only: the dev window's theme file): the system copy, else downloaded (the portable build always downloads it)

@@ -31,6 +31,7 @@ float& cTaskCharMeteo::fSpeed()
 	return m_fSpeed;
 }
 
+// DOL 0x800addfc [audited: per AUDIT_G03_G07 row]
 void cTaskCharMeteo::Init()
 {
 	::Constants::jetGeoVecUnit(m_vTarget);
@@ -39,11 +40,13 @@ void cTaskCharMeteo::Init()
 	m_phEffTail = nullptr;
 }
 
+// DOL 0x800ade50 [audited: per AUDIT_G03_G07 row]: also clears the model's CalcWorld callback timing bit (0x802fac10(scnmdl, 2)); no native callback
 void cTaskCharMeteo::Term()
 {
 	cTaskChar::Term();
 }
 
+// DOL 0x800ade88 [audited: per AUDIT_G03_G07 row] (vtable +0xe8 of the cTaskChar part)
 bool cTaskCharMeteo::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -62,6 +65,7 @@ bool cTaskCharMeteo::Create(uint no)
 	return true;
 }
 
+// DOL 0x800adfe8 [audited: per AUDIT_G03_G07 row]
 void cTaskCharMeteo::UpdateMatrix()
 {
 	Vector4 _discard1;
@@ -74,6 +78,7 @@ void cTaskCharMeteo::UpdateMatrix()
 	}
 }
 
+// DOL 0x800ae090 [audited: per AUDIT_G03_G07 row]: ActionLocal, Move, UpdateFrame unless the game pause (+0x1b4)
 bool cTaskCharMeteo::Execute(cJetTask* pParam)
 {
 	ActionLocal();
@@ -85,6 +90,7 @@ bool cTaskCharMeteo::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x800ae0f8 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharMeteo::Move()
 {
 	if (KingdomGlobal::g_pMotosGame->IsPause())
@@ -153,10 +159,11 @@ bool cTaskCharMeteo::Move()
 		::Constants::jetGeoMtxCopy(pMatrix(), m);
 	}
 	CustomKingdomUtil::Assert(m_phEffTail != nullptr, "nullpo");
+	m_phEffTail->vSetTrans(vMTrans());   // DOL 0x800ae5a0 [audited: described by the 43rd-session pass] (Draw puts it back to 0 before the matrix update)
 	return true;
 }
 
-// DOL 0x800ae5c8
+// DOL 0x800ae5c8 [audited: per AUDIT_G03_G07 row]
 void cTaskCharMeteo::Draw(int nStatus, cJetTask* pParam)
 {
 	uint num = 0u;
@@ -175,8 +182,11 @@ void cTaskCharMeteo::Draw(int nStatus, cJetTask* pParam)
 			m_Ptkmtx = m;   // Unity: SetTRS(position, rotation, localScale) of the model transform: the matrix with its columns scaled
 			for (int c = 0; c < 3; c++)
 				for (int r = 0; r < 3; r++) m_Ptkmtx[r][c] *= cPBModel->vScale()[c];
-			m_phEffTail->UpdateMatrix(m_Ptkmtx);
-			cPBModel->UpdateMatrix();   // DOL 0x800ae6bc: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
+			// DOL 0x800ae878 [audited: per AUDIT_G03_G07 row] (CalcWorld callback, sub+0x930) copies the model's world matrix to +0x960 during the scene calc, i.e. after this
+			// Draw: the DOL's tail lags one frame behind the model; the port takes this frame's matrix (UNVERIFIED difference, not visible at 60 fps)
+			m_phEffTail->vSetTrans(Vector4(0.0f, 0.0f, 0.0f, 1.0f));   // DOL 0x800ae698 [audited: call-site address checked in the disassembly]
+			m_phEffTail->UpdateMatrix(m_Ptkmtx);   // DOL 0x800ae6a4 [audited: described by the 43rd-session pass] (0x8008a324: parent +0x960 x the handle's TRS)
+			cPBModel->UpdateMatrix();   // DOL 0x800ae6bc [audited: described by the 43rd-session pass]: the push-back (+0xd8) into this frame's scene list (0x8009c3f4)
 			num++;
 			continue;
 		}
@@ -184,6 +194,7 @@ void cTaskCharMeteo::Draw(int nStatus, cJetTask* pParam)
 	}
 }
 
+// DOL 0x800ae6f4 [audited: per AUDIT_G03_G07 row]: StrikePanel(0, 2, 0.1) on crossing y = 0; effect 0x1e + y = 1000 on a hole / gimmick that is not a floor, else 0x1d on bit 4
 bool cTaskCharMeteo::ActionLocal()
 {
 	if (vMTrans()[1] < 0.0f && vMTransOLD()[1] >= 0.0f)

@@ -15,6 +15,7 @@ const Constants::gmSGolvisAttack* cTaskCharGolvis05::s_AttackTBL[2] = {[]() { Co
 const int cTaskCharGolvis05::m_aaGerasPatern1[4][4] = {{0, 1, 0, 1}, {1, 2, 1, 2}, {2, 0, 2, 0}, {1, 1, 1, 1}};
 const int cTaskCharGolvis05::m_aaGerasPatern2[3][4] = {{2, 0, 2, 0}, {0, 2, 0, 2}, {1, 1, 1, 1}};
 
+// DOL 0x8011d68c [audited: limit box +-10, 100 radius vs decomp]
 bool cTaskCharGolvis05::s_CheckLimit(const Vector4& vPos)
 {
 	Vector4 array[2] = {};
@@ -70,6 +71,7 @@ bool cTaskCharGolvis05::IsIzike()
 	return GetBijikeLevel() == 3;
 }
 
+// DOL 0x8011d874 [audited]
 void cTaskCharGolvis05::Init()
 {
 	m_nMoveWait = 0;
@@ -81,11 +83,13 @@ void cTaskCharGolvis05::Init()
 	m_pGear = new cTaskCharGear2(this);
 }
 
+// DOL 0x8011d8f8 [audited]
 void cTaskCharGolvis05::Term()
 {
-	cTaskCharGolvis::Term();
+	// DOL blr: the base Term runs from the dtor chain (cTaskCharGolvis::ReleaseTerm)
 }
 
+// DOL 0x8011d8fc [audited]
 bool cTaskCharGolvis05::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -101,6 +105,7 @@ void cTaskCharGolvis05::Draw(int nStatus, cJetTask* pParam)
 	cTaskCharGolvis::Draw(nStatus, pParam);
 }
 
+// DOL 0x8011d9a8 [audited]
 void cTaskCharGolvis05::Setting(bool bRelocate)
 {
 	cTaskCharGolvis::Setting(bRelocate);
@@ -109,23 +114,27 @@ void cTaskCharGolvis05::Setting(bool bRelocate)
 	InitStateFirst();
 }
 
+// DOL 0x8011d9f8 [audited]
 void cTaskCharGolvis05::InitStateFirst()
 {
 	ChangeToAppear();
 	m_bDisp = true;
 }
 
+// DOL 0x8011da38 [audited]
 void cTaskCharGolvis05::InitStateStart()
 {
 	m_iAIMode = 2;
 	m_iState = cTaskCharGolvis05::gmEMonsterStateGolvisGear2::STATE_GOLVISGEAR2_MOVE;
 }
 
+// DOL 0x8011da4c [audited]
 void cTaskCharGolvis05::MonsterFrameMove_PreProcess()
 {
 	GearsExecuteFrameMove();
 }
 
+// DOL 0x8011dda0 [audited: 43rd-session pass; not re-read now]
 Vector4 cTaskCharGolvis05::CalcButtCursorTrans(Vector4 v)
 {
 	if (!cTaskCharGolvis05::s_CheckLimit(v))
@@ -151,6 +160,7 @@ Vector4 cTaskCharGolvis05::CalcButtCursorTrans(Vector4 v)
 	return v;
 }
 
+// DOL 0x8011decc [audited: 43rd-session pass; not re-read now]
 void cTaskCharGolvis05::MonsterFrameMove_Free()
 {
 	Vector4 v;
@@ -197,6 +207,7 @@ void cTaskCharGolvis05::GearsExecuteFrameMove()
 	}
 }
 
+// DOL 0x8011e02c [audited: 43rd-session pass; not re-read now]
 void cTaskCharGolvis05::MonsterFrameMove_Escape()
 {
 	Vector4 v;
@@ -266,6 +277,7 @@ void cTaskCharGolvis05::MonsterFrameMove_Escape()
 	}
 }
 
+// DOL 0x8011e7b8 [audited: 43rd-session pass]
 void cTaskCharGolvis05::ChangeToDamage()
 {
 	vTrans()[1] = vFirstTrans()[1];
@@ -305,16 +317,19 @@ void cTaskCharGolvis05::GearsExecuteLife1()
 	GearsExecuteLife2();
 }
 
+// DOL 0x8011e80c [audited: 43rd-session pass]
 void cTaskCharGolvis05::IjikeStart()
 {
 	m_bIjikeMsgCome = true;
 }
 
+// DOL 0x8011e818 [audited: 43rd-session pass]
 Constants::gmSGolvisAttack* cTaskCharGolvis05::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	return cTaskCharGolvis::GetAttackKind(nEatNum, nIjikeLevel, nNum);
 }
 
+// DOL 0x8011e83c [audited: 43rd-session pass]
 bool cTaskCharGolvis05::ChangeToAttack(int iAttackKind)
 {
 	if (!cTaskCharGolvis05::s_CheckLimit(Constants::PACMAN_OBJ()->vTrans()))

@@ -50,16 +50,7 @@ std::vector<Constants::sFace*>* cFaceList::pAllFace()
 	return m_vecFace;
 }
 
-bool& cFaceList::IsReuse()
-{
-	return m_isReuse;
-}
-
-AABB& cFaceList::CalcedAABB()
-{
-	return m_calcedAABB;
-}
-
+// DOL 0x800b865c [audited: per AUDIT_G03_G07 row]
 cFaceList::cFaceList(ResMdl* data)
 {
 	CustomKingdomUtil::Assert(data != nullptr, "nullpo");
@@ -102,7 +93,7 @@ void cFaceList::Term()
 void cFaceList::RegistFace(ResMdl* resMdl)
 {
 	m_ResMdl = resMdl;
-	// DOL 0x800b8860: a shape is classified by the NAME OF ITS POSITION ARRAY (e.g. "jump_10_w1__w", "dash_saka1_w__w13"), not by its material: the hit models use
+	// DOL 0x800b8860 [audited: per AUDIT_G03_G07 row]: a shape is classified by the NAME OF ITS POSITION ARRAY (e.g. "jump_10_w1__w", "dash_saka1_w__w13"), not by its material: the hit models use
 	// generic material names ("w", "w13"), so the material-name rule of the C# port dropped those jump / dash faces.
 	struct Part { std::string mat; const wii::Mdl0Mesh* mesh; };
 	std::vector<Part> parts;
@@ -216,6 +207,7 @@ void cFaceList::RegistFace(ResMdl* resMdl)
 	}
 }
 
+// DOL 0x800b9aa4 [audited: per AUDIT_G03_G07 row] (CliffCheck is inlined three times: "v0 - v1 . wall normal < 0"; squared length test = IsVecNormalize)
 void cFaceList::SearchHangEdge()
 {
 	for (Constants::sFace* item : m_vecFace[1])

@@ -18,6 +18,9 @@ class NativeScene
 {
 public:
 	static void SetCamera(const float eye[3], const float target[3], float fovyDeg, float nearZ, float farZ);
+	// camera 0's aspect when the scene root's per-camera flag +0x1d8 is off (cTaskScnRoot::Draw 0x8009bc4c then keeps the g3d camera's own aspect
+	// +0xb0 instead of the viewport's); 0 = the viewport's (the default; Reset clears it). Pac-Motos: its CSV_CAMERA aspect (1.242)
+	static void SetFixedAspect(float aspect);
 	// nw4r Camera::SetOrtho (top, bottom, left, right, near, far) with an aim posture eye -> target (the staff roll); SetCamera goes back to perspective
 	static void SetOrthoCamera(const float eye[3], const float target[3], float top, float bottom, float left, float right, float nearZ, float farZ);
 	// The split screen (cTaskScnRoot +0x1b8, DOL Draw 0x8009bc4c): `layout` 0 = one camera over the whole screen, 1 / 4 = two, 2 / 5 = three,
@@ -33,6 +36,8 @@ public:
 	// light (an orthographic aim camera: eye -> target, SetOrtho top / bottom / left / right / near / far) into a 512 x 512 map, and the receiver
 	// materials (ramp16_tex / depth_tex) darken what that map covers. Reset() switches it off again.
 	static void SetShadow(bool enabled);
+	// view / projection of a shadow light (DOL 0x800244dc + 0x80024308), for a scene that draws its own models (the title)
+	static bool ShadowMatrices(const cKingdomShadow& sh, float view[16], float proj[16]);
 	static cKingdomShadow& Shadow();                 // the light camera's parameters (cTaskScnRoot +0x1fc)
 	static bool HasCamera();
 	static void GetCamera(float eye[3], float target[3], float& fovyDeg);
@@ -41,6 +46,12 @@ public:
 	static void SetLight(int set, const wii::LightResult& light);
 	static const wii::LightResult* Light(int set);
 	static void ClearLights();
+	// nw4r ScnRoot fog slots (ScnRoot::GetFog(i), 32 of them): the game loads slot i from a scene's first fog (g07: SCA_BG, SCA_PANEL, SCA_CHAR,
+	// SCA_BOSS_HIT, DOL 0x800a4288). A model that called SetFogIdx(i) is fogged by slot i (materials whose own fog index is < 0 stay unfogged).
+	// The game may rewrite a slot every frame (the boss fades, cTaskCharBoss::FogStep 0x801ea3c8). ClearLights() clears the slots too.
+	struct FogSlot { int type{0}; float start{}, end{}, color[3]{}; };
+	static void SetFogSlot(int idx, const FogSlot& f);
+	static FogSlot* GetFogSlot(int idx);   // nullptr when the slot was never loaded
 	// Models register when they load (Add) and leave when destroyed (Remove); children attached with RegistExpand are drawn by their parent.
 	// The DOL draws only the models a task submitted this frame (cTaskModel::Draw 0x8009a650 -> cTaskScnRoot 0x8009c3f4; the list is emptied
 	// by cTaskScnRoot::Draw 0x8009bc4c), so a model whose task skips its Draw (a dead Galaga enemy) disappears. SetPerFrame(true) gives that

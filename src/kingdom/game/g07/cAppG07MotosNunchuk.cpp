@@ -9,7 +9,7 @@
 namespace kingdom::game::g07
 {
 
-// DOL 0x801c5574: attach g07_motos/g07menu.lzs (0x800a0834), layout crc 0x21d4da2a = ANT_NUNCHUK (g07menu.lzs), next job 0x11300000 (the game);
+// DOL 0x801c5574 [audited: per AUDIT_G03_G07 row]: attach g07_motos/g07menu.lzs (0x800a0834), layout crc 0x21d4da2a = ANT_NUNCHUK (g07menu.lzs), next job 0x11300000 (the game);
 // then 0x800a0888 starts the asynchronous load of the stage archive (g07_motos/g07wXXsXX.lzs): the native game job loads its stage itself.
 cAppG07MotosNunchuk::cAppG07MotosNunchuk()
 {
@@ -19,7 +19,14 @@ cAppG07MotosNunchuk::cAppG07MotosNunchuk()
 	SetName("cAppG07MotosNunchuk");
 }
 
-// DOL 0x801c55d4: on a multiplayer stage (index 0x24..0x2d) every matched player's pad needs a Nunchuk, else pad 0
+// DOL 0x801c5688 [audited: per AUDIT_G03_G07 row] (dtor): DetachArcData("g07_motos/g07menu.lzs") (0x800a0860), then the base chain
+void cAppG07MotosNunchuk::Free()
+{
+	KingdomGlobal::KingSys->DetachArcData("g07_motos/g07menu.lzs");
+	menu::cAppGameBaseNunchuk::Free();
+}
+
+// DOL 0x801c55d4 [audited: per AUDIT_G03_G07 row]: on a multiplayer stage (index 0x24..0x2d) every matched player's pad needs a Nunchuk, else pad 0
 bool cAppG07MotosNunchuk::IsSkip()
 {
 	auto* sys = KingdomGlobal::MotosSys;

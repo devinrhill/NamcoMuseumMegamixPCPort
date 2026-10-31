@@ -9,13 +9,13 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x801b971c
+// DOL 0x801b971c [audited]
 cTaskCollisionMan::cTaskCollisionMan()
 {
 	SetName("g01::cTaskCollisionMan");
 }
 
-// DOL 0x800d41c8 (the DOL reserves 0x100 entries first, 0x800d395c)
+// DOL 0x800d41c8 [audited: the DOL pushes duplicates, the port drops a repeated registration] (the DOL reserves 0x100 entries first, 0x800d395c)
 void cTaskCollisionMan::Regist(cObject* p)
 {
 	if (std::find(m_Regist.begin(), m_Regist.end(), p) == m_Regist.end()) m_Regist.push_back(p);
@@ -26,7 +26,7 @@ void cTaskCollisionMan::Remove(cObject* p)
 	m_Regist.erase(std::remove(m_Regist.begin(), m_Regist.end(), p), m_Regist.end());
 }
 
-// DOL 0x800d3b70: insertion sort by squared distance from the camera; objects behind the camera (dot(view, pos - eye) < 0) are skipped
+// DOL 0x800d3b70 [audited]: insertion sort by squared distance from the camera; objects behind the camera (dot(view, pos - eye) < 0) are skipped
 void cTaskCollisionMan::HitCheckAll()
 {
 	m_Sorted.clear();
@@ -49,7 +49,7 @@ void cTaskCollisionMan::HitCheckAll()
 	}
 }
 
-// DOL 0x800d40b8 (nothing while paused)
+// DOL 0x800d40b8 [audited] (nothing while paused)
 bool cTaskCollisionMan::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused

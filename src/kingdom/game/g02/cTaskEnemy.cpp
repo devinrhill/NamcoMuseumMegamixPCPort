@@ -1,4 +1,7 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g02/cTaskEnemy.hpp"
+
+#include "kingdom/game/g02/cTaskConsole.hpp"
 
 #include <cstdlib>
 
@@ -13,7 +16,7 @@ namespace kingdom::game::g02
 
 namespace
 {
-int Rand15() { return std::rand() & 0x7fff; }   // the SDK rand() (0..32767)
+int Rand15() { return kingdom::MslRand() & 0x7fff; }   // the SDK rand() (0..32767)
 
 Vector4 ModelPos(kingdom::cTaskModel* t)
 {
@@ -40,7 +43,7 @@ int Abs(int v) { return v < 0 ? -v : v; }
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // construction
 
-// DOL 0x801255a0: the cTaskUnit part (cTaskModel ctor, the unit vtable, its Init, +0x1cc = index, the models FUN_8008120c), the cTaskEnemy
+// DOL 0x801255a0 [audited]: the cTaskUnit part (cTaskModel ctor, the unit vtable, its Init, +0x1cc = index, the models FUN_8008120c), the cTaskEnemy
 // vtable, the +0x9d0 particle handle, then cTaskEnemy::Init (vtable +0x3c)
 cTaskEnemy::cTaskEnemy(cRallyUnitHost* pHost, int nColour, int nIndex) : cTaskUnit(pHost, nColour, nIndex)
 {
@@ -65,7 +68,7 @@ void cTaskEnemy::InitEnemy()
 	m_pEnemyParam->Load();
 }
 
-// DOL 0x8006d778 (the CSV_CARENEMY block only; no chain to cTaskUnit::Term, as in the DOL)
+// DOL 0x8006d778 [audited] (the CSV_CARENEMY block only; no chain to cTaskUnit::Term, as in the DOL)
 void cTaskEnemy::Term()
 {
 	if (m_pEnemyParam != nullptr)
@@ -75,10 +78,10 @@ void cTaskEnemy::Term()
 	}
 }
 
-// DOL 0x8006e514
+// DOL 0x8006e514 [audited]
 u32 cTaskEnemy::nUnitId() const { return (u32)m_nIndex | 0x20u; }
 
-// DOL 0x8006d868
+// DOL 0x8006d868 [audited]
 void cTaskEnemy::Reset()
 {
 	m_fNearTime = 0.0f;
@@ -86,10 +89,10 @@ void cTaskEnemy::Reset()
 	cTaskUnit::Reset();                          // 0x8007eb80
 }
 
-// DOL 0x8006f304
+// DOL 0x8006f304 [audited]
 float cTaskEnemy::FuelUse() const { return 0.0f; }
 
-// DOL 0x8006f2fc
+// DOL 0x8006f2fc [audited]
 float cTaskEnemy::NitroFuel() const { return 0.0f; }
 
 cTaskUnit* cTaskEnemy::pPlayer() const { return m_pHost != nullptr ? m_pHost->pUnit(0) : nullptr; }
@@ -97,7 +100,7 @@ cTaskUnit* cTaskEnemy::pPlayer() const { return m_pHost != nullptr ? m_pHost->pU
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // Execute
 
-// DOL 0x8006d878 (r4 = the app; natively the host)
+// DOL 0x8006d878 [audited] (r4 = the app; natively the host)
 bool cTaskEnemy::Execute(cJetTask* pParam)
 {
 	if (IsFrozen()) return true;                 // HOME || app +0x1b4 || app +0x284 (no cTaskUnit::Execute either)
@@ -177,7 +180,7 @@ void cTaskEnemy::ChaseTurn(int nAxis, int dx, int dz)
 	}
 }
 
-// DOL 0x8006dac0
+// DOL 0x8006dac0 [audited]
 void cTaskEnemy::Decide()
 {
 	cTaskUnit* pl = pPlayer();
@@ -219,14 +222,14 @@ void cTaskEnemy::Decide()
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // event hooks
 
-// DOL 0x8006e520
+// DOL 0x8006e520 [audited]
 void cTaskEnemy::OnStone()
 {
 	SpinStart(5);                                // 0x80088004
 	TurnBackHalf();                              // 0x800873e4
 }
 
-// DOL 0x8006e558 (the player's smoke screen: score, the score effect at the car, spin; a flag drops)
+// DOL 0x8006e558 [audited] (the player's smoke screen: score, the score effect at the car, spin; a flag drops)
 void cTaskEnemy::OnSmoke(cTaskGimmick* g)
 {
 	(void)g;
@@ -240,14 +243,14 @@ void cTaskEnemy::OnSmoke(cTaskGimmick* g)
 	if (m_nFlags != 0 && DropFlag()) nFlags(m_nFlags - 1);   // 0x800881a0
 }
 
-// DOL 0x8006e618
+// DOL 0x8006e618 [audited]
 void cTaskEnemy::OnOil(cTaskGimmick* g)
 {
 	(void)g;
 	SpinStart(1);
 }
 
-// DOL 0x8006e620
+// DOL 0x8006e620 [audited]
 void cTaskEnemy::OnSpike(cTaskGimmick* g)
 {
 	(void)g;
@@ -259,7 +262,7 @@ void cTaskEnemy::OnSpike(cTaskGimmick* g)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // the boss stage's red car
 
-// DOL 0x801251e8
+// DOL 0x801251e8 [audited]
 cTaskEnemyRedMode::cTaskEnemyRedMode(cRallyUnitHost* pHost, int nColour, int nIndex) : cTaskEnemy(pHost, nColour, nIndex)
 {
 	SetName("g02::cTaskEnemyRedMode");
@@ -267,7 +270,7 @@ cTaskEnemyRedMode::cTaskEnemyRedMode(cRallyUnitHost* pHost, int nColour, int nIn
 	m_fNitroTime = 0.0f;                         // +0xa28
 }
 
-// DOL 0x8006f094: the next flag (map FUN_80079fcc) moved ahead along the PLAYER's direction by nAhead; out = own cell - that cell. With every
+// DOL 0x8006f094 [audited]: the next flag (map FUN_80079fcc) moved ahead along the PLAYER's direction by nAhead; out = own cell - that cell. With every
 // flag taken the DOL writes the car's own cell (not a difference) instead.
 void cTaskEnemyRedMode::FlagTarget(int out[2], int nAhead) const
 {
@@ -286,7 +289,7 @@ void cTaskEnemyRedMode::FlagTarget(int out[2], int nAhead) const
 	out[1] = CellZ() - fz;
 }
 
-// DOL 0x8006e664
+// DOL 0x8006e664 [audited]
 void cTaskEnemyRedMode::Decide()
 {
 	cTaskUnit* pl = pPlayer();
@@ -320,7 +323,7 @@ void cTaskEnemyRedMode::Decide()
 	ChaseTurn(axis, d[0], d[1]);
 }
 
-// DOL 0x8006ecf8 (the player touched it: unless every flag is in, the stage is won)
+// DOL 0x8006ecf8 [audited] (the player touched it: unless every flag is in, the stage is won)
 void cTaskEnemyRedMode::OnCrash(cTaskUnit* pOther)
 {
 	const int total = m_pHost != nullptr ? m_pHost->MapFlagTotal() : 0;   // FUN_80079ad0
@@ -333,28 +336,28 @@ void cTaskEnemyRedMode::OnCrash(cTaskUnit* pOther)
 	if (!Crash()) Bounce(pOther);                // 0x80088264 (always 1), 0x80084984
 }
 
-// DOL 0x8006ed84
+// DOL 0x8006ed84 [audited]
 void cTaskEnemyRedMode::OnSmoke(cTaskGimmick* g)
 {
 	(void)g;
 	SmokeHit();                                  // 0x80084c58
 }
 
-// DOL 0x8006ed88
+// DOL 0x8006ed88 [audited]
 void cTaskEnemyRedMode::OnOil(cTaskGimmick* g)
 {
 	(void)g;
 	SpinStart(1);
 }
 
-// DOL 0x8006ed94
+// DOL 0x8006ed94 [audited]
 void cTaskEnemyRedMode::OnMud(cTaskGimmick* g)
 {
 	(void)g;
 	if (0.0f < m_fSpeed) MudOn();                // 0x800885bc
 }
 
-// DOL 0x8006edac
+// DOL 0x8006edac [audited]
 void cTaskEnemyRedMode::OnItemFuel(cTaskGimmick* g)
 {
 	(void)g;
@@ -362,7 +365,7 @@ void cTaskEnemyRedMode::OnItemFuel(cTaskGimmick* g)
 	FuelBurstOn();                               // 0x80088440
 }
 
-// DOL 0x8006ee2c
+// DOL 0x8006ee2c [audited]
 void cTaskEnemyRedMode::OnItemPaint(cTaskGimmick* g)
 {
 	(void)g;
@@ -370,7 +373,7 @@ void cTaskEnemyRedMode::OnItemPaint(cTaskGimmick* g)
 	ChameleonOn();                               // 0x8008847c
 }
 
-// DOL 0x8006eeac
+// DOL 0x8006eeac [audited]
 void cTaskEnemyRedMode::OnItemSmoke(cTaskGimmick* g)
 {
 	(void)g;
@@ -378,7 +381,7 @@ void cTaskEnemyRedMode::OnItemSmoke(cTaskGimmick* g)
 	if (m_nSmokeStock < 5) m_nSmokeStock++;
 }
 
-// DOL 0x8006ef38
+// DOL 0x8006ef38 [audited]
 void cTaskEnemyRedMode::OnItemArmor(cTaskGimmick* g)
 {
 	(void)g;
@@ -386,10 +389,10 @@ void cTaskEnemyRedMode::OnItemArmor(cTaskGimmick* g)
 	ArmorOn();                                   // 0x800884bc
 }
 
-// DOL 0x8006efc0 (no score: the red car's flags count against the player)
+// DOL 0x8006efc0 [audited] (no score: the red car's flags count against the player)
 void cTaskEnemyRedMode::OnFlag(cTaskGimmick* g)
 {
-	Se("m02se_10Frag1");                         // FUN_80129d78(handle, cue, 0, 0): no actor
+	cTaskConsole::PlaySE("m02se_10Frag1");       // FUN_80129d78(handle, cue, 0, 0): no actor
 	if (m_pHost != nullptr)
 	{
 		kingdom::cKingdomModel* m = g != nullptr ? g->pModel(0) : nullptr;

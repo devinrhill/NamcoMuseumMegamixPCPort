@@ -17,17 +17,17 @@ namespace kingdom::game::g01
 
 namespace
 {
-// DOL 0x8036f398: per cursor {idle anim, press anim} of ANT_MENU_POINTER
+// DOL 0x8036f398 [audited]: per cursor {idle anim, press anim} of ANT_MENU_POINTER
 const int s_CursorAnm[4][2] = {{0, 1}, {2, 3}, {4, 5}, {6, 7}};
 }
 
-// DOL 0x800b0d98 (job 178, 0x0b200000)
+// DOL 0x800b0d98 [audited] (job 178, 0x0b200000)
 void cAppG01GalagaMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG01GalagaMenu());
 }
 
-// DOL 0x800aea18
+// DOL 0x800aea18 [audited: the unused +0x1b8 scene root and +0x1bc effect tasks are not created]
 cAppG01GalagaMenu::cAppG01GalagaMenu()
 {
 	cG01GalagaSys* sys = KingdomGlobal::GalagaSys;
@@ -72,14 +72,14 @@ void cAppG01GalagaMenu::Free()
 	cAppGameBaseMenu::Free();
 }
 
-// DOL 0x800af290
+// DOL 0x800af290 [audited]
 void cAppG01GalagaMenu::FadeInEndCallBack()
 {
 	m_pConsMan->AppearStart();
 	if (KingdomGlobal::GalagaSys->bNewStageApear()) PlaySndSe("m00se_09Newstage", 0);
 }
 
-// DOL 0x800af2ec
+// DOL 0x800af2ec [audited]
 void cAppG01GalagaMenu::TutorialOutCallBack()
 {
 	m_pConsMan->Reset();
@@ -91,7 +91,7 @@ void cAppG01GalagaMenu::PlaySndSe(const string& pSndName, int ctrl)
 	snd::Play(pSndName.c_str());
 }
 
-// DOL 0x800af2f4. FUN_8000d844 (KingSys, -> Kingdom_SetJobNo(0x0bf00000)) always returns 0 in this build: left out.
+// DOL 0x800af2f4 [audited]. FUN_8000d844 (KingSys, -> Kingdom_SetJobNo(0x0bf00000)) always returns 0 in this build: left out.
 void cAppG01GalagaMenu::MainExec()
 {
 	const uint n = 0u;

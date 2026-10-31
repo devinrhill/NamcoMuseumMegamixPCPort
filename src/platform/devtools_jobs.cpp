@@ -136,7 +136,7 @@ std::string JobText(uint no)
 	return buf;
 }
 
-// Kingdom_SetJobNo (DOL 0x8000db5c) the three ways the game uses it
+// Kingdom_SetJobNo (DOL 0x8000db5c [audited: Kingdom_SetJobNo wrapper (dev tool)]) the three ways the game uses it
 void Go(uint no, int how)
 {
 	if (how == 0 || KingdomGlobal::KingSys == nullptr) Kingdom_SetJobNo(no, false, false);   // at once (SetForceJobNo)

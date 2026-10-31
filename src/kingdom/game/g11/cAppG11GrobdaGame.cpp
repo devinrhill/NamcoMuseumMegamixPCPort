@@ -15,13 +15,13 @@
 namespace kingdom::game::g11
 {
 
-// DOL 0x8000f338 (job 339)
+// DOL 0x8000f338 [audited] (job 339)
 void cAppG11GrobdaGame::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG11GrobdaGame());
 }
 
-// DOL 0x8009f8f0 (partial, see the header)
+// DOL 0x8009f8f0 [audited: cTaskScnRoot native] (partial, see the header)
 cAppG11GrobdaGame::cAppG11GrobdaGame()
 {
 	SetName("cAppG11GrobdaGame");
@@ -30,7 +30,6 @@ cAppG11GrobdaGame::cAppG11GrobdaGame()
 	kingdom::cKingdomModelBase::ClearAssetCache();
 	// cTaskScnRoot (0x200, 0x200, 0x80, 0x10) at +0x1b8: the native scene stands in
 	pTaskPtkMan() = new cTaskGrobdaEffect();   // +0x298 (also the global +0xa40 -> +0x1bc; the stage connects it as its child)
-	ConnectChild(pTaskPtkMan());
 	m_pStage = new cTaskGrobdaStage();   // +0x294
 	ConnectChild(m_pStage);
 	m_pPause = new cTaskGrobdaPause();   // +0x29c
@@ -44,7 +43,7 @@ void cAppG11GrobdaGame::Free()
 	cAppKingdom::Free();
 }
 
-// DOL 0x8009ffcc: the score of the player, clamped to 0 .. 999999 (99999 in multiplayer), then the console's Score
+// DOL 0x8009ffcc [audited]: the score of the player, clamped to 0 .. 999999 (99999 in multiplayer), then the console's Score
 void cAppG11GrobdaGame::AddScore(int player, int pts, cTaskGrobdaConsoleManager* console)
 {
 	if (player < 0 || player > 3) return;
@@ -55,11 +54,11 @@ void cAppG11GrobdaGame::AddScore(int player, int pts, cTaskGrobdaConsoleManager*
 	if (console != nullptr && console->pScore(player) != nullptr) console->pScore(player)->SetScore(m_nScore[player]);   // 0x80130ccc
 }
 
-// DOL 0x8009fdf4
+// DOL 0x8009fdf4 [audited]
 bool cAppG11GrobdaGame::Execute(cJetTask* pParam)
 {
 	(void)pParam;
-	const int nPlayer = KingdomGlobal::GrobdaSys->nPlayer();   // UNVERIFIED: the DOL loops the pad count of the sys
+	const int nPlayer = KingdomGlobal::GrobdaSys->nPlayer();   // FUN_8000ee5c = **(sys +4)
 	bool* paused = &IsPause();   // app +0x1b4
 	for (int i = 0; i < nPlayer; i++)
 		if ((GamePad::Get(i).trig & 0x500u) != 0 && !*paused)

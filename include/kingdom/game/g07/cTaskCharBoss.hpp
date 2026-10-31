@@ -1,5 +1,7 @@
 #pragma once
 
+#include "kingdom/NativeScene.hpp"
+
 #include "common.hpp"
 #include "kingdom/game/g07/cTaskCharEnemy.hpp"
 #include "cJetTask.hpp"
@@ -43,6 +45,10 @@ private:
 	float m_fFogFarTmp{};
 
 	uint m_nFogColorTmp{};
+
+	// the boss flash fog (ScnRoot fog slot 3 = SCA_BOSS_HIT): the live copy (+0xa40: type, start, end, near, far, colour) and its backup (+0xa58)
+	kingdom::NativeScene::FogSlot m_fogLive{};
+	kingdom::NativeScene::FogSlot m_fogBack{};
 
 	uint m_nApearDemoTimerTmp{};
 
@@ -196,6 +202,10 @@ public:
 	void GetFogData();
 
 	void InitFogData();
+
+	// DOL 0x801ea3c8 (vtable +0x13c): fog end += speed, slot 3 = linear start / end; 0x801ea4b0 (+0x140): fog end -= speed
+	void FogStep(float speed);
+	void FogStepBack(float speed);
 
 protected:
 	void SetFlash(int modelIdx, float rate);

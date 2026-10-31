@@ -1,3 +1,5 @@
+#include <GamePad.hpp>
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cTaskConsMultiMenuMan.hpp"
 #include "kingdom/game/g07/cG07MotosSys.hpp"
 
@@ -152,6 +154,7 @@ cTaskConsMenuBase*& cTaskConsMultiMenuMan::pHitArray(uint nNo)
 	return m_pHitArray[nNo];
 }
 
+// DOL 0x801cb9fc [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(cAppGameBaseMenu* pApp)
 	: cTaskConsMenuManBase(pApp)
 {
@@ -160,7 +163,7 @@ cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(cAppGameBaseMenu* pApp)
 	{
 		UnityUI->Init(MotosUIMotosHome::EType::Multi);
 	}
-	if (KingdomGlobal::SysCore->GetLastJobNo() != 288358400)
+	if (KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_GAME)
 	{
 		nWorldNo() = 0u;
 		KingdomGlobal::MotosSys->VsItemIdx() = 2u;
@@ -184,6 +187,10 @@ cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(cAppGameBaseMenu* pApp)
 	CustomKingdomUtil::Assert(pTaskConsMultiMenuBg() != nullptr);
 	pTaskConsMultiMenuBg()->SetData();
 	pApp->ConnectChild(pTaskConsMultiMenuBg());
+	// DOL 0x801cb9fc: the Back button (+0x1d8) comes right after the Bg (the C# dropped it: Unity left through its own UI)
+	pTaskConsMultiMenuBack() = new cTaskConsMultiMenuBack(this);
+	pTaskConsMultiMenuBack()->SetData();
+	pApp->ConnectChild(pTaskConsMultiMenuBack());
 	cTaskConsMultiMenuSingle*& reference2 = pTaskConsMultiMenuSingle();
 	pConsMan = this;
 	reference2 = new cTaskConsMultiMenuSingle(pConsMan);
@@ -273,12 +280,14 @@ cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(cAppGameBaseMenu* pApp)
 	AddHitArray();
 }
 
+// DOL 0x801cc07c [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::AddHitArray()
 {
 	for (uint num = 0u; num < 18; num++)
 	{
 		pHitArray(num) = nullptr;
 	}
+	pHitArray(1u) = pTaskConsMultiMenuBack();
 	pHitArray(2u) = pTaskConsMultiMenuSingle();
 	pHitArray(3u) = pTaskConsMultiMenuRule();
 	pHitArray(4u) = pTaskConsMultiMenuMap();
@@ -297,8 +306,10 @@ cTaskConsMultiMenuMan::~cTaskConsMultiMenuMan()
 {
 }
 
+// DOL 0x801cc188 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::AllWaitState()
 {
+	pTaskConsMultiMenuBack()->WaitState();
 	pTaskConsMultiMenuSingle()->WaitState();
 	pTaskConsMultiMenuStart()->WaitState();
 	pTaskConsMultiMenuRule()->WaitState();
@@ -324,7 +335,7 @@ void cTaskConsMultiMenuMan::_ObjProc()
 {
 }
 
-// DOL 0x801cc8c4 (Select, inlined): every hit object (18) the pad 0 pointer is over becomes the selection, the last one wins; nothing hit -> the
+// DOL 0x801cc8c4 [audited: described by the 43rd-session pass] (Select, inlined): every hit object (18) the pad 0 pointer is over becomes the selection, the last one wins; nothing hit -> the
 // keys select. UNVERIFIED as in g03: the native pad reports no pointer outside the window, so nothing is hit then.
 bool cTaskConsMultiMenuMan::DpdSelect(int padNum)
 {
@@ -348,13 +359,12 @@ bool cTaskConsMultiMenuMan::IsPointActive()
 	return true;
 }
 
+// DOL 0x801cc2ec [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::KeySelect(int padNum)
 {
-	int num = 1;
-	int num2 = 1;
-	num = 2;
-	num2 = 8;
-	int array[11][3] = {{0, -1, -1}, {1, 2, 8}, {2, 5, num2}, {3, 8, 11}, {5, 17, 2}, {4, num, 3}, {8, num, 3}, {11, 3, 14}, {14, 11, 17}, {17, 14, 5}, {-1, -1, -1}};
+	// DOL 0x801cc2ec: {object, up, down} table copied from 0x8037f548. The C# rerouted the rows that lead to the Back button (1),
+	// which Unity did not have, to 2 / 8; this is the DOL table.
+	int array[11][3] = {{0, -1, -1}, {1, 2, 8}, {2, 5, 1}, {3, 8, 11}, {5, 17, 2}, {4, 1, 3}, {8, 1, 3}, {11, 3, 14}, {14, 11, 17}, {17, 14, 5}, {-1, -1, -1}};
 	if (nSelectObjNow() == 7 || nSelectObjNow() == 6)
 	{
 		nSelectObjNow() = 8;
@@ -407,8 +417,13 @@ void cTaskConsMultiMenuMan::KeySelect(int padNum)
 	}
 }
 
+// DOL 0x801cc424 [audited: described by the 43rd-session pass] (audited 44th): pressing 2 (pad trig & 0x80) moves the cursor to object 1 (Back) first
 void cTaskConsMultiMenuMan::SelectProc(int padNum)
 {
+	if ((GamePad::Get(padNum).trig & GamePad::PAD_2) != 0)
+	{
+		nSelectObjNow() = 1;
+	}
 	if (nSelectObjNow() == 0)
 	{
 		return;
@@ -512,6 +527,7 @@ void cTaskConsMultiMenuMan::SelectProc(int padNum)
 	}
 }
 
+// DOL 0x801cc778 [audited: described by the 43rd-session pass] (audited 44th): 2 on Back = back; A / B / Z = the table's state (0x8037f5d0); left / right pick the state of the value rows 8 / 11 / 14 / 17
 void cTaskConsMultiMenuMan::DecideCheck(int padNum)
 {
 	int array[15][2] = {{0, -1}, {1, 2}, {2, 3}, {3, 4}, {5, 14}, {4, 5}, {6, 6}, {7, 7}, {9, 8}, {10, 9}, {12, 10}, {13, 11}, {15, 12}, {16, 13}, {-1, -1}};
@@ -519,11 +535,12 @@ void cTaskConsMultiMenuMan::DecideCheck(int padNum)
 	{
 		return;
 	}
-	if (InGamePadManager::GetCancelKeyDown(padNum) && nSelectObjNow() == nSelectObjOld() && nSelectObjOld() == 1)
+	const uint trig = GamePad::Get(padNum).trig;
+	if ((trig & GamePad::PAD_2) != 0 && nSelectObjNow() == nSelectObjOld())
 	{
 		nState() = 2;
 	}
-	else if (InGamePadManager::GetEnterKeyDown(padNum))
+	else if ((trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)
 	{
 		for (uint num = 0u; array[num][0] != -1; num++)
 		{
@@ -533,43 +550,19 @@ void cTaskConsMultiMenuMan::DecideCheck(int padNum)
 			}
 		}
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT))
+	else if ((trig & GamePad::PAD_LEFT) != 0)
 	{
-		if (nSelectObjNow() == 8)
-		{
-			nState() = 6;
-		}
-		else if (nSelectObjNow() == 11)
-		{
-			nState() = 8;
-		}
-		else if (nSelectObjNow() == 14)
-		{
-			nState() = 10;
-		}
-		else if (nSelectObjNow() == 17)
-		{
-			nState() = 12;
-		}
+		if (nSelectObjNow() == 8) nState() = 6;
+		else if (nSelectObjNow() == 11) nState() = 8;
+		else if (nSelectObjNow() == 14) nState() = 10;
+		else if (nSelectObjNow() == 17) nState() = 12;
 	}
-	else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT))
+	else if ((trig & GamePad::PAD_RIGHT) != 0)
 	{
-		if (nSelectObjNow() == 8)
-		{
-			nState() = 7;
-		}
-		else if (nSelectObjNow() == 11)
-		{
-			nState() = 9;
-		}
-		else if (nSelectObjNow() == 14)
-		{
-			nState() = 11;
-		}
-		else if (nSelectObjNow() == 17)
-		{
-			nState() = 13;
-		}
+		if (nSelectObjNow() == 8) nState() = 7;
+		else if (nSelectObjNow() == 11) nState() = 9;
+		else if (nSelectObjNow() == 14) nState() = 11;
+		else if (nSelectObjNow() == 17) nState() = 13;
 	}
 }
 
@@ -588,6 +581,7 @@ void cTaskConsMultiMenuMan::Select()
 	}
 }
 
+// DOL 0x801cc99c [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::Reset()
 {
 	AllWaitState();
@@ -595,6 +589,7 @@ void cTaskConsMultiMenuMan::Reset()
 	nStep() = 0;
 }
 
+// DOL 0x801cc9d4 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::KingSys->pAppMain()->IsPause())
@@ -607,7 +602,7 @@ bool cTaskConsMultiMenuMan::Execute(cJetTask* pParam)
 		if (nStep() == 0)
 		{
 			pTaskConsMultiMenuBack()->DecideState();
-			if (InGamePadManager::GetCancelKeyDown(InGamePadManager::GetPad1No()))
+			if ((GamePad::Get(0).trig & GamePad::PAD_2) != 0)   // DOL: get_pad1(0)->trig & 0x80
 			{
 				SoundManager::get_SE()->PlaySE(ESEKind::RESIDENT_SND_SE03_CANCEL);
 			}
@@ -965,8 +960,10 @@ bool cTaskConsMultiMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x801cd3c8 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::AppearStart()
 {
+	pTaskConsMultiMenuBack()->AppearState();
 	pTaskConsMultiMenuSingle()->AppearState();
 	pTaskConsMultiMenuStart()->AppearState();
 	pTaskConsMultiMenuRule()->AppearState();
@@ -993,9 +990,10 @@ void cTaskConsMultiMenuMan::AppearStart()
 	if (UnityUI != nullptr) UnityUI->PlayBaseAnim(MotosUIMotosHome::EBaseAnim::In);
 }
 
+// DOL 0x801cd564 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::IsAppearEnd()
 {
-	bool flag = true;
+	bool flag = pTaskConsMultiMenuBack()->IsAppearEndState();
 	if (flag)
 	{
 		flag = pTaskConsMultiMenuSingle()->IsAppearEndState();
@@ -1076,26 +1074,31 @@ bool cTaskConsMultiMenuMan::IsAppearEnd()
 	return flag;
 }
 
+// DOL 0x801cd780 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::IsBackDecide()
 {
-	return false;
+	return pTaskConsMultiMenuBack()->IsDecideEndState();
 }
 
+// DOL 0x801cd794 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::IsStartDecide()
 {
 	return pTaskConsMultiMenuStart()->IsDecideEndState();
 }
 
+// DOL 0x801cd7a8 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::IsSingleDecide()
 {
 	return pTaskConsMultiMenuSingle()->IsDecideEndState();
 }
 
+// DOL 0x801cd7bc [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 bool cTaskConsMultiMenuMan::IsRuleDecide()
 {
 	return pTaskConsMultiMenuRule()->IsDecideEndState();
 }
 
+// DOL 0x801cd7d0 [audited: KeySelect table 0x8037f548, hit array, wait/appear/decide helpers vs decomp; ctor and the Execute state machine not re-read line by line]
 void cTaskConsMultiMenuMan::Upload()
 {
 	KingdomGlobal::MotosSys->nStageIdx() = 36 + nWorldNo();

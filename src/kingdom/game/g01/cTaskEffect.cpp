@@ -8,7 +8,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x8037e248 (CRC32 of these names)
+// DOL 0x8037e248 [audited] (CRC32 of these names)
 const char* const cTaskEffect::SLOT_NAME[eSLOT_MAX] = {
 	"PTK_BOMB_SMALL01", "PTK_BOMB_SMALL02", "PTK_BOMB_SMALL03", "PTK_BOMB_SMALL04",
 	"PTK_BOMB_MIDDLE01", "PTK_BOMB_MIDDLE02", "PTK_BOMB_MIDDLE03", "PTK_BOMB_MIDDLE04",
@@ -29,7 +29,7 @@ const char* const cTaskEffect::SLOT_NAME[eSLOT_MAX] = {
 	"PTK_WARP01", "PTK_PAC_JUMPSTART01", "PTK_PAC_JUMPEND01", "PTK_BEAM06",
 };
 
-// DOL 0x801c1ec0 (and the ctor chain of new 0xd50 in cAppG01GalagaGame::Init 0x801bb258; FLOAT_8047ce28 = 25 at +0x351 not used here)
+// DOL 0x801c1ec0 [audited] (and the ctor chain of new 0xd50 in cAppG01GalagaGame::Init 0x801bb258; FLOAT_8047ce28 = 25 at +0x351 not used here)
 cTaskEffect::cTaskEffect()
 {
 	SetName("g01::cTaskEffect");
@@ -38,7 +38,7 @@ cTaskEffect::cTaskEffect()
 }
 
 
-// DOL 0x801c1f6c: the particles step (0x8008ad34 with the rate +0xd44) unless paused, Pac-Man's miss freeze (bUnk9) is on, the rate is 0 or
+// DOL 0x801c1f6c [audited]: the particles step (0x8008ad34 with the rate +0xd44) unless paused, Pac-Man's miss freeze (bUnk9) is on, the rate is 0 or
 // pad 0 holds HOME (game bit 0x400). The rate is always 1.0 (only the ctors 0x800aeef0 / 0x80093df4 / 0x801b96f8 store it), so
 // UpdateFrame's fixed step stands in for it.
 bool cTaskEffect::Execute(cJetTask* pParam)

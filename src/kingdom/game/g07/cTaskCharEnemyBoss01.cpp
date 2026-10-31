@@ -31,12 +31,13 @@ uint cTaskCharEnemyBoss01::Input()
 	return 0u;
 }
 
+// DOL 0x80052004 [audited: per AUDIT_G03_G07 row] (CRC table 0x8036a030 compared)
 bool cTaskCharEnemyBoss01::Create(uint no)
 {
 	cKingdomModel* array[5] = {};
 	m_flashMatLists.assign(5, {});
 	m_baseMatColorLists.assign(5, {});
-	string array2[5][4] = {{"MDL_CHAR_BOSS_1_CENT1", nullptr, nullptr, nullptr}, {"MDL_CHAR_BOSS_1_CENT2", "ANM_CHAR_BOSS_1_A00", nullptr, nullptr}, {"MDL_CHAR_BOSS_1_BODY", "ANM_CHAR_BOSS_1_A04", nullptr, nullptr}, {"MDL_CHAR_BOSS_GLAS", nullptr, nullptr, nullptr}, {"MDL_CHAR_GHOST_CLYDE", "ANM_CHAR_GHORST_A00", nullptr, nullptr}};
+	string array2[5][4] = {{"MDL_CHAR_BOSS_1_CENT1", "", "", ""}, {"MDL_CHAR_BOSS_1_CENT2", "ANM_CHAR_BOSS_1_A00", "", ""}, {"MDL_CHAR_BOSS_1_BODY", "ANM_CHAR_BOSS_1_A04", "", ""}, {"MDL_CHAR_BOSS_GLAS", "", "", ""}, {"MDL_CHAR_GHOST_CLYDE", "ANM_CHAR_GHORST_A00", "", ""}};
 	for (uint num = 0u; num < 5; num++)
 	{
 		array[num] = CreateModel(num);
@@ -69,6 +70,7 @@ bool cTaskCharEnemyBoss01::Create(uint no)
 	return true;
 }
 
+// DOL 0x80052188 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBoss01::UpdateMatrix()
 {
 	for (uint num = 0u; num < 5; num++)

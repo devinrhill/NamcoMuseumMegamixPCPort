@@ -1,4 +1,5 @@
 #include "platform/devtools_g07edit.hpp"
+#include "kingdom/KingdomJobTable.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 #include <cstdio>
 #include <cstdlib>
@@ -42,6 +43,7 @@
 #include <GameDefine.hpp>
 #include <GameStateManager.hpp>
 #include <InGamePadManager.hpp>
+#include <GamePad.hpp>
 #include <PadDefine.hpp>
 #include <ResultInfo.hpp>
 #include <SGameRecordInfo.hpp>
@@ -337,6 +339,7 @@ bool& cAppG07MotosGame::IsClearReserve()
 	return m_IsClearReserve;
 }
 
+// DOL 0x800a4288 [audited: described by the 43rd-session pass] (audited 44th: first-play block, step, params, task creation order checked; the C# score-carry else branch removed)
 void cAppG07MotosGame::Init()
 {
 	SoundManager::get_BGM()->Stop(0.0f);
@@ -364,7 +367,7 @@ void cAppG07MotosGame::Init()
 	m_nSaveFlags = 0u;
 	m_nSlopeState = 0;
 	m_bFirstPlay = false;
-	if (KingdomGlobal::SysCore->GetLastJobNo() == 287309824 || KingdomGlobal::SysCore->GetLastJobNo() == 286261248 || KingdomGlobal::SysCore->GetLastJobNo() == 289406976 || KingdomGlobal::SysCore->GetLastJobNo() == 292552704 || KingdomGlobal::SysCore->GetLastJobNo() != 288358400 || KingdomGlobal::MotosSys->bPlayerRetry())
+	if (KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::MOTOS_MENU || KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::MOTOS_DEBUG_MENU || KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::MOTOS_DEBUG_SELECT || KingdomGlobal::SysCore->GetLastJobNo() == kingdom::job::MOTOS_MULTI_MENU || KingdomGlobal::SysCore->GetLastJobNo() != kingdom::job::MOTOS_GAME || KingdomGlobal::MotosSys->bPlayerRetry())
 	{
 		KingdomGlobal::MotosSys->bPlayerRetry() = false;
 		m_bFirstPlay = true;
@@ -390,14 +393,9 @@ void cAppG07MotosGame::Init()
 		KingdomGlobal::MotosSys->SaveDataLoad();
 		KingdomGlobal::MotosSys->nStageIdxTmp() = KingdomGlobal::MotosSys->nStageIdx();
 		KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nLife = (short)cG07MotosSys::DEFAULT_PLAYER_LIFE;
-		KingdomGlobal::pMotosGameSys->ResetDeadEnemyCnt();
-		KingdomGlobal::pMotosGameSys->ResetGetItemCnt();
+		// audit (DOL 0x800a447c [audited: described by the 43rd-session pass]..0x800a44b0): the DOL ends the first-play block here; the C#'s ResetDeadEnemyCnt / ResetGetItemCnt (Steam stats) are not called
 	}
-	else
-	{
-		nScore() = (int)KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nMyScore;
-		KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nMyScore = 0u;
-	}
+	// DOL 0x800a4288: no else branch (the C#'s score carry nScore = KeepData[0].m_nMyScore is not in the DOL's Init)
 	KingdomGlobal::MotosSys->bNewStageApear() = false;
 	MultiPlaySettings();
 	m_nPLReserve = -1;
@@ -466,29 +464,34 @@ void cAppG07MotosGame::Init()
 		// the stage's light sets (SCN0 files): 0 background, 1 panels / gimmicks, 2 characters; one native 3D pass draws every model
 		kingdom::NativeScene::Reset();
 		kingdom::NativeScene::SetPerFrame(true);   // models submitted by the task Draws this frame only (g07 cTaskChar::Draw 0x801e3048, cTaskPanel 0x801fda7c, ...)
-		static const char* const kLights[3] = {"SCA_BG", "SCA_PANEL", "SCA_CHAR"};
-		for (int i = 0; i < 3; i++)
+		static const char* const kLights[4] = {"SCA_BG", "SCA_PANEL", "SCA_CHAR", "SCA_BOSS_HIT"};   // light sets 0..2 + the boss flash fog (slot 3)
+		for (int i = 0; i < 4; i++)
 		{
 			std::size_t size = 0;
 			const std::uint8_t* d = wii::ArchiveStore::Find(kLights[i], size);
 			wii::Brres b;
 			wii::ScnAnim sa;
 			wii::LightResult light;
-			if (d != nullptr && b.Load(d, size) && sa.Load(b) && sa.SampleLight(0, light))
+			if (d != nullptr && b.Load(d, size) && sa.Load(b))
 			{
-				sa.SampleFog(light);
-				kingdom::NativeScene::SetLight(i, light);
+				if (i < 3 && sa.SampleLight(0, light))
+				{
+					sa.SampleFog(light);
+					kingdom::NativeScene::SetLight(i, light);
+				}
+				// DOL 0x800a4288 -> 0x80016ac4: ScnRoot fog slot i = the first fog of the same file (slot 3 = SCA_BOSS_HIT, the boss flash fog)
+				kingdom::NativeScene::FogSlot fs;
+				if (sa.FogAt(0, fs.type, fs.start, fs.end, fs.color)) kingdom::NativeScene::SetFogSlot(i, fs);
 			}
 		}
 		ConnectChild(new kingdom::cTaskNativeScene());
 	}
 	ConnectChild(m_pTaskCamera = new cTaskCamera(nullptr, "CSV_CAMERA"));
-	// DOL 0x800a4824..0x800a493c: the depth shadow light (cTaskScnRoot +0x1f8 = 1; mode 0, target = the camera task's +0x1d0 vector (UNVERIFIED: its
-	// first Vector4), +5 up (stage 39: +0.5 first), angles (pi/2, pi, 0), ortho 18 x 18 near 1 far 44 (+0xcd8 flag, taken as multiplayer: 30 / 46), radius 40 / 30)
+	// DOL 0x800a4824 [audited: described by the 43rd-session pass]..0x800a493c: the depth shadow light (cTaskScnRoot +0x1f8 = 1; mode 0, target = the camera task's +0x1d0 vector (+0x1d0 = vTarget, verified 44th), +5 up (stage 39: +0.5 first), angles (pi/2, pi, 0), ortho 18 x 18 near 1 far 44 (+0xcd8 flag = multiplayer, MultiPlaySettings 0x800a60b4: 30 / 46), radius 40 / 30)
 	{
 		kingdom::NativeScene::SetShadow(true);
 		kingdom::cKingdomShadow& sh = kingdom::NativeScene::Shadow();
-		const Vector4 t = m_pTaskCamera->vPosition();
+		const Vector4 t = m_pTaskCamera->vTarget();   // camera task +0x1d0 = the target vector (DOL 0x800a482c [audited: described by the 43rd-session pass]; was vPosition, UNVERIFIED in the 40th)
 		float y = t[1];
 		if (KingdomGlobal::MotosSys->nStageIdx() == 39u) y = 0.5f;
 		y += 5.0f;
@@ -528,6 +531,7 @@ void cAppG07MotosGame::Init()
 	ConnectChild(m_pTaskConsoleMan);
 }
 
+// DOL 0x800a5f9c [audited: described by the 43rd-session pass] (the dtor 0x800a9374 body; audited 44th)
 void cAppG07MotosGame::Term()
 {
 	devtools::G07EditItemRestore(KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum); // devtools: Motos editor test stock back (not 1:1)
@@ -536,8 +540,9 @@ void cAppG07MotosGame::Term()
 	{
 		KingdomGlobal::MotosSys->nStageIdx() = KingdomGlobal::MotosSys->nStageIdxTmp();
 	}
-	SoundManager::get_BGM()->Stop();
-	SoundManager::get_SE()->Stop();
+	kingdom::NativeScene::SetShadow(false);   // DOL 0x800a5f9c: cTaskScnRoot +0x1f8 = 0 (the depth shadow light off)
+	SoundManager::get_BGM()->Stop(0.5f);   // DOL 0x80025560 [audited: described by the 43rd-session pass](BGM player, 500 ms): every BGM sound stops with a 500 ms fade
+	SoundManager::get_SE()->Stop();   // not in the DOL's Term (the SE handles are only detached): the C# stand-in, UNVERIFIED
 	KingdomGlobal::g_pMotosGame = nullptr;
 	KingdomGlobal::pMotosGameSys->OffMasterFlag(std::numeric_limits<uint>::max());
 	KingdomGlobal::pMotosGameSys->OffSlaveFlag(Constants::MY_ID(), std::numeric_limits<uint>::max());
@@ -577,6 +582,7 @@ uint cAppG07MotosGame::GetMultiBatleStageIdx()
 	return num2;
 }
 
+// DOL 0x800a60b4 [audited: earlier pass compared with decomp] (audited: matches)
 void cAppG07MotosGame::MultiPlaySettings()
 {
 	m_bMultiPlay = false;
@@ -659,11 +665,12 @@ int cAppG07MotosGame::GetBgmNo()
 	}
 }
 
+// DOL 0x800a638c [audited: described by the 43rd-session pass] (audited 44th: pause check without the step-2 exclusion, step 2 = DOL's skip rule; counters / order match)
 bool cAppG07MotosGame::Execute(cJetTask* pParam)
 {
 	{ static int dbg = 0; static uint last = ~0u; static const bool on = std::getenv("MEGAMIX_SCENE_DEBUG") != nullptr; if (on && (++dbg % 60 == 0 || last != (uint)nStep(0)) && (last = (uint)nStep(0), true)) std::fprintf(stderr,"motos: frame %d step %u pause %d fade end %d\n", dbg, nStep(0), (int)IsPause(), (int)m_pTaskFade->IsEnd()); }
 	KingdomGlobal::pMotosGameSys->NET_Sync();
-	if ((nStep(0) != 6 || KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nLife != 0) && nStep(0) != 2)
+	if (nStep(0) != 6 || KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nLife != 0)
 	{
 		HomeButtonCheck();
 	}
@@ -734,22 +741,26 @@ bool cAppG07MotosGame::Execute(cJetTask* pParam)
 	return true;
 }
 
+// DOL 0x800a65f8 [audited: described by the 43rd-session pass]: trig & (HOME | MINUS) of the pad (single: pad 0; multi: each matched player's channel, +0x60 + 0x54 * i of the matching data) -> cTaskPause start (0x80147c8c)
 void cAppG07MotosGame::HomeButtonCheck()
 {
-	if (bMultiPlay())
+	if (!bMultiPlay())
+	{
+		if ((GamePad::Get(0).trig & (GamePad::PAD_HOME | GamePad::PAD_MINUS)) != 0)
+		{
+			m_pTaskPause->Start();
+		}
+	}
+	else
 	{
 		for (uint num = 0u; num < KingdomGlobal::MotosSys->pGetMatchingData()->nNum; num++)
 		{
-			if (InGamePadManager::GetKeyDown(InGamePadManager::GetPadNum((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[num]->nCtrl), PadDefine::EPadKeycode::eKEY_START))
+			if ((GamePad::Get((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[num]->nCtrl).trig & (GamePad::PAD_HOME | GamePad::PAD_MINUS)) != 0)
 			{
 				m_pTaskPause->Start();
 				break;
 			}
 		}
-	}
-	else if (InGamePadManager::GetKeyDown(InGamePadManager::GetPadNumFirst(), PadDefine::EPadKeycode::eKEY_START))
-	{
-		m_pTaskPause->Start();
 	}
 	IsPause() = m_pTaskPause->IsPause();
 }
@@ -779,6 +790,8 @@ void cAppG07MotosGame::Draw(int nStatus, cJetTask* pParam)
 {
 }
 
+// DOL 0x800a66e4 [audited: per AUDIT_G03_G07 row] (audited 44th): num = camera task +0x1c0 x; the DOL builds the slope matrix 0xc50 as T(num) * Rz(slope) * T(-num) and a rotation-only copy
+// 0xc90 (Rz(slope)); no Unity X flip (the C#'s GetUnityPos negated the translations: removed)
 void cAppG07MotosGame::SlopeUpdate()
 {
 	float num = pCamera()->vPosition()[0];
@@ -786,15 +799,17 @@ void cAppG07MotosGame::SlopeUpdate()
 	::Constants::jetGeoVecUnit(v);
 	v[0] = num;
 	Constants::tspVuMtxUnit(m_mSlopeMatrix);
+	Constants::tspVuMtxUnit(m_mSlopeMatrix2);
 	::Constants::jetGeoVecUnit(m_vGravVector);
 	m_vGravVector[1] = -1.0f;
 	::Constants::jetGeoVecUnit(m_vSlopePower);
 	if (CustomKingdomUtil::IF(m_fSlopeRad))
 	{
-		::Constants::jetGeoMtxTrans(m_mSlopeMatrix, m_mSlopeMatrix, Extentions::GetUnityPos(v));
+		::Constants::jetGeoMtxTrans(m_mSlopeMatrix, m_mSlopeMatrix, v);
 		::Constants::jetGeoMtxRotZ(m_mSlopeMatrix, m_mSlopeMatrix, m_fSlopeRad);
+		::Constants::jetGeoMtxRotZ(m_mSlopeMatrix2, m_mSlopeMatrix2, m_fSlopeRad);
 		::Constants::jetGeoVecSet(v, 0.0f - num, 0.0f, 0.0f, 1.0f);
-		::Constants::jetGeoMtxTrans(m_mSlopeMatrix, m_mSlopeMatrix, Extentions::GetUnityPos(v));
+		::Constants::jetGeoMtxTrans(m_mSlopeMatrix, m_mSlopeMatrix, v);
 		Matrix4x4 m;
 		Constants::tspVuMtxUnit(m);
 		Constants::tspVuMtxRotZ(m, m, 0.0f - m_fSlopeRad);
@@ -886,6 +901,7 @@ bool cAppG07MotosGame::RegistEnemys(cTaskCharEnemy* pChar)
 	return false;
 }
 
+// DOL 0x800a6da8 [audited: described by the 43rd-session pass] (audited 44th: matches; LandPoints = 0x800a715c)
 void cAppG07MotosGame::PointsUpdate()
 {
 	if (nStep(0) != 8 || kingdom::Constants::IS_PAUSE() || Constants::IS_CLEARPAUSE())
@@ -974,6 +990,7 @@ void cAppG07MotosGame::PointsUpdate()
 	}
 }
 
+// DOL 0x800a715c [audited: per AUDIT_G03_G07 row] (audited 44th: matches; the four IsFall probes are z-, z+, x+, x- by fPanelSize)
 void cAppG07MotosGame::LandPoints()
 {
 	for (int i = 0; i < 4; i++)
@@ -1024,10 +1041,33 @@ void cAppG07MotosGame::LandPoints()
 	}
 }
 
+// DOL 0x800a73b8 [audited: described by the 43rd-session pass] (audited 44th): the pad is the channel of matching entry m_nPlayerParamSet (get_pad1(Info[i].nCtrl)); confirm = A and B held together and
+// not both held on the previous call (DAT_80480280 = the previous call's pad hold word), NOT the Enter key; the four directions are an else-if chain
+// (up, down, left, right; the DOL also reads the stick words +0x10 / +0x14 past +-0.5 as directions: UNVERIFIED, the port uses the stick keys with the
+// same edge); item pickers are left / right on the selected row. SE numbers 0x20 (select) / 0x29 (confirm; no m07se_41 cue in the DOL table: UNVERIFIED, the port keeps SE033).
 void cAppG07MotosGame::StepItemSet()
 {
-	int padNum = InGamePadManager::GetPadNum((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[m_nPlayerParamSet]->nCtrl);
+	const GamePad::State& pad = GamePad::Get((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[m_nPlayerParamSet]->nCtrl);
+	static uint s_prevHold = 0;   // DAT_80480280
 	if (!m_bMultiPlay) devtools::G07EditItemStock(KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum); // devtools: Motos editor test stock 99 (not 1:1)
+	const int padNum = InGamePadManager::GetPadNum((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[m_nPlayerParamSet]->nCtrl);
+	bool up = false, down = false, left = false, right = false;
+	if ((pad.trig & GamePad::PAD_UP) != 0 || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_UP))
+	{
+		up = true;
+	}
+	else if ((pad.trig & GamePad::PAD_DOWN) != 0 || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_DOWN))
+	{
+		down = true;
+	}
+	else if ((pad.trig & GamePad::PAD_LEFT) != 0 || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT))
+	{
+		left = true;
+	}
+	else if ((pad.trig & GamePad::PAD_RIGHT) != 0 || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT))
+	{
+		right = true;
+	}
 	if (nStep(3)++ == 0)
 	{
 		m_nPlayerParamSet = 0u;
@@ -1037,26 +1077,24 @@ void cAppG07MotosGame::StepItemSet()
 	{
 		return;
 	}
-	int num = nStep(1);
 	int num2 = -1;
-	if (nStep(1) == num)
+	switch (nStep(1))
 	{
-		switch (nStep(1))
-		{
-		case 0:
-			num2 = 1;
-			break;
-		case 1:
-			num2 = 2;
-			break;
-		case 2:
-			num2 = 3;
-			break;
-		}
+	case 0:
+		num2 = 1;
+		break;
+	case 1:
+		num2 = 2;
+		break;
+	case 2:
+		num2 = 3;
+		break;
 	}
 	if (nStep(1) != 4)
 	{
-		if (InGamePadManager::GetEnterKeyDown(padNum) || devtools::G07SkipItemSet()) // devtools: the Motos editor's "Skip the item settings" (not 1:1)
+		const bool both = (pad.hold & GamePad::PAD_A) != 0 && (pad.hold & GamePad::PAD_B) != 0;
+		const bool prevBoth = (s_prevHold & GamePad::PAD_A) != 0 && (s_prevHold & GamePad::PAD_B) != 0;
+		if ((both && !prevBoth) || devtools::G07SkipItemSet()) // devtools: the Motos editor's "Skip the item settings" (not 1:1)
 		{
 			nStep(1) = 3;
 			nStep(2) = 0;
@@ -1087,13 +1125,12 @@ void cAppG07MotosGame::StepItemSet()
 				STEP2SYNC(1);
 			}
 		}
-		else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_DOWN) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_DOWN))
+		else if (down)
 		{
-			nStep(1)++;
-			nStep(1) %= 3;
+			nStep(1) = (nStep(1) + 1) % 3;
 			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
 		}
-		else if (InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_UP) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_UP))
+		else if (up)
 		{
 			if (--nStep(1) < 0)
 			{
@@ -1102,72 +1139,34 @@ void cAppG07MotosGame::StepItemSet()
 			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
 		}
 	}
-	if (nStep(1) >= 3 || (num2 == -1 && !Constants::IS_LANPLAY()))
+	if (nStep(1) < 3 && (num2 != -1 || Constants::IS_LANPLAY()))
 	{
-		return;
-	}
-	// the last player has confirmed (STEP2SYNC above): m_nPlayerParamSet == player count. The C# indexed KeepData() with it anyway and Unity
-	// swallowed the IndexOutOfRangeException for that frame; natively it read past the 4-entry array (segfault after 4 players)
-	if (m_nPlayerParamSet >= 4u || (m_bMultiPlay && m_nPlayerParamSet >= KingdomGlobal::MotosSys->pGetMatchingData()->nNum))
-	{
-		return;
-	}
-	if (!m_bMultiPlay)
-	{
+		// the last player has confirmed (STEP2SYNC above): m_nPlayerParamSet == player count. The DOL then reads one entry past the players (harmless
+		// there); natively KeepData() has 4 entries, so guard it
+		if (m_nPlayerParamSet < 4u && (!m_bMultiPlay || m_nPlayerParamSet < KingdomGlobal::MotosSys->pGetMatchingData()->nNum))
 		{
-			byte* ptr = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[num2];
+			const int row = (num2 == -1) ? 0 : num2;   // DOL iVar14 == -1 under LAN play only (UNVERIFIED path)
+			byte* use = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[row];
+			byte* stock = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nItemNum[m_bMultiPlay ? 1 : row];
+			const uint used = m_bMultiPlay
+				? (uint)(KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[1] + KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[2] + KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[3])
+				: (uint)*use;
+			if (right && *use < 5 && used < *stock)
 			{
-				{
-					byte* ptr2 = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nItemNum[num2];
-					{
-						int num3 = *ptr;
-						(void)(*ptr2);
-						if (nullptr != ptr && nullptr != ptr2)
-						{
-							if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT)) && *ptr < 5 && num3 < *ptr2)
-							{
-								(*ptr)++;
-								SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
-							}
-							if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT)) && *ptr > 0)
-							{
-								(*ptr)--;
-								SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
-							}
-						}
-					}
-				}
+				(*use)++;
+				SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
 			}
-		}
-		return;
-	}
-	{
-		byte* ptr3 = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[num2];
-		{
+			if (left && *use != 0)
 			{
-				byte* ptr4 = &KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nItemNum[1];
-				{
-					int num4 = KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[1] + KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[2] + KingdomGlobal::pMotosGameSys->KeepData()[m_nPlayerParamSet]->m_nUseItem[3];
-					(void)(*ptr4);
-					if (nullptr != ptr3 && nullptr != ptr4)
-					{
-						if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT)) && *ptr3 < 5 && num4 < *ptr4)
-						{
-							(*ptr3)++;
-							SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
-						}
-						if ((InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT) || InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT)) && *ptr3 > 0)
-						{
-							(*ptr3)--;
-							SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
-						}
-					}
-				}
+				(*use)--;
+				SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE032_ITEM_SELECT);
 			}
 		}
 	}
+	s_prevHold = pad.hold;
 }
 
+// DOL 0x800a78c4 [audited: described by the 43rd-session pass] (audited 44th: Steam record / result calls and the m_nMyScore write dropped; the DOL has neither)
 void cAppG07MotosGame::StepMissDirection()
 {
 	switch (nStep(1))
@@ -1179,14 +1178,6 @@ void cAppG07MotosGame::StepMissDirection()
 			SoundManager::get_BGM()->Stop(1.0f);
 			m_pTaskConsRetry->Start();
 			m_pTaskConsRetry->nDrawPriority(m_pTaskConsoleMan->nPriority());
-			if (!m_bMultiPlay)
-			{
-				SGameRecordInfo& record2 = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACMOTOS);
-				record2.m_totalEatGhost += KingdomGlobal::pMotosGameSys->get_DeadEnemyCnt();
-				KingdomGlobal::pMotosGameSys->ResetDeadEnemyCnt();
-				record2.m_totalEatItem += KingdomGlobal::pMotosGameSys->get_GetItemCnt();
-				KingdomGlobal::pMotosGameSys->ResetGetItemCnt();
-			}
 		}
 		break;
 	case 1:
@@ -1199,8 +1190,7 @@ void cAppG07MotosGame::StepMissDirection()
 			}
 			if (m_pTaskFade->IsEnd())
 			{
-				KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nMyScore = (uint)nScore();
-				kingdom::Constants::Kingdom_SetJobNo(288358400u);
+				kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_GAME);
 			}
 		}
 		else if (m_pTaskConsRetry->IsYes())
@@ -1212,7 +1202,7 @@ void cAppG07MotosGame::StepMissDirection()
 			}
 			if (m_pTaskFade->IsEnd())
 			{
-				kingdom::Constants::Kingdom_SetJobNo(288358400u);
+				kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_GAME);
 				KingdomGlobal::MotosSys->bPlayerRetry() = true;
 				KingdomGlobal::MotosSys->SaveDataLoad();
 				KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nLife = (short)cG07MotosSys::DEFAULT_PLAYER_LIFE;
@@ -1227,12 +1217,8 @@ void cAppG07MotosGame::StepMissDirection()
 			}
 			if (m_pTaskFade->IsEnd())
 			{
-				SGameRecordInfo& record = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACMOTOS);
-				record.m_totalEatGhost += KingdomGlobal::pMotosGameSys->get_DeadEnemyCnt();
-				record.m_totalEatItem += KingdomGlobal::pMotosGameSys->get_GetItemCnt();
-				GameStateManager::GetResult()->AddScore(GameDefine::scGAMEOVER_TIME, (int)KingdomGlobal::MotosSys->nWorld(), (int)KingdomGlobal::MotosSys->nStage());
 				KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nLife = (short)cG07MotosSys::DEFAULT_PLAYER_LIFE;
-				kingdom::Constants::Kingdom_SetJobNo(290455552u);
+				kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_GAMEOVER);
 				KingdomGlobal::MotosSys->SaveDataLoad();
 			}
 		}
@@ -1240,9 +1226,10 @@ void cAppG07MotosGame::StepMissDirection()
 	}
 }
 
+// DOL 0x800a7b08 [audited: described by the 43rd-session pass] (audited 44th: flow matches; case 0 also starts SE number 0x23: the DOL's SE numbers are the SE0nn suffixes of the cue table at 0x8047ace4 and there is no m07se_35 cue, so the call is silent (FUN_800a1f74 returns 0 for an empty entry))
 void cAppG07MotosGame::StepReady()
 {
-	int padNumFirst = InGamePadManager::GetPadNumFirst();
+	const bool skip = (GamePad::Get(0).trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0;   // DOL: get_pad1(0)->trig & 0x860
 	if (IsPause())
 	{
 		return;
@@ -1255,7 +1242,7 @@ void cAppG07MotosGame::StepReady()
 		nStep(1)++;
 		break;
 	case 1:
-		if (!Constants::IS_LANPLAY() && InGamePadManager::GetEnterKeyDown(padNumFirst))
+		if (!Constants::IS_LANPLAY() && skip)
 		{
 			nStep(1) = 3;
 		}
@@ -1267,7 +1254,7 @@ void cAppG07MotosGame::StepReady()
 		}
 		break;
 	case 2:
-		if (!Constants::IS_LANPLAY() && InGamePadManager::GetEnterKeyDown(padNumFirst))
+		if (!Constants::IS_LANPLAY() && skip)
 		{
 			SoundManager::get_SE()->Stop((ESEKind)nStep(2));
 			nStep(1)++;
@@ -1283,6 +1270,7 @@ void cAppG07MotosGame::StepReady()
 	}
 }
 
+// DOL 0x800a7cc8 [audited: described by the 43rd-session pass] (audited 44th: boss clear test = hp == 0 (no Steam kill count), play time = real ms since the last GetTime 0x800a9594)
 void cAppG07MotosGame::StepGame()
 {
 	if (KingdomGlobal::pMotosGameSys->bTestMasterFlag(1u) || (Constants::IS_LANPLAY() && KingdomGlobal::pMotosGameSys->bTestMasterFlag(2u)))
@@ -1343,18 +1331,8 @@ void cAppG07MotosGame::StepGame()
 					{
 						flag = false;
 					}
-					if (obj->nHp() <= 0)
-					{
-						if (!IsClearReserve())
-						{
-							flag2 = true;
-							KingdomGlobal::pMotosGameSys->AddDeadEnemyCnt();
-						}
-					}
-					else
-					{
-						flag2 = false;
-					}
+					// DOL 0x800a7cc8: flag2 = (hp == 0) (countLeadingZeros(hp) >> 5)
+					flag2 = obj->nHp() == 0;
 				}
 			}
 			if (cTaskCharEnemy2->bTestFlag(16384u))
@@ -1411,19 +1389,20 @@ void cAppG07MotosGame::StepGame()
 	}
 }
 
+// DOL 0x800a638c case 2 (inline in Execute): trig & (A | B | Z) or the boss's appear-demo-end flag (+0xa92) while step[1] == 0 -> the item set step
 void cAppG07MotosGame::StepStartDirection()
 {
-	int pad1No = InGamePadManager::GetPad1No();
 	cTaskCharBoss* cTaskCharBoss2 = static_cast<cTaskCharBoss*>(m_pBoss);
-	if (nStep(1) == 0 && (InGamePadManager::GetEnterKeyDown(pad1No) || cTaskCharBoss2->IsApearDemoEnd()))
+	if (nStep(1) == 0 && ((GamePad::Get(0).trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0 || cTaskCharBoss2->IsApearDemoEnd()))
 	{
 		STEP(1);
 	}
 }
 
+// DOL 0x800a80ec [audited: described by the 43rd-session pass] (audited 44th: Steam record / result / all-clear time calls dropped, rest matches; SE 0xe = RESIDENT SE06 stand-in UNVERIFIED)
 void cAppG07MotosGame::StepClearDirection()
 {
-	int pad1No = InGamePadManager::GetPad1No();
+	const bool skip = (GamePad::Get(0).trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0;   // DOL: get_pad1(0)->trig & 0x860
 	if (Constants::IS_LANPLAY())
 	{
 		return;
@@ -1446,7 +1425,7 @@ void cAppG07MotosGame::StepClearDirection()
 		}
 		break;
 	case 2:
-		if (!SoundManager::get_SE()->IsPlayinSEKind(ESEKind::MOTOS_SND_SE016_GAMECLEAR) || (InGamePadManager::GetEnterKeyDown(pad1No) && m_nSaveFlags != 1))
+		if (!SoundManager::get_SE()->IsPlayinSEKind(ESEKind::MOTOS_SND_SE016_GAMECLEAR) || (skip && m_nSaveFlags != 1))
 		{
 			SoundManager::get_SE()->Stop(ESEKind::MOTOS_SND_SE016_GAMECLEAR);
 			if (m_nSaveFlags == 1)
@@ -1483,51 +1462,22 @@ void cAppG07MotosGame::StepClearDirection()
 					KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nItemNum[num] -= b;
 				}
 			}
-			if (!m_bMultiPlay)
-			{
-				SGameRecordInfo& record = GameStateManager::GetRecord(GameDefine::EGameTitle::ePACMOTOS);
-				int num2 = (int)KingdomGlobal::MotosSys->nStageIdx();
-				int nGamePlayTime = (int)m_nGamePlayTime;
-				record.SetClearTime(num2 - 1, nGamePlayTime);
-				record.m_maxArrivalRound = Mathf::Max(record->m_maxArrivalRound, num2 + 1);
-				record.m_totalEatGhost += KingdomGlobal::pMotosGameSys->get_DeadEnemyCnt();
-				KingdomGlobal::pMotosGameSys->ResetDeadEnemyCnt();
-				record.m_totalEatItem += KingdomGlobal::pMotosGameSys->get_GetItemCnt();
-				KingdomGlobal::pMotosGameSys->ResetGetItemCnt();
-				ResultInfo* result = GameStateManager::GetResult();
-				for (int i = 1; i < (int)result->m_use5Item.size(); i++)
-				{
-					if (5 <= KingdomGlobal::pMotosGameSys->KeepData()[0]->m_nUseItem[i])
-					{
-						result->m_use5Item[i] = true;
-					}
-				}
-				GameStateManager::GetResult()->AddScore(nGamePlayTime, (int)KingdomGlobal::MotosSys->nWorld(), (int)KingdomGlobal::MotosSys->nStage());
-			}
 			bool save = ((m_nSaveFlags != 0) ? true : false);
 			if (KingdomGlobal::MotosSys->nStageIdx() == 35 && !KingdomGlobal::MotosSys->IsAllClear())
 			{
-				kingdom::Constants::Kingdom_SetJobNo(299892736u);
+				kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_STAFFROLL);
 			}
 			else
 			{
-				kingdom::Constants::Kingdom_SetJobNo(287309824u, save);
+				kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_MENU, save);
 			}
 			KingdomGlobal::MotosSys->SaveDataSave((uint)KingdomGlobal::g_pMotosGame->nPoints(0), m_nGamePlayTime, true);
-			if (KingdomGlobal::MotosSys->IsAllClear())
-			{
-				int num3 = 0;
-				for (uint num4 = 0u; num4 < 36; num4++)
-				{
-					num3 += (int)KingdomGlobal::MotosSys->pScoreData(num4).nRecordTime;
-				}
-				GameStateManager::GetRecord(GameDefine::EGameTitle::ePACMOTOS).SetHighScoreTime(0, num3);
-			}
 			break;
 		}
 	}
 }
 
+// DOL 0x800a83c4 [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cAppG07MotosGame::CheckMultiBattleWinnerOfRound()
 {
 	int num = -1;
@@ -1575,6 +1525,7 @@ void cAppG07MotosGame::CheckMultiBattleWinnerOfRound()
 	}
 }
 
+// DOL 0x800a852c [audited: leader search, draw list vs decomp]
 void cAppG07MotosGame::CheckMultiBattleWinnerOfGame()
 {
 	int num = -1;
@@ -1632,6 +1583,7 @@ void cAppG07MotosGame::CheckMultiBattleWinnerOfGame()
 	}
 }
 
+// DOL 0x800a8650 [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cAppG07MotosGame::StepMultiBattleEnd()
 {
 	switch (nStep(1))
@@ -1671,12 +1623,13 @@ void cAppG07MotosGame::StepMultiBattleEnd()
 	case 2:
 		if (m_pTaskFade->IsEnd())
 		{
-			kingdom::Constants::Kingdom_SetJobNo(288358400u);
+			kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_GAME);
 		}
 		break;
 	}
 }
 
+// DOL 0x800a87fc [audited: described by the 43rd-session pass] (audited 44th: pad test = trig & 0x860 of the player's channel; the champion's cTaskConsWinnerMii (0x801057f8, Mii) is not created: out of scope)
 void cAppG07MotosGame::StepChampion()
 {
 	switch (nStep(1))
@@ -1712,8 +1665,8 @@ void cAppG07MotosGame::StepChampion()
 			}
 			for (uint num3 = 0u; num3 < KingdomGlobal::MotosSys->pGetMatchingData()->nNum; num3++)
 			{
-				int padNum = InGamePadManager::GetPadNum((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[num3]->nCtrl);
-				if (nStep(2) == 360 || InGamePadManager::GetEnterKeyDown(padNum))
+				const GamePad::State& pad = GamePad::Get((int)KingdomGlobal::MotosSys->pGetMatchingData()->Info[num3]->nCtrl);
+				if (nStep(2) == 360 || (pad.trig & (GamePad::PAD_A | GamePad::PAD_B | GamePad::PAD_Z)) != 0)   // DOL: trig & 0x860
 				{
 					m_pTaskFade->Fade(EFadeKind::eFADE_TYPE_OUT_G07);
 					nStep(1)++;
@@ -1725,7 +1678,7 @@ void cAppG07MotosGame::StepChampion()
 	case 2:
 		if (m_pTaskFade->IsEnd())
 		{
-			kingdom::Constants::Kingdom_SetJobNo(292552704u);
+			kingdom::Constants::Kingdom_SetJobNo(kingdom::job::MOTOS_MULTI_MENU);
 		}
 		break;
 	}
@@ -1735,6 +1688,7 @@ void cAppG07MotosGame::StepContinue()
 {
 }
 
+// DOL 0x800a8c34 [audited: described by the 43rd-session pass] (audited 44th: matches; case 2 also starts SE number 0x24 (no m07se_36 cue: silent); cases 3 / 4 in the DOL do not wait for the other machines (LAN only, kept))
 void cAppG07MotosGame::StepSync()
 {
 	switch (nStep(3))

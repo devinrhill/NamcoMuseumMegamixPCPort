@@ -24,6 +24,12 @@ void SetVolume(int voice, float volume, int milliseconds);
 void SetSpatial(int voice, float volume, float pan);
 // the cue's Sound3DParam from the archive; false when the cue is unknown (no archive)
 bool Sound3DParamOf(const std::string& cue, unsigned& flags, int& decayCurve, float& decayRatio);
+// nw4r BasicSound::Pause(flag, frames): the voice fades to silence over `ms` and stands still (IsPlaying stays true); false fades it back in
+void Pause(int voice, bool pause, int ms);
+// Verification aid: instead of the audio device the mix is rendered offline, one game frame (48000 / 60 output frames) per PumpDump(), and
+// written to a 48 kHz stereo 16-bit WAV at Shutdown(). Deterministic whatever the host speed; set before the first Play / Init.
+void SetDumpFile(const std::string& path);
+void PumpDump();
 void StopAll();
 // every playing voice fades out over `ms` (kingdom FUN_80025560(KingSys +0xa54, ms): SoundPlayer::StopAllSound(frames) on each player)
 void FadeOutAll(int milliseconds);

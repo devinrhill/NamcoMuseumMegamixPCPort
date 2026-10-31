@@ -206,7 +206,7 @@ bool cTaskModelEx::Execute(cJetTask* pParam)
 	return cTaskModelBase::Execute(m_vecPBModel);
 }
 
-// DOL 0x80187270: every visible model inside the camera's view volume (sys app +0x294, 0x80159428 with radius 0.38) computes its matrix
+// DOL 0x80187270 [audited: per AUDIT_G03_G07 row]: every visible model inside the camera's view volume (sys app +0x294, 0x80159428 with radius 0.38) computes its matrix
 // (vtable +0x18 = 0x8001df9c), its blob shadow follows it, and its push-back (+0xd8) goes into this frame's scene list (0x8009c3f4)
 void cTaskModelEx::Draw(int nStatus, cJetTask* pParam)
 {

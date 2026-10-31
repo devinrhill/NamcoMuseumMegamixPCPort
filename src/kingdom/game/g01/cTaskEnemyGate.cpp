@@ -66,7 +66,7 @@ cTaskEnemyGate::~cTaskEnemyGate()
 	s_Live.erase(std::remove(s_Live.begin(), s_Live.end(), this), s_Live.end());
 }
 
-// DOL 0x800e4814: type 12, the CSV row, the orbit (timetable) of column 1, not collidable yet, active; the model (+0xac = 0x800e514c:
+// DOL 0x800e4814 [audited]: type 12, the CSV row, the orbit (timetable) of column 1, not collidable yet, active; the model (+0xac = 0x800e514c:
 // fog 3) and its AABB; the place = node translate + Rz Ry Rx(node rotate) * -(model node "root" translate); the shoot marker child
 // (cTaskShootMarker 0x800f84d4: an ANT_SCORE anita 10 above the gate)
 void cTaskEnemyGate::SetupGate(const wii::Mdl0Node& node, int nStage, int nIndex)
@@ -125,7 +125,7 @@ void cTaskEnemyGate::SetupGate(const wii::Mdl0Node& node, int nStage, int nIndex
 	ConnectChild(m_pMarker);
 }
 
-// DOL 0x800e5048: the enemy's state 2 (0x800e2de0), not arrived, the marker goes
+// DOL 0x800e5048 [audited]: the enemy's state 2 (0x800e2de0), not arrived, the marker goes
 void cTaskEnemyGate::Dead()
 {
 	cTaskEnemy::Dead();
@@ -133,7 +133,7 @@ void cTaskEnemyGate::Dead()
 	if (m_pMarker != nullptr) m_pMarker->Hide();
 }
 
-// DOL 0x800e5234: the orbit as a timetable: a jump node (2) moves on, a hold node (3) sets the fire pattern; false at the end (the orbit
+// DOL 0x800e5234 [audited]: the orbit as a timetable: a jump node (2) moves on, a hold node (3) sets the fire pattern; false at the end (the orbit
 // restarts from node 0)
 bool cTaskEnemyGate::UpdateTimetable(float fStep)
 {
@@ -180,7 +180,7 @@ bool cTaskEnemyGate::UpdateTimetable(float fStep)
 	return true;
 }
 
-// DOL 0x800e53b8: step 0 the death clips (+0xb0 = 0x800e518c: CHAR_ENEMY_GATE_ANM_CHA_02 in blend 1, CHAR_ENEMY_SPIKE_ANM_CLA_02, rates 1.0,
+// DOL 0x800e53b8 [audited]: step 0 the death clips (+0xb0 = 0x800e518c: CHAR_ENEMY_GATE_ANM_CHA_02 in blend 1, CHAR_ENEMY_SPIKE_ANM_CLA_02, rates 1.0,
 // fog 3), the explosion (+0x6c = 0x800e508c: PTK_GATE_BOMB01 at +0x20) and its sound (+0x74); step 1 gone when the colour clip ended
 bool cTaskEnemyGate::DieStep()
 {
@@ -212,7 +212,7 @@ bool cTaskEnemyGate::DieStep()
 	return false;
 }
 
-// DOL 0x800e54f8: M = T(place) * Rz Ry Rx(+0x30) * (+0x380); +0x20 = the origin of M; the model at +0x20 while it waits / flies, at the place
+// DOL 0x800e54f8 [audited]: M = T(place) * Rz Ry Rx(+0x30) * (+0x380); +0x20 = the origin of M; the model at +0x20 while it waits / flies, at the place
 // once it arrived (its clip moves it then)
 void cTaskEnemyGate::UpdateGateModel()
 {
@@ -223,6 +223,14 @@ void cTaskEnemyGate::UpdateGateModel()
 	m[11] = m_vPlace[2];
 	const float rot[3] = {m_v30.x, m_v30.y, m_v30.z};
 	RotZYX(rot, r);
+	// 0x800e3dec -> vtable +0x8c = 0x800e3ed8 (r5 = 1): the launch direction +0x270 = normalize(row i of the rotation . (0, 1, -1.625, 1))
+	{
+		const float v[4] = {0.0f, 1.0f, -1.625f, 1.0f};   // DAT_80372f10 .. 1c
+		for (int i = 0; i < 3; i++) m_vLaunch[i] = r[i * 4 + 0] * v[0] + r[i * 4 + 1] * v[1] + r[i * 4 + 2] * v[2] + r[i * 4 + 3] * v[3];
+		const float l = std::sqrt(m_vLaunch[0] * m_vLaunch[0] + m_vLaunch[1] * m_vLaunch[1] + m_vLaunch[2] * m_vLaunch[2]);
+		if (l > 0.0f)
+			for (float& x : m_vLaunch) x /= l;
+	}
 	Concat(m, r, m);
 	Concat(m, m_mBase, m);
 	m_v20 = Vector4(m[3], m[7], m[11], 1.0f);
@@ -238,7 +246,7 @@ void cTaskEnemyGate::UpdateGateModel()
 	UpdateWorldAABB();
 }
 
-// DOL 0x800e5778 (vtable +0xa0)
+// DOL 0x800e5778 [audited] (vtable +0xa0)
 bool cTaskEnemyGate::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -291,7 +299,7 @@ bool cTaskEnemyGate::Execute(cJetTask* pParam)
 	}
 	else if (m_nState == 2)
 	{
-		if (DieStep()) Leave();   // +0xc8 / +0xa8, then +0x84 (the formation group is cleared)
+		if (!m_bKilled || DieStep()) Leave();   // +0xc8, then +0x84 = 0x800e271c (a killed gate runs its death step +0xa8 first; the formation group is cleared)
 	}
 	// +0x88 = 0x800e54a4: the hit flash counts down, then fog 3 again
 	if (0.0f < m_fFlash) m_fFlash -= 1.0f;

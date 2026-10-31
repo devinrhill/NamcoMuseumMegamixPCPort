@@ -26,7 +26,7 @@ constexpr int FUEL_DOWN[12] = {0xc5, 0xc9, 0xcd, 0xd1, 0xd5, 0xd9, 0xdd, 0xe1, 0
 constexpr int FUEL_UP[12] = {0xc3, 0xc7, 0xcb, 0xcf, 0xd3, 0xd7, 0xdb, 0xdf, 0xe3, 0xe7, 0xeb, 0xef};
 constexpr int FUEL_LEVEL[12] = {0xc4, 0xc8, 0xcc, 0xd0, 0xd4, 0xd8, 0xdc, 0xe0, 0xe4, 0xe8, 0xec, 0xf0};
 // 0x80476d48 / 0x8036bc40: single-player layer patterns of the fuel anitas (0..2: [player index], 3..8: words 3..8). The tables of the
-// 2 / 3 / 4 player layouts (0x80476d50 + 0x8047a8e8, 0x80390f48 + 0x8036bcf4, 0x80390f58 + 0x8036bd00) are NOT PORTED (multiplayer).
+// 2 / 3 / 4 player layouts (0x80476d50 + 0x8047a8e8, 0x80390f48 + 0x8036bcf4, 0x80390f58 + 0x8036bd00) are in SetCar.
 constexpr int FUEL_PAT_1P_GAUGE = 4;
 constexpr int FUEL_PAT_1P[6] = {5, 6, 7, 8, 9, 10};
 
@@ -75,7 +75,7 @@ int FuelLevel(float fuel)
 
 // ======================================================================== cTaskConsFuel
 
-// DOL 0x8006210c
+// DOL 0x8006210c [audited]
 cTaskConsFuel::cTaskConsFuel(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsFuel");
@@ -126,7 +126,7 @@ void cTaskConsFuel::SetCar(kingdom::cTaskModel* pCar, int nPlayer)
 	for (uint i = 0; i < 6; i++) SetPosLayer(3 + i, parts[i], 0);
 }
 
-// DOL 0x8006957c
+// DOL 0x8006957c [audited]
 bool cTaskConsFuel::Execute(cJetTask* pParam)
 {
 	if (m_pCar != nullptr)
@@ -207,7 +207,7 @@ bool cTaskConsFuel::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsInfo
 
-// DOL 0x800619d8
+// DOL 0x800619d8 [audited]
 cTaskConsInfo::cTaskConsInfo(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsInfo");
@@ -241,7 +241,7 @@ cTaskConsInfo::cTaskConsInfo(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	}
 }
 
-// DOL 0x8006aa78
+// DOL 0x8006aa78 [audited]
 bool cTaskConsInfo::Execute(cJetTask* pParam)
 {
 	switch (m_nMode)
@@ -308,7 +308,7 @@ bool cTaskConsInfo::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsSignal
 
-// DOL 0x80062530
+// DOL 0x80062530 [audited]
 cTaskConsSignal::cTaskConsSignal(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsSignal");
@@ -318,7 +318,7 @@ cTaskConsSignal::cTaskConsSignal(cTaskConsole* pConsole) : cTaskRallyAnitaBase(p
 	Animate(0, false);
 }
 
-// DOL 0x8006b234 (the lamps follow the app's start count +0x31c; m02se_14Signal1 for the red lamps, m02se_15Signal2 for the last)
+// DOL 0x8006b234 [audited] (the lamps follow the app's start count +0x31c; m02se_14Signal1 for the red lamps, m02se_15Signal2 for the last)
 bool cTaskConsSignal::Execute(cJetTask* pParam)
 {
 	if (1 < m_pConsole->nState())
@@ -385,7 +385,7 @@ bool cTaskConsSignal::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsTime
 
-// DOL 0x8006272c
+// DOL 0x8006272c [audited]
 cTaskConsTime::cTaskConsTime(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsTime");
@@ -406,7 +406,7 @@ cTaskConsTime::cTaskConsTime(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	for (uint i = 0; i < 8; i++) SetPosLayer(TIME_ORDER[i], pat, i);
 }
 
-// DOL 0x80069c08 (the play time app +0x318 in milliseconds; minutes 0x800c59e8, seconds 0x800c59bc, milliseconds 0x800c59a0)
+// DOL 0x80069c08 [audited] (the play time app +0x318 in milliseconds; minutes 0x800c59e8, seconds 0x800c59bc, milliseconds 0x800c59a0)
 bool cTaskConsTime::Execute(cJetTask* pParam)
 {
 	switch (m_nMode)
@@ -443,7 +443,7 @@ bool cTaskConsTime::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsStage
 
-// DOL 0x80062afc
+// DOL 0x80062afc [audited]
 cTaskConsStage::cTaskConsStage(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsStage");
@@ -463,7 +463,7 @@ cTaskConsStage::cTaskConsStage(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCo
 	pAnita(2)->vTrans()[0] -= 16.0f;   // FLOAT_8047a8f8
 }
 
-// DOL 0x80069aa4
+// DOL 0x80069aa4 [audited]
 bool cTaskConsStage::Execute(cJetTask* pParam)
 {
 	if (1 < m_pConsole->nState())
@@ -477,7 +477,7 @@ bool cTaskConsStage::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsMessage
 
-// DOL 0x80062e14 (CSV_FLAG through a temporary cParamFlagData: column 2 of row stage + (world - 1) * 7)
+// DOL 0x80062e14 [audited] (CSV_FLAG through a temporary cParamFlagData: column 2 of row stage + (world - 1) * 7)
 cTaskConsMessage::cTaskConsMessage(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsMessage");
@@ -511,7 +511,7 @@ cTaskConsMessage::cTaskConsMessage(cTaskConsole* pConsole) : cTaskRallyAnitaBase
 	}
 }
 
-// DOL 0x80069380
+// DOL 0x80069380 [audited]
 bool cTaskConsMessage::Execute(cJetTask* pParam)
 {
 	switch (m_nMode)
@@ -546,7 +546,7 @@ bool cTaskConsMessage::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsResult
 
-// DOL 0x80064008
+// DOL 0x80064008 [audited]
 cTaskConsResult::cTaskConsResult(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsResult");
@@ -570,7 +570,7 @@ void cTaskConsResult::SetScore(const u32* table)
 	for (uint i = 0; i < 6; i++) pAnita(5 + i)->SetAnimNo((int)table[Digit(score, POW[i])], true);
 }
 
-// DOL 0x80068220 (stage clear: app state 7; the app polls IsResultEnd = mode 3, which lasts one frame)
+// DOL 0x80068220 [audited] (stage clear: app state 7; the app polls IsResultEnd = mode 3, which lasts one frame)
 bool cTaskConsResult::Execute(cJetTask* pParam)
 {
 	if (m_pConsole->IsFrozen()) return true;
@@ -640,7 +640,7 @@ bool cTaskConsResult::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsLose
 
-// DOL 0x800643e4
+// DOL 0x800643e4 [audited]
 cTaskConsLose::cTaskConsLose(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsLose");
@@ -653,7 +653,7 @@ cTaskConsLose::cTaskConsLose(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	Show(1, false);
 }
 
-// DOL 0x80066da8 (boss stage lost: app state 10)
+// DOL 0x80066da8 [audited] (boss stage lost: app state 10)
 bool cTaskConsLose::Execute(cJetTask* pParam)
 {
 	if (m_pConsole->IsFrozen()) return true;
@@ -703,7 +703,7 @@ bool cTaskConsLose::Execute(cJetTask* pParam)
 
 // ======================================================================== cTaskConsBang
 
-// DOL 0x80064610
+// DOL 0x80064610 [audited]
 cTaskConsBang::cTaskConsBang(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsBang");
@@ -712,7 +712,7 @@ cTaskConsBang::cTaskConsBang(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCons
 	cTaskRallyAnitaBase::Show(0, false);
 }
 
-// DOL 0x80066a74
+// DOL 0x80066a74 [audited]
 bool cTaskConsBang::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -738,7 +738,7 @@ void cTaskConsBang::Hide()
 
 // ======================================================================== cTaskConsWarning
 
-// DOL 0x80064814 (registered animating, all hidden)
+// DOL 0x80064814 [audited] (registered animating, all hidden)
 cTaskConsWarning::cTaskConsWarning(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsWarning");
@@ -757,7 +757,7 @@ void cTaskConsWarning::HideAll()
 	for (uint i = 0; i < 5; i++) cTaskRallyAnitaBase::Show(i, false);
 }
 
-// DOL 0x800668cc
+// DOL 0x800668cc [audited]
 bool cTaskConsWarning::Execute(cJetTask* pParam)
 {
 	if (m_pConsole->nState() != 4 && m_bActive)

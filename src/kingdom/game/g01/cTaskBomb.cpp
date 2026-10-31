@@ -10,7 +10,7 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x800c9674: priority 0x10000, kind 0xc, the parameters from BombParam.csv (DAT_8047b380; rows AREA / INTERVAL / ENDURANCE, column 1),
+// DOL 0x800c9674 [audited]: priority 0x10000, kind 0xc, the parameters from BombParam.csv (DAT_8047b380; rows AREA / INTERVAL / ENDURANCE, column 1),
 // radius / counters 0 (FLOAT_8047b398), sphere (0, 0, 0, 1). The pool (0x800e6b9c) makes it inactive and registers it for collision.
 cTaskBomb::cTaskBomb()
 {
@@ -48,7 +48,7 @@ void cTaskBomb::Follow()
 	m_fSphereR = m_fRadius;
 }
 
-// DOL 0x800c9a78: counters 0, owner, offset, effect 0x2a (one-time, dependent, clipped; FUN_80021a9c), the first step, collidable, active
+// DOL 0x800c9a78 [audited]: counters 0, owner, offset, effect 0x2a (one-time, dependent, clipped; FUN_80021a9c), the first step, collidable, active
 void cTaskBomb::Start(cTaskConsolePlayer* pOwner, const float vOffset[3])
 {
 	m_fRadius = m_fGrow = m_fAge = 0.0f;
@@ -60,7 +60,7 @@ void cTaskBomb::Start(cTaskConsolePlayer* pOwner, const float vOffset[3])
 	m_b08 = true;   // +0x1c8
 }
 
-// DOL 0x800c9bc0 (active, not paused): follow and grow; past ENDURANCE frames (+0x238 > param +8) the owner is cleared and the bomb is free
+// DOL 0x800c9bc0 [audited] (active, not paused): follow and grow; past ENDURANCE frames (+0x238 > param +8) the owner is cleared and the bomb is free
 bool cTaskBomb::Execute(cJetTask* pParam)
 {
 	if (cG01GalagaSys::IsPause()) return true;   // DAT_80479118: nothing while paused
@@ -77,7 +77,7 @@ bool cTaskBomb::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800c9cf4: an enemy (kind 0xb) whose world box (+0x68 / +0x74) the sphere touches (nw4r::math::IntersectionSphereAABB)
+// DOL 0x800c9cf4 [audited]: an enemy (kind 0xb) whose world box (+0x68 / +0x74) the sphere touches (nw4r::math::IntersectionSphereAABB)
 bool cTaskBomb::HitCheck(cObject* other)
 {
 	if (other->nKind() != 0xb) return false;

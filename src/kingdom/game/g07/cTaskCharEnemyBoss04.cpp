@@ -18,6 +18,7 @@ cTaskCharEnemy* cTaskCharEnemyBoss04::Construct()
 	return new cTaskCharEnemyBoss04();
 }
 
+// DOL 0x80052dd8 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBoss04::Init()
 {
 	m_bBoss04FirstInit = false;
@@ -33,12 +34,13 @@ uint cTaskCharEnemyBoss04::Input()
 	return 0u;
 }
 
+// DOL 0x80052df0 [audited: per AUDIT_G03_G07 row] (CRC table 0x8036a200 compared)
 bool cTaskCharEnemyBoss04::Create(uint no)
 {
 	cKingdomModel* array[11] = {};
 	m_flashMatLists.assign(11, {});
 	m_baseMatColorLists.assign(11, {});
-	string array2[11][4] = {{"MDL_CHAR_BOSS_4_CENT", "ANM_CHAR_BOSS_4_A00", nullptr, nullptr}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", nullptr}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", nullptr}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", nullptr}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", nullptr}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", nullptr, nullptr}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", nullptr, nullptr}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", nullptr, nullptr}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", nullptr, nullptr}, {"MDL_CHAR_BOSS_GLAS", nullptr, nullptr, nullptr}, {"MDL_CHAR_GHOST_PINKY", "ANM_CHAR_GHORST_A03", nullptr, nullptr}};
+	string array2[11][4] = {{"MDL_CHAR_BOSS_4_CENT", "ANM_CHAR_BOSS_4_A00", "", ""}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", ""}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", ""}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", ""}, {"MDL_CHAR_BOSS_4_HASHI", "ANM_CHAR_BOSS_4_A03", "ANM_CHAR_BOSS_4_A02", ""}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", "", ""}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", "", ""}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", "", ""}, {"MDL_CHAR_BOSS_RING", "MDL_CLA_BOSS_RING_ANM", "", ""}, {"MDL_CHAR_BOSS_GLAS", "", "", ""}, {"MDL_CHAR_GHOST_PINKY", "ANM_CHAR_GHORST_A03", "", ""}};
 	for (uint num = 0u; num < 11; num++)
 	{
 		array[num] = CreateModel(num);
@@ -84,6 +86,7 @@ bool cTaskCharEnemyBoss04::Create(uint no)
 	return true;
 }
 
+// DOL 0x80053040 [audited: per AUDIT_G03_G07 row] (the C# also zeroed the glass node's x: not in the DOL)
 void cTaskCharEnemyBoss04::UpdateMatrix()
 {
 	if (GetMode() == 1 && !m_bBoss04FirstInit)
@@ -100,7 +103,6 @@ void cTaskCharEnemyBoss04::UpdateMatrix()
 	float num2 = fCenterPosY() + 2.0f;
 	pModel()->vTrans()[1] = fCenterPosY() + 2.0f;
 	pModel()->GetLocalNodeTrans(v, "glass");
-	v.x = 0.0f;
 	v[1] += num2;
 	::Constants::jetGeoVecAdd(pModel(9u)->vTrans(), v, vMTrans());
 	pModel()->GetLocalNodeTrans(v, "m07m_05pink01");

@@ -98,19 +98,19 @@ void cAppGameBaseMenu::Init()
 	GamePad::SetStickDpad(true);   // 0x801434f8 starts with 0x800219d4(1)
 }
 
-// DOL 0x801436ec (the menus' dtors): the stick no longer doubles as the dpad
+// DOL 0x801436ec [audited] (the menus' dtors): the stick no longer doubles as the dpad
 void cAppGameBaseMenu::Term()
 {
 	GamePad::SetStickDpad(false);
 }
 
-// DOL 0x801436f4 (the tutorial's +0x5c)
+// DOL 0x801436f4 [audited] (the tutorial's +0x5c)
 void cAppGameBaseMenu::TutorialInCallBack()
 {
 	pTaskTutorial()->Start();
 }
 
-// DOL 0x80143708 (the tutorial's +0x58, then +0x60 ends it: +0x299 = 0)
+// DOL 0x80143708 [audited] (the tutorial's +0x58, then +0x60 ends it: +0x299 = 0)
 void cAppGameBaseMenu::TutorialExec()
 {
 	pTaskTutorial()->Select();
@@ -120,6 +120,7 @@ void cAppGameBaseMenu::TutorialExec()
 	}
 }
 
+// DOL 0x80143768
 bool cAppGameBaseMenu::Execute(cJetTask* pParam)
 {
 	HomeButtonCheck();
@@ -174,7 +175,7 @@ bool cAppGameBaseMenu::Execute(cJetTask* pParam)
 				{
 					if (IsSndAllStop())
 					{
-						SoundManager::get_BGM()->Stop(0.5f); // DOL 0x8014390c: FUN_80025560(KingSys+0xa54, 500)
+						SoundManager::get_BGM()->Stop(0.5f); // DOL 0x8014390c [audited]: FUN_80025560(KingSys+0xa54, 500)
 					}
 					m_nState = 3;
 					m_nStep = 0;

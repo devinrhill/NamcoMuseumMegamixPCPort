@@ -10,7 +10,7 @@
 namespace kingdom::game::g11
 {
 
-// DOL 0x8002fbb0 + 0x8002fd7c
+// DOL 0x8002fbb0 [audited] + 0x8002fd7c
 cTaskGrobdaBomb::cTaskGrobdaBomb(cTaskGrobdaCombo* combo, int kind)
 	: m_nKind(kind)
 {
@@ -36,7 +36,7 @@ cTaskGrobdaBomb::cTaskGrobdaBomb(cTaskGrobdaCombo* combo, int kind)
 	}
 	m_fRadius = m_fMin;   // param_1[9] = param_1[0x2d1]
 	m_pHnd = new kingdom::cKingdomPtkHnd();
-	m_pHnd->Generate(slot, false, true, true, 0.0f, Vector4(0.0f, -100.0f, 0.0f, 1.0f));
+	m_pHnd->Generate(slot, true, true, false, 0.0f, Vector4(0.0f, -100.0f, 0.0f, 1.0f));   // 0x80035ec0: slots 0x18 / 0x19 = one time
 	if (m_pHnd->IsValid())
 	{
 		m_pHnd->Inactive();
@@ -51,7 +51,7 @@ cTaskGrobdaBomb::~cTaskGrobdaBomb()
 	delete m_pHnd;
 }
 
-// DOL 0x80030194: only a fresh bomb (flag word 0) starts: phase 1, the owner's type, the effect shown at the place
+// DOL 0x80030194 [audited]: only a fresh bomb (flag word 0) starts: phase 1, the owner's type, the effect shown at the place
 void cTaskGrobdaBomb::Start(uint type, const float pos[3])
 {
 	if (nFlags() != 0) return;
@@ -67,7 +67,7 @@ void cTaskGrobdaBomb::Start(uint type, const float pos[3])
 	}
 }
 
-// DOL 0x8002ff10
+// DOL 0x8002ff10 [audited]
 bool cTaskGrobdaBomb::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -125,14 +125,14 @@ bool cTaskGrobdaBomb::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80034224
+// DOL 0x80034224 [audited]
 cTaskGrobdaCombo::cTaskGrobdaCombo(uint type)
 	: m_nType(type)
 {
 	SetName("cTaskGrobdaCombo");
 }
 
-// DOL 0x8003458c: the blast (kind 2: the owner's type + 5, the fortress blast), the count, the list
+// DOL 0x8003458c [audited]: the blast (kind 2: the owner's type + 5, the fortress blast), the count, the list
 void cTaskGrobdaCombo::Hit(const float pos[3], int kind, bool count)
 {
 	cTaskGrobdaBomb* b = new cTaskGrobdaBomb(this, kind);
@@ -148,9 +148,10 @@ void cTaskGrobdaCombo::Hit(const float pos[3], int kind, bool count)
 	if (count) m_nCount++;
 	b->Start(type, pos);
 	m_vBomb.push_back(b);
+	m_nMode = 1;
 }
 
-// DOL 0x8003440c: while active the finished bombs (flag word 3) are released; with none left the count is back to 0 (an empty list ends the combo: mode 2)
+// DOL 0x8003440c [audited]: while active the finished bombs (flag word 3) are released; with none left the count is back to 0 (an empty list ends the combo: mode 2)
 bool cTaskGrobdaCombo::Execute(cJetTask* pParam)
 {
 	(void)pParam;

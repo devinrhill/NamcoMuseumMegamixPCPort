@@ -4,13 +4,14 @@
 #include "kingdom/cTaskModel.hpp"
 #include "kingdom/game/cTaskConsMenuBase.hpp"
 #include "kingdom/game/cTaskConsMenuManBase.hpp"
+#include "kingdom/game/g11/cTaskConsMenuPlayer.hpp"
 #include "kingdom/game/menu/cTaskConsMenuTutorialBase.hpp"
 
 // Grobda Remix (g11) menu 338 consoles, ported 1:1 from main.dol (no C# exists for Grobda). Layouts of g11menu.lzs: GROBDA_BIN_ANT_MENU_SELECT01
 // (crc 0x6ec78825, single player) / SELECT02 (0xf7ced99f, multiplayer), GROBDA_BIN_ANT_MENU_BG (0x9d87f296), GROBDA_BIN_ANT_TUTORIAL (0x90cbdb1f).
 // The buttons share one body (DOL: four classes Back 0x802043d8 / Rule 0x80206e24 / Start 0x80207298 / Multi 0x80205e60): anim 4 columns
 // {appear, wait, point, decide}, hit pattern; Back / Start / Multi add 5 to the anim numbers of the multiplayer layout (+0x1d8 = 1).
-// Multiplayer branches (the four cTaskConsMenuPlayer panels with Mii icons, cTaskConsMenuMulti's matching) are NOT PORTED.
+// The four cTaskConsMenuPlayer panels are in cTaskConsMenuPlayer.hpp (their Mii icons are NOT PORTED).
 namespace kingdom::game::g11
 {
 
@@ -117,6 +118,7 @@ private:
 	cTaskConsMenuBack* m_pBack{};              // +0x1e8
 	cTaskConsMenuRule* m_pRule{};              // +0x1ec
 	cTaskConsMenuHighScore* m_pHigh{};         // +0x1f0 (single player only)
+	cTaskConsMenuPlayer* m_pPlayer[4]{};       // +0x1f4 (multiplayer only)
 	kingdom::game::cTaskConsMenuBase* m_pItem[5]{};   // +0x204: 0 none, 1 Back, 2 Rule, 3 Multi, 4 Start
 };
 }

@@ -6,6 +6,9 @@
 #include "kingdom/game/g07/cTaskCharBoss.hpp"
 #include "kingdom/ResourceDatabase.hpp"
 #include "KingdomGlobal.hpp"
+#include <ESEKind.hpp>
+#include <SoundManager.hpp>
+#include <SoundSe.hpp>
 
 namespace kingdom::game::g07
 {
@@ -50,6 +53,7 @@ void cTaskConsBossLife::Term()
 {
 }
 
+// DOL 0x800fcb14 [audited: per AUDIT_G03_G07 row]: boss stages only; first play = appear anim 152 + SE 31, then 153 held at 100 %; step 3 = HP % (frame), hit flash anim (slot 1)
 bool cTaskConsBossLife::Execute(cJetTask* pParam)
 {
 	if (!KingdomGlobal::MotosSys->IsBossStage())
@@ -63,7 +67,7 @@ bool cTaskConsBossLife::Execute(cJetTask* pParam)
 		StepChange(1);
 		if (KingdomGlobal::g_pMotosGame->IsFirstPlay())
 		{
-			// TODO(unity): new GameObject().AddComponent<CoroutineObject>().ExecCoroutine(WaitOneFramePlaySE());
+			SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE031_BOSS_APPEAR1);   // DOL 0x800fcbe0 [audited: described by the 43rd-session pass]: SE 0x1f on the console's handle (+0x200), at once (the C# waited a frame)
 			break;
 		}
 		StepChange(3);
@@ -71,6 +75,7 @@ bool cTaskConsBossLife::Execute(cJetTask* pParam)
 		pAnita(0u)->SetState(2u, false);
 		StepChange(3);
 		pAnita(0u)->SetFrame(100.0f);
+		pAnita(0u)->AnimUpdate(0.0f);   // DOL 0x80141c44 [audited: per AUDIT_G03_G07 row](0): apply the frame now
 		break;
 	case 1:
 		if (IsAnmEnd(0u))
@@ -87,6 +92,7 @@ bool cTaskConsBossLife::Execute(cJetTask* pParam)
 				pAnita(0u)->SetState(2u, false);
 				StepChange(3);
 				pAnita(0u)->SetFrame(100.0f);
+				pAnita(0u)->AnimUpdate(0.0f);
 			}
 			cTaskCharBoss* cTaskCharBoss3 = static_cast<cTaskCharBoss*>(KingdomGlobal::g_pMotosGame->pBoss());
 			m_nOldHp = cTaskCharBoss3->nHp();
@@ -107,10 +113,12 @@ bool cTaskConsBossLife::Execute(cJetTask* pParam)
 			if (m_nOldHp != cTaskCharBoss2->nHp())
 			{
 				pAnita(1u)->SetFrame(0.0f);
+				pAnita(1u)->AnimUpdate(0.0f);
 				Visible(1u);
 			}
 			m_nOldHp = cTaskCharBoss2->nHp();
 			pAnita(0u)->SetFrame(num);
+			pAnita(0u)->AnimUpdate(0.0f);
 			break;
 		}
 	}

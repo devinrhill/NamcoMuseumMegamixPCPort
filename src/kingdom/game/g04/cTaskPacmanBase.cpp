@@ -25,7 +25,7 @@ constexpr float HALF_PI_N = -1.5707964f;   // FLOAT_8047cd24
 bool IsSingle() { return KingdomGlobal::WaniWaniSys->nPlayers() == 1; }
 }
 
-// DOL 0x8019ca4c (the CSV block of cParamPacman; CSV_PACMAN = 0x7bf448e4)
+// DOL 0x8019ca4c [audited: row/col map and defaults checked] (the CSV block of cParamPacman; CSV_PACMAN = 0x7bf448e4)
 void cParamPacman::Load()
 {
 	kingdom::cKingdomCSV csv;
@@ -36,16 +36,16 @@ void cParamPacman::Load()
 	fPlusRange = csv.F32(2, 1, 0.0f);
 	fComboInput = csv.F32(4, 1, 0.0f);
 	fJumpHeight = csv.F32(5, 1, 0.0f);
-	fBezierDiv = csv.F32(6, 1, 0.0f);
+	fBezierDiv = csv.F32(6, 1, 0.5f);   // default FLOAT_8047cab4
 	for (int p = 0; p < 4; p++)
 		vInitPos[p] = Vector4(csv.F32(p + 9, 1, 0.0f), csv.F32(p + 9, 2, 0.0f), csv.F32(p + 9, 3, 0.0f), 1.0f);
 	fComboMoveFrame = csv.F32(7, 1, 0.0f);
 	for (int i = 0; i < 4; i++)
 		vFailOffset[i] = Vector4(csv.F32(i + 13, 1, 0.0f), csv.F32(i + 13, 2, 0.0f), csv.F32(i + 13, 3, 0.0f), 0.0f);
-	fWaitShake = csv.F32(8, 1, 0.0f);
-	fExPadRadius = csv.F32(0x2d, 1, 0.0f);
-	fWinDistance = csv.F32(0x2e, 1, 0.0f);
-	fLoseDistance = csv.F32(0x2f, 1, 0.0f);
+	fWaitShake = csv.F32(8, 1, 1.0f);   // default FLOAT_8047cab8
+	fExPadRadius = csv.F32(0x2d, 1, 0.4f);   // default FLOAT_8047cabc
+	fWinDistance = csv.F32(0x2e, 1, 1.0f);   // default FLOAT_8047cab8
+	fLoseDistance = csv.F32(0x2f, 1, -1.0f);   // default FLOAT_8047cac0
 	for (int i = 0; i < 4; i++)
 	{
 		vWinOffset[i] = Vector4(csv.F32(i + 0x30, 1, 0.0f), csv.F32(i + 0x30, 2, 0.0f), csv.F32(i + 0x30, 3, 0.0f), csv.F32(i + 0x30, 4, 0.0f));
@@ -53,7 +53,7 @@ void cParamPacman::Load()
 	}
 }
 
-// DOL 0x801b2298
+// DOL 0x801b2298 [audited: ctor]
 cTaskPacmanBase::cTaskPacmanBase(uint nPlayer, cTaskBG* pBG, cTaskPacmanManager* pMan) : m_pBG(pBG), m_pMan(pMan), m_nPlayer(nPlayer)
 {
 	SetName("g04::cTaskPacmanBase");
@@ -100,7 +100,7 @@ void cTaskPacmanBase::PushAcc(int pad)
 	m_nAcc = (m_nAcc + 1) % 6;
 }
 
-// DOL 0x801b23b8
+// DOL 0x801b23b8 [audited: checked]
 void cTaskPacmanBase::Init()
 {
 	m_nChain = 0;
@@ -134,7 +134,7 @@ void cTaskPacmanBase::Init()
 	SetState(1);
 }
 
-// DOL 0x801b26f8 (a new game)
+// DOL 0x801b26f8 [audited: checked] (a new game)
 void cTaskPacmanBase::Restart()
 {
 	m_nTarget = 0;
@@ -155,7 +155,7 @@ void cTaskPacmanBase::Restart()
 	SetState(1);
 }
 
-// DOL 0x801b50e0
+// DOL 0x801b50e0 [audited: thresholds checked]
 int cTaskPacmanBase::Target(int pad) const
 {
 	const GamePad::State& s = GamePad::Get(pad);
@@ -178,7 +178,7 @@ int cTaskPacmanBase::Target(int pad) const
 	return t;
 }
 
-// DOL 0x801b5258: the SDK swing filter (kpaddemo swing.c) over the 5 newest samples; out = the swing direction. 1 = a swing.
+// DOL 0x801b5258 [audited: checked vs decomp (constants, loop, final test)]: the SDK swing filter (kpaddemo swing.c) over the 5 newest samples; out = the swing direction. 1 = a swing.
 bool cTaskPacmanBase::Swing(float minSpeed, float decay)
 {
 	float sum = 0.0f;
@@ -227,7 +227,7 @@ bool cTaskPacmanBase::Swing(float minSpeed, float decay)
 	return true;
 }
 
-// DOL 0x801b4328
+// DOL 0x801b4328 [audited: all cases checked (3: separate remote handle vs DOL same handle)]
 void cTaskPacmanBase::SetState(int state)
 {
 	m_nOldState = m_nState;
@@ -299,7 +299,7 @@ void cTaskPacmanBase::SetState(int state)
 	}
 }
 
-// DOL 0x801b5cd8: the speed line (slot 7, PTK_EFFECT08_LINE) turned toward the destination
+// DOL 0x801b5cd8 [audited: checked]: the speed line (slot 7, PTK_EFFECT08_LINE) turned toward the destination
 void cTaskPacmanBase::LineFx()
 {
 	const float dx = m_vDest[0] - m_vFrom[0], dy = m_vDest[1] - m_vFrom[1];
@@ -320,7 +320,7 @@ void cTaskPacmanBase::ClearTrail()
 		}
 }
 
-// DOL 0x801b5ed0: a quadratic bezier from `from` to `to` whose control point sits at `div` of the way, raised by `height` along
+// DOL 0x801b5ed0 [audited: checked]: a quadratic bezier from `from` to `to` whose control point sits at `div` of the way, raised by `height` along
 // (d x up) x d (d = the normalised direction, up = (0, 1, 0))
 void cTaskPacmanBase::Bezier(float t, float div, float height, float out[3], const float from[3], const float to[3])
 {
@@ -339,7 +339,7 @@ void cTaskPacmanBase::Bezier(float t, float div, float height, float out[3], con
 	}
 }
 
-// DOL 0x801b2ee4 (states 1 / 2)
+// DOL 0x801b2ee4 [audited: checked (Mii listener tick not ported)] (states 1 / 2)
 void cTaskPacmanBase::Input(cJetTask*)
 {
 	kingdom::cKingdomModel* m = pModel(0u);
@@ -397,7 +397,7 @@ void cTaskPacmanBase::Input(cJetTask*)
 	}
 }
 
-// DOL 0x801b3458 (state 3: the lunge)
+// DOL 0x801b3458 [audited: checked (Mii miss listener not ported)] (state 3: the lunge)
 void cTaskPacmanBase::Lunge()
 {
 	const int pad = Pad();
@@ -486,7 +486,7 @@ void cTaskPacmanBase::Lunge()
 	}
 }
 
-// DOL 0x801b3fc8 (state 4)
+// DOL 0x801b3fc8 [audited: checked] (state 4)
 void cTaskPacmanBase::Return()
 {
 	float t = m_fTimer / m_Param.fReturnTime;
@@ -502,7 +502,7 @@ void cTaskPacmanBase::Return()
 	}
 }
 
-// DOL 0x801b3b34 (state 5: the combo jump to the next hole)
+// DOL 0x801b3b34 [audited: checked] (state 5: the combo jump to the next hole)
 void cTaskPacmanBase::ComboJump()
 {
 	const int pad = Pad();
@@ -539,7 +539,7 @@ void cTaskPacmanBase::ComboJump()
 	}
 }
 
-// DOL 0x801b40f8 (state 9: the multiplayer result walk)
+// DOL 0x801b40f8 [audited: checked] (state 9: the multiplayer result walk)
 void cTaskPacmanBase::MultiResult()
 {
 	float t = m_fTimer * 0.03125f;   // FLOAT_8047cd3c
@@ -564,7 +564,7 @@ void cTaskPacmanBase::MultiResult()
 	if (1.0f <= t) SetState(10);
 }
 
-// DOL 0x801b294c
+// DOL 0x801b294c [audited: all states checked; model UpdateFrame by the app assumed (same as cTaskEnemy)]
 bool cTaskPacmanBase::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -637,7 +637,7 @@ bool cTaskPacmanBase::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x801b5778 + 0x801b5644: a sphere (Pac-Man, radius 0.35) against the gator's box (half size 1 / 0.5 / 1, centre z + 0.2, turned by the
+// DOL 0x801b5778 [audited: OBB test vs decomp (x/z rotation of the gator not used: always 0)] + 0x801b5644: a sphere (Pac-Man, radius 0.35) against the gator's box (half size 1 / 0.5 / 1, centre z + 0.2, turned by the
 // gator's rotation): the box point nearest to him within reach
 bool cTaskPacmanBase::HitTest(const float pac[4], kingdom::cKingdomModel* gator)
 {
@@ -659,7 +659,7 @@ bool cTaskPacmanBase::HitTest(const float pac[4], kingdom::cKingdomModel* gator)
 	return e[0] * e[0] + e[1] * e[1] + e[2] * e[2] <= pac[3] * pac[3];
 }
 
-// DOL 0x801b48d0 (cHitCallback<cTaskPacmanBase, cTaskEnemy>::Call 0x8009460c, every Pac-Man x gator pair each frame)
+// DOL 0x801b48d0 [audited: single/multi branches vs decomp (Mii listener not ported)] (cHitCallback<cTaskPacmanBase, cTaskEnemy>::Call 0x8009460c, every Pac-Man x gator pair each frame)
 bool cTaskPacmanBase::HitEnemy(cTaskEnemy* e)
 {
 	if (m_nState != 3 && m_nState != 5) return false;
@@ -780,7 +780,7 @@ bool cTaskPacmanBase::HitEnemy(cTaskEnemy* e)
 	return true;
 }
 
-// DOL 0x801b5e24 (a bite): the combo breaks; when the score can pay, the damage count rises and the console shows it
+// DOL 0x801b5e24 [audited: checked (Mii listener not ported)] (a bite): the combo breaks; when the score can pay, the damage count rises and the console shows it
 void cTaskPacmanBase::Damage()
 {
 	m_nComboFlag = 0;
@@ -794,7 +794,7 @@ void cTaskPacmanBase::Damage()
 	}
 }
 
-// DOL 0x801b6120
+// DOL 0x801b6120 [audited]
 void cTaskPacmanBase::SetWin(int win)
 {
 	m_nWin = win;
@@ -803,7 +803,7 @@ void cTaskPacmanBase::SetWin(int win)
 
 // ---- cTaskPacmanManager ----
 
-// DOL 0x801b6310 (the builder 0x80093624 sets +0x1c8 = BG and the player count with 0x801b6550)
+// DOL 0x801b6310 [audited] (the builder 0x80093624 sets +0x1c8 = BG and the player count with 0x801b6550)
 cTaskPacmanManager::cTaskPacmanManager(cTaskBG* pBG) : m_pBG(pBG)
 {
 	SetName("g04::cTaskPacmanManager");
@@ -814,7 +814,7 @@ cTaskPacmanManager::cTaskPacmanManager(cTaskBG* pBG) : m_pBG(pBG)
 	}
 }
 
-// DOL 0x801b63fc
+// DOL 0x801b63fc [audited: DOL calls cJetTask::Execute, port cTaskKingdom::Execute (equivalent)]
 bool cTaskPacmanManager::Execute(cJetTask* pParam)
 {
 	cAppG04WaniWaniGame* app = cAppG04WaniWaniGame::Instance();
@@ -822,26 +822,26 @@ bool cTaskPacmanManager::Execute(cJetTask* pParam)
 	return cTaskKingdom::Execute(pParam);
 }
 
-// DOL 0x801b63b0
+// DOL 0x801b63b0 [audited]
 void cTaskPacmanManager::Restart()
 {
 	for (cTaskPacmanBase* p : m_pPac) p->Restart();
 }
 
-// DOL 0x801b6484: the player's remote (sys + player * 0x54 + 0x54 = nWork) rumbles 500 ms (0x80021a14), then the penalty
+// DOL 0x801b6484 [audited: checked]: the player's remote (sys + player * 0x54 + 0x54 = nWork) rumbles 500 ms (0x80021a14), then the penalty
 void cTaskPacmanManager::Damage(uint player)
 {
 	GamePad::Rumble(KingdomGlobal::WaniWaniSys->nWork((int)(player & 3u)), 500);
 	m_pPac[player & 3u]->Damage();
 }
 
-// DOL 0x801b64e0
+// DOL 0x801b64e0 [audited]
 void cTaskPacmanManager::SetAllState(int state)
 {
 	for (uint i = 0; i < m_nPlayer; i++) m_pPac[i]->SetState(state);
 }
 
-// DOL 0x801b6550
+// DOL 0x801b6550 [audited]
 void cTaskPacmanManager::SetPlayers(uint n)
 {
 	m_nPlayer = n;
@@ -853,13 +853,13 @@ void cTaskPacmanManager::SetPlayers(uint n)
 	for (uint i = n; i < 4; i++) m_pPac[i]->SetState(0);
 }
 
-// DOL 0x801b65f8
+// DOL 0x801b65f8 [audited: callee 0x801b61b0 = lastPlace reset]
 void cTaskPacmanManager::ForgetPlace(uint place)
 {
 	for (uint i = 0; i < m_nPlayer; i++) m_pPac[i]->ForgetPlace(place);
 }
 
-// DOL 0x801b6668
+// DOL 0x801b6668 [audited]
 void cTaskPacmanManager::Result(uint winner)
 {
 	if (m_nPlayer == 1)

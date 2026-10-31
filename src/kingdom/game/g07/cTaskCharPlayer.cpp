@@ -14,6 +14,7 @@
 #include <Constants.hpp>
 #include <ESEKind.hpp>
 #include <InGamePadManager.hpp>
+#include <GamePad.hpp>
 #include <PadDefine.hpp>
 #include <SoundManager.hpp>
 #include <SoundSe.hpp>
@@ -157,6 +158,7 @@ float cTaskCharPlayer::GetFrame(uint model)
 	return 0.0f;
 }
 
+// DOL 0x801f1adc [audited: described by the 43rd-session pass] (audited 44th: CSV_PLAYER_PARAM row 1 -> g_MoPlayerParam, members, mode 1 / 7 start match)
 void cTaskCharPlayer::Init()
 {
 	Constants::DefaultPlayerParam();
@@ -193,6 +195,7 @@ void cTaskCharPlayer::Init()
 	m_fReverseHeight = 2.25f;
 }
 
+// DOL 0x801f1ed0 [audited: described by the 43rd-session pass] (audited 44th: matches; the children release themselves in the DOL, TermOnce is idempotent)
 void cTaskCharPlayer::Term()
 {
 	if (m_sPlayerPtk->phPlayerArrow != nullptr)
@@ -235,6 +238,7 @@ void cTaskCharPlayer::UpdateMatrix()
 	}
 }
 
+// DOL 0x801f2084 [audited: described by the 43rd-session pass] (audited 44th: matches; model pick = hover only 1, charge only 2, both 3)
 bool cTaskCharPlayer::Create(uint no)
 {
 	m_nPlayerNo = no;
@@ -286,13 +290,15 @@ bool cTaskCharPlayer::Create(uint no)
 	return true;
 }
 
+// DOL 0x801f23c4 [audited: 44th-session pass, compared with decomp] (audited 44th)
 void cTaskCharPlayer::SetAnimation(uint AnimNo)
 {
-	if (m_prevAnimNo != AnimNo)
-	{
+	{   // no 'same animation' guard in the DOL: RegistAnm restarts the clip every call
 		cKingdomModel* cKingdomModel2 = pModel();
 		cTaskCharPlayer::sANIMATION_LIST* sANIMATION_LIST2 = AnimationName[0];
-		sANIMATION_LIST2 = ((m_nHoverLevel == 0 && m_nChargeLevel == 0) ? AnimationName[0] : ((m_nHoverLevel != 0 && m_nChargeLevel == 0) ? AnimationName[2] : ((m_nChargeLevel == 0 || m_nHoverLevel != 0) ? AnimationName[3] : AnimationName[1])));
+		// DOL 0x801f23c4 (the table copy is at 0x80380d30, four sets of five CRCs: STANDARD, FORCE, MOBILITY, MASTER): hover == 0 -> set 1 (FORCE), hover only -> set 2,
+		// hover + charge -> set 3; set 0 is never picked (the C#'s hover / charge mix-up was a different rule)
+		sANIMATION_LIST2 = (m_nHoverLevel == 0) ? AnimationName[1] : ((m_nChargeLevel == 0) ? AnimationName[2] : AnimationName[3]);
 		switch (AnimNo)
 		{
 		case 1u:
@@ -311,10 +317,11 @@ void cTaskCharPlayer::SetAnimation(uint AnimNo)
 			cKingdomModel2->RegistAnm(0u, sANIMATION_LIST2->anm[4]);
 			break;
 		}
-		m_prevAnimNo = AnimNo;
+		m_prevAnimNo = AnimNo;   // (C# bookkeeping)
 	}
 }
 
+// DOL 0x801f24f4 [audited: described by the 43rd-session pass] (audited 44th: matches; 6-frame average of each axis > 1.0)
 uint cTaskCharPlayer::WiiPadInput(const Vector4& rec, const Vector4& rec2)
 {
 	m_bWiiSwing = false;
@@ -364,10 +371,18 @@ uint cTaskCharPlayer::GetPadNo()
 	return num;
 }
 
+// DOL 0x801f1adc (inside Init): record position 0 and all six acceleration records filled with the pad's current acceleration (pad + 0x30 / + 0x90;
+// the Nunchuk's is the remote's here: UNVERIFIED)
 void cTaskCharPlayer::InitRecoord()
 {
 	m_nRecoordPos = 0u;
-	Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+	const GamePad::State& pad = GamePad::Get((int)GetPadNo());
+	const Vector4 acc(pad.acc[0], pad.acc[1], pad.acc[2], 0.0f);
+	for (int i = 0; i < 6; i++)
+	{
+		::Constants::jetGeoVecCopy(m_vInputRec[i], acc);
+		::Constants::jetGeoVecCopy(m_vInputRecEx[i], acc);
+	}
 }
 
 uint cTaskCharPlayer::Input()
@@ -378,6 +393,13 @@ uint cTaskCharPlayer::Input()
 	::Constants::jetGeoVecUnit(v);
 	ushort num3 = 0;
 	int padNum = InGamePadManager::GetPadNum((int)GetPadNo());
+	{
+		// DOL 0x801f2790 [audited: described by the 43rd-session pass]: WiiPadInput(this, pad + 0x30 (the remote's acceleration), pad + 0x90 (the Nunchuk's)) runs before any flag test. The port has
+		// no Nunchuk accelerometer: the remote's stands in for both (UNVERIFIED), so a swing (Shake) sets both swing flags
+		const GamePad::State& pad = GamePad::Get(padNum);
+		const Vector4 acc(pad.acc[0], pad.acc[1], pad.acc[2], 0.0f);
+		WiiPadInput(acc, acc);
+	}
 	if (bTestFlag(64u))
 	{
 		fSpeed() = 0.0f;
@@ -452,7 +474,7 @@ uint cTaskCharPlayer::Input()
 	}
 	else
 	{
-		if (nPiyoTimer() != 0 && GetPadTrg(padNum, cTaskCharPlayer::EKey::eALL))
+		if (nPiyoTimer() != 0 && (GamePad::Get(padNum).trig & 0xfu) != 0)   // DOL: pad trig & 0xf (the D-pad bits)
 		{
 			nPiyoTimer() -= 5;
 		}
@@ -498,6 +520,7 @@ void cTaskCharPlayer::ChargeSoundStop()
 	}
 }
 
+// DOL 0x801f2bbc [audited: described by the 43rd-session pass] (audited 44th: charge effect interval is 7 + 0.2 * time (r2 0x8047d590 = 7.0), not 28; the rest matches; SE 0x12 (hover trail) has no m07se_18 cue: silent)
 bool cTaskCharPlayer::Status()
 {
 	fHitPower() = Constants::get_g_PowerLevel2Power()[m_nPowerLevel];
@@ -571,7 +594,7 @@ bool cTaskCharPlayer::Status()
 		if (!bTestFlagOLD(8192u))
 		{
 			nEffectTimer() = 0;
-			nChargeInterval() = (int)(28.0f + 0.2f * (float)Constants::get_g_ChargeLevel2Time()[m_nChargeLevel]);
+			nChargeInterval() = (int)(7.0f + 0.2f * (float)Constants::get_g_ChargeLevel2Time()[m_nChargeLevel]);
 			if (nChargeInterval() <= 0)
 			{
 				nChargeInterval() = 8;
@@ -584,7 +607,7 @@ bool cTaskCharPlayer::Status()
 			{
 				num3 = 0;
 			}
-			nChargeInterval() = (int)(28.0f + 0.2f * (float)num3);
+			nChargeInterval() = (int)(7.0f + 0.2f * (float)num3);
 			if (nChargeInterval() <= 0)
 			{
 				nChargeInterval() = 8;
@@ -683,6 +706,7 @@ bool cTaskCharPlayer::TaikiAction()
 	return true;
 }
 
+// DOL 0x801f34e4 [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cTaskCharPlayer::ExecGivePoints(int id, int add_point, int sub_point)
 {
 	if (!KingdomGlobal::g_pMotosGame->bMultiPlay())
@@ -745,6 +769,7 @@ void cTaskCharPlayer::InitParam(MO_CHAR_PARAMS* pParam)
 	m_PLParam->m_fDecelSpeedHover = pParam->m_fExParam[2];
 }
 
+// DOL 0x801f3784 [audited: described by the 43rd-session pass] (audited 44th: matches, incl. the DOL's reuse of the length variable as the clamp ratio for fSpeed)
 void cTaskCharPlayer::AdjustMaxSpeed()
 {
 	float num = Constants::tspVector3Length(vSpeed());
@@ -787,6 +812,7 @@ void cTaskCharPlayer::AdjustMaxSpeed()
 	}
 }
 
+// DOL 0x801f38f8 [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cTaskCharPlayer::DecelSpeed(int input_dir)
 {
 	if (!bTestFlag(384u))
@@ -840,6 +866,7 @@ float cTaskCharPlayer::ConsolValCharge()
 	return nChargeLevel();
 }
 
+// DOL 0x801f3bd4 [audited: described by the 43rd-session pass] (audited 44th: matches)
 void cTaskCharPlayer::UseItem()
 {
 	CustomKingdomUtil::Assert(ID() < 4, "error");
@@ -855,6 +882,7 @@ bool cTaskCharPlayer::ExecRebirth()
 	return true;
 }
 
+// DOL 0x801f3c4c [audited: described by the 43rd-session pass] (audited 44th: matches; the held-direction test includes the pressed bits)
 bool cTaskCharPlayer::ChangeFunbari()
 {
 	int padNum = InGamePadManager::GetPadNum((int)GetPadNo());
@@ -884,6 +912,7 @@ bool cTaskCharPlayer::ChangeFunbari()
 	return false;
 }
 
+// DOL 0x801f3e38 [audited: described by the 43rd-session pass] (audited 44th: modes 1..8 compared with the decomp; pad tests are now the DOL's pad-word masks, mode 4 releases the dash by a remote swing, mode 6 rumbles, mode 8 sets no 0x100000)
 bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 {
 	Constants::MOTOS_CAUTION("ModeFunc");
@@ -923,14 +952,14 @@ bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 					{
 						SetAnimation(1u);
 					}
-					if (CustomKingdomUtil::IF(nHoverLevel()) && InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_CIRCLE, false) && !bTestFlag(128u))
+					if (CustomKingdomUtil::IF(nHoverLevel()) && (GamePad::Get(padNum).trig & (GamePad::PAD_A | GamePad::PAD_C)) != 0 && !bTestFlag(128u)   /* DOL 0x801f3e38: trig & (A | C) */)
 					{
 						SetMode(3);
 						OnFlag(128u);
 						vSpeed()[0] /= 4.0f;
 						vSpeed()[2] /= 4.0f;
 					}
-					else if (KingdomGlobal::g_pMotosGame->bMultiPlay() && CustomKingdomUtil::IF(nSPCount()) && m_nSpTimer == 0 && InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_TRIANGLE, false))
+					else if (KingdomGlobal::g_pMotosGame->bMultiPlay() && CustomKingdomUtil::IF(nSPCount()) && m_nSpTimer == 0 && m_bWiiSwing && m_bWiiSwingEx)   /* DOL: both swing flags (+0xb44 / +0xb45) from WiiPadInput */
 					{
 						m_nSpTimer = 30u;
 						nSPCount()--;
@@ -939,13 +968,13 @@ bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 						Constants::SpawnEffect(2, vMTrans());
 						Constants::SpawnEffect(2, vMTrans());
 					}
-					else if (CustomKingdomUtil::IF(nChargeLevel()) && InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_CROSS, false))
+					else if (CustomKingdomUtil::IF(nChargeLevel()) && (GamePad::Get(padNum).trig & (GamePad::PAD_B | GamePad::PAD_Z)) != 0)   /* DOL: trig & (B | Z) */
 					{
 						SetMode(4);
 					}
 					if (Constants::IS_LANPLAY())
 					{
-						if (!CustomKingdomUtil::IF(GetPadDir(padNum)))
+						if (GamePad::Get(padNum).trig == 0 && GamePad::Get(padNum).hold == 0)   // DOL: no button held or pressed
 						{
 							if (++m_nArrowTimer == Constants::FPS_TIME(2.0f))
 							{
@@ -1145,6 +1174,7 @@ bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			if (2 == nMes)
 			{
 				SetAnimation(1u);
+				GamePad::Rumble((int)GetPadNo(), 1000);   // DOL 0x801f3e38: Rumble(GetPadNo(), 1000)
 				return true;
 			}
 			if (3 == nMes)
@@ -1191,12 +1221,14 @@ bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 					switch (Step())
 					{
 					case 0:
-						if (bTestFlag(2097152u))
+						// DOL 0x801f3e38 (mode 4 step 0): letting go of B / Z (or the flag 0x200000) cancels the charge back to mode 1; the dash is released by
+						// SWINGING the remote (m_bWiiSwing), not by letting go (the C#'s release-to-dash is not in the DOL)
+						if (bTestFlag(2097152u) || (GamePad::Get(padNum).hold & (GamePad::PAD_B | GamePad::PAD_Z)) == 0)
 						{
 							ChargeSoundStop();
 							SetMode(1);
 						}
-						if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_CROSS, false))
+						if (m_bWiiSwing)
 						{
 							vMTrans()[1] = 0.0f;
 							Step()++;
@@ -1628,9 +1660,8 @@ bool cTaskCharPlayer::ModeFunc(int nMes, cJetTask* pListC, cJetTask* pScene)
 			}
 			if (3 == nMes)
 			{
-				OnFlag(4096u);
+				OnFlag(4096u);   // DOL 0x801f3e38 mode 8 nMes 3: only flag 0x1000 + SE 0x1d (the C# also set 0x100000)
 				SoundManager::get_SE()->PlaySE(ESEKind::MOTOS_SND_SE029_SPECIAL);
-				OnFlag(1048576u);
 				return true;
 			}
 			if (1 == nMes)
@@ -1696,76 +1727,23 @@ float cTaskCharPlayer::GetHitPower(int nPart, int nOtherID)
 	return Constants::get_g_PowerLevel2Power()[0];
 }
 
+// audited 44th: the DOL tests the pad words directly (get_pad1(ch): hold = +0, trig = +4; D-pad game bits UP 1 / DOWN 2 / LEFT 4 / RIGHT 8). The C#'s
+// InGamePadManager key + left-stick fallbacks are not in the DOL (the stick only becomes D-pad bits while GamePad::SetStickDpad is on, which the game
+// menus switch on)
 bool cTaskCharPlayer::GetPadCnt(int padNum, cTaskCharPlayer::EKey key)
 {
-	switch (key)
-	{
-	case cTaskCharPlayer::EKey::eUP:
-		if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_UP, false))
-		{
-			return InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_UP, false);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eDOWN:
-		if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_DOWN, false))
-		{
-			return InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_DOWN, false);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eLEFT:
-		if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LEFT, false))
-		{
-			return InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT, false);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eRIGHT:
-		if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_RIGHT, false))
-		{
-			return InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT, false);
-		}
-		return true;
-	default:
-		return false;
-	}
+	const uint bit = (key == cTaskCharPlayer::EKey::eUP) ? GamePad::PAD_UP : (key == cTaskCharPlayer::EKey::eDOWN) ? GamePad::PAD_DOWN : (key == cTaskCharPlayer::EKey::eLEFT) ? GamePad::PAD_LEFT : (key == cTaskCharPlayer::EKey::eRIGHT) ? GamePad::PAD_RIGHT : 0u;
+	return (GamePad::Get(padNum).hold & bit) != 0;
 }
 
 bool cTaskCharPlayer::GetPadTrg(int padNum, cTaskCharPlayer::EKey key)
 {
-	switch (key)
+	if (key == cTaskCharPlayer::EKey::eALL)
 	{
-	case cTaskCharPlayer::EKey::eUP:
-		if (!InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_UP))
-		{
-			return InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_UP);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eDOWN:
-		if (!InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_DOWN))
-		{
-			return InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_DOWN);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eLEFT:
-		if (!InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LEFT))
-		{
-			return InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_LEFT);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eRIGHT:
-		if (!InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_RIGHT))
-		{
-			return InGamePadManager::GetKeyDown(padNum, PadDefine::EPadKeycode::eKEY_LSTICK_RIGHT);
-		}
-		return true;
-	case cTaskCharPlayer::EKey::eALL:
-		if (!GetPadTrg(padNum, cTaskCharPlayer::EKey::eUP) && !GetPadTrg(padNum, cTaskCharPlayer::EKey::eDOWN) && !GetPadTrg(padNum, cTaskCharPlayer::EKey::eLEFT))
-		{
-			return GetPadTrg(padNum, cTaskCharPlayer::EKey::eRIGHT);
-		}
-		return true;
-	default:
-		return false;
+		return (GamePad::Get(padNum).trig & 0xfu) != 0;
 	}
+	const uint bit = (key == cTaskCharPlayer::EKey::eUP) ? GamePad::PAD_UP : (key == cTaskCharPlayer::EKey::eDOWN) ? GamePad::PAD_DOWN : (key == cTaskCharPlayer::EKey::eLEFT) ? GamePad::PAD_LEFT : (key == cTaskCharPlayer::EKey::eRIGHT) ? GamePad::PAD_RIGHT : 0u;
+	return (GamePad::Get(padNum).trig & bit) != 0;
 }
 
 bool cTaskCharPlayer::GetPadCntOrTrg(int padNum, cTaskCharPlayer::EKey key)
@@ -1777,66 +1755,24 @@ bool cTaskCharPlayer::GetPadCntOrTrg(int padNum, cTaskCharPlayer::EKey key)
 	return true;
 }
 
+// DOL 0x801f3e38 (mode 7 step 0): get_pad1(ch)->hold & 0x8260 (A | B | PLUS | bit 0x8000)
 bool cTaskCharPlayer::GetPadVSRebirth(int padNum)
 {
-	if (!InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_CIRCLE) && !InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_CROSS) && !InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_SQUARE))
-	{
-		return InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_TRIANGLE);
-	}
-	return true;
+	return (GamePad::Get(padNum).hold & 0x8260u) != 0;
 }
 
+// DOL 0x801f3c4c (ChangeFunbari): (pad trig | pad hold) & the fall direction bits; this returns the D-pad game bits (UP 1, DOWN 2, LEFT 4, RIGHT 8)
 int cTaskCharPlayer::GetPadDir(int padNum)
 {
-	int num = 0;
-	if (GetPadCnt(padNum, cTaskCharPlayer::EKey::eUP))
-	{
-		num |= 1;
-	}
-	if (GetPadCnt(padNum, cTaskCharPlayer::EKey::eDOWN))
-	{
-		num |= 2;
-	}
-	if (GetPadCnt(padNum, cTaskCharPlayer::EKey::eLEFT))
-	{
-		num |= 4;
-	}
-	if (GetPadCnt(padNum, cTaskCharPlayer::EKey::eRIGHT))
-	{
-		num |= 8;
-	}
-	return num;
+	return (int)((GamePad::Get(padNum).trig | GamePad::Get(padNum).hold) & 0xfu);
 }
 
+// DOL 0x801f2790 (Input) reads only the pad's stick words +0x10 / +0x14 (the Nunchuk stick, y up; the keyboard's WASD / a gamepad's left stick are that
+// stick natively); the D-pad is not a movement input in Pac-Motos. The C#'s D-pad / key fallback is dropped (audited 44th).
 Vector2 cTaskCharPlayer::GetPadLStickOrKey(int padNum)
 {
-	Vector2 zero = Vector2::zero;
-	if (InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_UP, false))
-	{
-		zero.y = 1.0f;
-	}
-	else if (InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_DOWN, false))
-	{
-		zero.y = -1.0f;
-	}
-	if (InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_LEFT, false))
-	{
-		zero.x = -1.0f;
-	}
-	else if (InGamePadManager::GetKey(padNum, PadDefine::EPadKeycode::eKEY_RIGHT, false))
-	{
-		zero.x = 1.0f;
-	}
-	Vector2 stick = InGamePadManager::GetStick(padNum, PadDefine::scLSTICK, false);
-	if (Mathf::Approximately(zero.x, 0.0f))
-	{
-		zero.x = stick.x;
-	}
-	if (Mathf::Approximately(zero.y, 0.0f))
-	{
-		zero.y = stick.y;
-	}
-	return zero;
+	const GamePad::State& pad = GamePad::Get(padNum);
+	return Vector2(pad.stick[0], pad.stick[1]);
 }
 
 }

@@ -4,7 +4,6 @@
 #include "CustomKingdomUtil.hpp"
 #include "kingdom/game/g03/Constants.hpp"
 #include "KingdomGlobal.hpp"
-#include "MotosUIRollStageName.hpp"
 #include <Constants.hpp>
 
 namespace kingdom::game::g03
@@ -26,34 +25,15 @@ void cTaskConsStageName::Init()
 
 void cTaskConsStageName::Term()
 {
-	if (UnityUI != nullptr)
-	{
-		UnityUI->SetEnable(false);
-	}
 }
 
 void cTaskConsStageName::Start()
 {
 	SetState(1u);
 	SetAnim(0u, nGetAnimNoIn(KingdomGlobal::PacnRollSys->nWorld()));
-	if (nullptr == UnityUI)
-	{
-		Visible(0u);
-	}
+	Visible(0u);
 	SetAnim(1u, nGetAnimNoStageIn(KingdomGlobal::PacnRollSys->nStage()));
 	Visible(1u);
-	if (UnityUI != nullptr)
-	{
-		UnityUI->Init((int)(KingdomGlobal::PacnRollSys->nWorld() + 1));
-	}
-	if (UnityUI != nullptr)
-	{
-		UnityUI->SetEnable(true);
-	}
-	if (UnityUI != nullptr)
-	{
-		UnityUI->PlayBaseAnim(MotosUIRollStageName::EBaseAnim::In);
-	}
 }
 
 void cTaskConsStageName::End()
@@ -61,10 +41,6 @@ void cTaskConsStageName::End()
 	SetAnim(0u, nGetAnimNoOut(KingdomGlobal::PacnRollSys->nWorld()));
 	SetAnim(1u, nGetAnimNoStageOut(KingdomGlobal::PacnRollSys->nStage()));
 	SetState(3u);
-	if (UnityUI != nullptr)
-	{
-		UnityUI->PlayBaseAnim(MotosUIRollStageName::EBaseAnim::Out);
-	}
 }
 
 bool cTaskConsStageName::Execute(cJetTask* pParam)
@@ -76,7 +52,7 @@ bool cTaskConsStageName::Execute(cJetTask* pParam)
 	switch (nGetState())
 	{
 	case 1u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()) && IsAnimEnd(1u))
+		if (IsAnimEnd(0u) && IsAnimEnd(1u))
 		{
 			SetAnim(0u, nGetAnimNoStay(KingdomGlobal::PacnRollSys->nWorld()));
 			SetAnim(1u, nGetAnimNoStageStay(KingdomGlobal::PacnRollSys->nStage()));
@@ -109,19 +85,11 @@ bool cTaskConsStageName::Execute(cJetTask* pParam)
 			break;
 		}
 	case 3u:
-		if (IsAnimEnd(0u) && (nullptr == UnityUI || !UnityUI->IsPlayBaseAnim()) && IsAnimEnd(1u))
+		if (IsAnimEnd(0u) && IsAnimEnd(1u))
 		{
 			Invisible(0u);
 			Invisible(1u);
 			SetState(4u);
-			if (UnityUI != nullptr)
-			{
-				UnityUI->SetEnable(false);
-			}
-			if (UnityUI != nullptr)
-			{
-				UnityUI->ResetBaseAnim();
-			}
 		}
 		break;
 	}

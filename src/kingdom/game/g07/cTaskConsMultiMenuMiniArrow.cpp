@@ -16,6 +16,7 @@ cTaskConsMultiMenuMiniArrow::~cTaskConsMultiMenuMiniArrow()
 {
 }
 
+// DOL 0x801cd8c0 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 void cTaskConsMultiMenuMiniArrow::SetData(uint nType)
 {
 	CustomKingdomUtil::Assert(0 <= nType && nType < 6, "ArrowType Over");
@@ -31,6 +32,7 @@ void cTaskConsMultiMenuMiniArrow::SetData(uint nType)
 	pAnita(0u)->GetLayerPos(pAnita(0u)->vTrans(), array[nArrowType()], pat);
 }
 
+// DOL 0x801cda20 [audited: anim table and priority compared word for word with the DOL data, step logic vs decomp]
 int cTaskConsMultiMenuMiniArrow::nGetArrowAnmNo(int nAnmState)
 {
 	int obj[6][4] = {{69, 70, 71, 72}, {73, 74, 75, 76}, {69, 70, 71, 72}, {73, 74, 75, 76}, {69, 70, 71, 72}, {73, 74, 75, 76}};

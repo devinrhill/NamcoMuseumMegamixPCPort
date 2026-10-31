@@ -27,6 +27,7 @@ cTaskCharGolvis01::cTaskCharGolvis01(cJetTask* pParent)
 	Init();
 }
 
+// DOL 0x80119b24 [audited]
 void cTaskCharGolvis01::Init()
 {
 	float num = 0.0f;
@@ -81,11 +82,13 @@ void cTaskCharGolvis01::Init()
 	Setting(false);
 }
 
+// DOL 0x8011a108 [audited: blr]
 void cTaskCharGolvis01::Term()
 {
-	cTaskCharGolvis::Term();
+	// DOL blr: the base Term runs from the dtor chain (cTaskCharGolvis::ReleaseTerm)
 }
 
+// DOL 0x8011a10c [audited: constants 0.2/4.0/1.3 and the |dx|,|dz| tests vs decomp]
 bool cTaskCharGolvis01::IsNearAttack()
 {
 	float num = ::Constants::fabs(Constants::PACMAN_OBJ()->vTrans(0) - vTrans(0));
@@ -98,11 +101,13 @@ bool cTaskCharGolvis01::IsNearAttack()
 	return false;
 }
 
+// DOL 0x8011a1f4 [audited]
 bool cTaskCharGolvis01::IsForceAttack()
 {
 	return IsNearAttack();
 }
 
+// DOL 0x8011a204 [audited: vtable +0x148 IsNearAttack -> kind 6]
 bool cTaskCharGolvis01::ChangeToAttack(int iAttackKind)
 {
 	if (IsNearAttack())
@@ -112,6 +117,7 @@ bool cTaskCharGolvis01::ChangeToAttack(int iAttackKind)
 	return cTaskCharGolvis::ChangeToAttack(iAttackKind);
 }
 
+// DOL 0x8011a26c [audited: flag mask 0x11, vtable +0x94]
 bool cTaskCharGolvis01::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -122,11 +128,13 @@ bool cTaskCharGolvis01::Execute(cJetTask* pParam)
 	return cTaskCharGolvis::Execute(pParam);
 }
 
+// DOL 0x8011a314 [audited]
 void cTaskCharGolvis01::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskCharGolvis::Draw(nStatus, pParam);
 }
 
+// DOL 0x8011a318 [audited: Setting order checked]
 void cTaskCharGolvis01::Setting(bool bRelocate)
 {
 	cTaskCharGolvis::Setting(bRelocate);
@@ -139,6 +147,7 @@ void cTaskCharGolvis01::Setting(bool bRelocate)
 	m_fLinePosition = 0.0f;
 }
 
+// DOL 0x8011a37c [audited]
 void cTaskCharGolvis01::InitStateFirst()
 {
 	::Constants::jetGeoVecCopy(vTrans(), m_vecLinePoint[0]->m_vPos);
@@ -147,12 +156,14 @@ void cTaskCharGolvis01::InitStateFirst()
 	m_bDisp = true;
 }
 
+// DOL 0x8011a3f4 [audited]
 void cTaskCharGolvis01::InitStateStart()
 {
 	m_iAIMode = 2;
 	m_iState = cTaskCharGolvis01::gmEMonsterStateGolvisRail::STATE_GOLVISRAIL_PURSUIT;
 }
 
+// DOL 0x8011a408 [audited]
 void cTaskCharGolvis01::ChangeToRevive()
 {
 	cTaskCharGolvis::ChangeToRevive();
@@ -175,6 +186,7 @@ void cTaskCharGolvis01::SelectForwardDir()
 	}
 }
 
+// DOL 0x8011a46c [audited: thresholds 100/400, speed x2/x3, 0.01 vs decomp]
 void cTaskCharGolvis01::MonsterFrameMove_Free()
 {
 	Vector4 v;
@@ -233,6 +245,7 @@ void cTaskCharGolvis01::MonsterFrameMove_Free()
 	}
 }
 
+// DOL 0x8011a778 [audited: 0.5 / 0.01, directions vs decomp]
 void cTaskCharGolvis01::MonsterFrameMove_Escape()
 {
 	m_iMoveStopTime = 0;
@@ -252,6 +265,7 @@ void cTaskCharGolvis01::MonsterFrameMove_Escape()
 	}
 }
 
+// DOL 0x8011a8cc [audited: rail helpers (earlier pass)]
 float cTaskCharGolvis01::LineGetPosRot(float& pOut, Vector4& vOut, float fDistance)
 {
 	pOut = 0.0f;
@@ -293,6 +307,7 @@ float cTaskCharGolvis01::LineGetPosRot(float& pOut, Vector4& vOut, float fDistan
 	return LineGetPosRot(pOut, vOut, fDistance);
 }
 
+// DOL 0x8011aab4 [audited]
 float cTaskCharGolvis01::LineCalcPosition(const Vector4& vTarget)
 {
 	int num = (int)LineSearchNearPOINT(vTarget);
@@ -325,6 +340,7 @@ float cTaskCharGolvis01::LineCalcPosition(const Vector4& vTarget)
 	return m_vecLinePoint[num]->m_fDist - num3;
 }
 
+// DOL 0x8011ac5c [audited]
 uint cTaskCharGolvis01::LineSearchNearPOINT(const Vector4& vTarget)
 {
 	float num = 6553600.0f;
@@ -345,6 +361,7 @@ uint cTaskCharGolvis01::LineSearchNearPOINT(const Vector4& vTarget)
 	return result;
 }
 
+// DOL 0x8011ad24 [audited: checked]
 void cTaskCharGolvis01::LineMove(const int& dir, const float& fSpeed)
 {
 	if (dir == 1)
@@ -362,6 +379,7 @@ void cTaskCharGolvis01::LineMove(const int& dir, const float& fSpeed)
 	}
 }
 
+// DOL 0x8011ada0 [audited]
 Constants::gmSGolvisAttack* cTaskCharGolvis01::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	return cTaskCharGolvis::GetAttackKind(nEatNum, nIjikeLevel, nNum);

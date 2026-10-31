@@ -35,9 +35,9 @@ public:
 	void Save() const;                // DOL 0x800c5ff0: SaveGameData(1, block, 0x250)
 	void Reset();                     // DOL 0x800c6024: defaults from CSV_RECORD (stages 1..24), stage 1 and 25 open
 
-	bool IsAllClear() const { return m_nAllClear != 0; }                         // DOL 0x800c61d8
+	bool IsAllClear() const { return m_nAllClear != 0; }                         // DOL 0x800c61d8 [audited]
 	bool IsOpen(int idx) const;       // DOL 0x800c61f4
-	u32 GetScore(int idx) const { return Ok(idx) ? m_Stage[idx].nScore : 0u; }  // DOL 0x800c62a8
+	u32 GetScore(int idx) const { return Ok(idx) ? m_Stage[idx].nScore : 0u; }  // DOL 0x800c62a8 [audited]
 	u32 GetTime(int idx) const { return Ok(idx) ? m_Stage[idx].nTime : 0u; }    // DOL 0x800c62c0
 	bool IsNewScore(int idx) const { return Ok(idx) && m_Stage[idx].nNewScore == 1u; }   // DOL 0x800c62d8
 	bool IsNewTime(int idx) const { return Ok(idx) && m_Stage[idx].nNewTime == 1u; }     // DOL 0x800c62fc

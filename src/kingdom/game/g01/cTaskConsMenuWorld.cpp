@@ -9,14 +9,14 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x80370610: [world 0..2][appear, wait]
+// DOL 0x80370610 [audited]: [world 0..2][appear, wait]
 const int cTaskConsMenuWorld::ANM_LIST[3][eANM_MAX] = {
 	{0x2b, 0x2c},
 	{0x2d, 0x2e},
 	{0x2f, 0x30},
 };
 
-// DOL 0x800bfdc4: no draw priority; layout ANT_MENU loaded hidden
+// DOL 0x800bfdc4 [audited]: no draw priority; layout ANT_MENU loaded hidden
 cTaskConsMenuWorld::cTaskConsMenuWorld(cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
 {
@@ -25,24 +25,24 @@ cTaskConsMenuWorld::cTaskConsMenuWorld(cTaskConsMenuManBase* const& pConsMan)
 	pAnita(0u)->SetState(1u, false);
 }
 
-// DOL 0x800bfe74
+// DOL 0x800bfe74 [audited]
 cTaskConsMenuWorld::~cTaskConsMenuWorld()
 {
 }
 
-// DOL 0x800bfecc
+// DOL 0x800bfecc [audited]
 void cTaskConsMenuWorld::SetWorldNo(int nWorldNo)
 {
 	m_nWorldNo = nWorldNo;
 }
 
-// DOL 0x800bfed4 (no range check on +0x1d8)
+// DOL 0x800bfed4 [audited] (no range check on +0x1d8)
 void cTaskConsMenuWorld::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(ANM_LIST[m_nWorldNo][eANM_WAIT], false);
 }
 
-// DOL 0x800bff58
+// DOL 0x800bff58 [audited]
 bool cTaskConsMenuWorld::AppearExec()
 {
 	if (nStep() == 0)

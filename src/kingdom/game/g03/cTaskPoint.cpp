@@ -53,13 +53,14 @@ bool cTaskPoint::IsFontDraw()
 	return m_bFont;
 }
 
+// DOL 0x80187638 [audited: per AUDIT_G03_G07 row] (the task keeps the name "cTaskConsoleMan" in the DOL too)
 cTaskPoint::cTaskPoint()
 {
 	SetName("cTaskConsoleMan");
 	Init();
 }
 
-// DOL 0x8018772c
+// DOL 0x8018772c [audited: per AUDIT_G03_G07 row]
 void cTaskPoint::Init()
 {
 	m_nRetryIdx = -1;
@@ -143,12 +144,13 @@ void cTaskPoint::Init()
 	}
 }
 
+// DOL 0x80187b28 [audited: class row done in the 43rd session; function not individually re-read]; dtor 0x801876b8
 void cTaskPoint::Term()
 {
 	cTaskModel::Term();
 }
 
-// DOL 0x80187b70
+// DOL 0x80187b70 [audited: per AUDIT_G03_G07 row]
 bool cTaskPoint::Execute(cJetTask* pParam)
 {
 	cAppG03PacnRollGame* cAppG03PacnRollGame2 = Constants::PACN_APP();
@@ -196,11 +198,13 @@ bool cTaskPoint::Execute(cJetTask* pParam)
 	return cTaskModel::Execute(pParam);
 }
 
+// DOL 0x80187f04 [audited: tail branch] (blr)
 void cTaskPoint::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskModel::Draw(nStatus, pParam);
 }
 
+// inlined in Execute 0x80187b70: point + Pac-Man's radius, a floor face of kind 3 / 6, squared distance <= 2.25
 bool cTaskPoint::HitCheck(const Vector4& trans)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();
@@ -219,6 +223,7 @@ bool cTaskPoint::HitCheck(const Vector4& trans)
 	return false;
 }
 
+// DOL 0x80187f08 [audited: per AUDIT_G03_G07 row]
 void cTaskPoint::SetRetryData()
 {
 	KingdomGlobal::PacnRollSys->pRetryData()->nRetryPointIdx = m_nRetryIdx;

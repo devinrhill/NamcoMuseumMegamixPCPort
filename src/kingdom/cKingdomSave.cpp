@@ -29,7 +29,7 @@ void WriteBE32(byte* p, uint v)
 }
 }
 
-// DOL 0x8000b490 (ctor: vtable, then 0x80022320). The checksum word starts as 0x20070813 (0x80022320); the banner is built by
+// DOL 0x8000b490 [audited] (ctor: vtable, then 0x80022320). The checksum word starts as 0x20070813 (0x80022320); the banner is built by
 // InitBanner, which the port calls once the resident archive is attached (boot.cpp Job128_Init).
 cKingdomSave::cKingdomSave() : m_nChecksum(0x20070813)
 {
@@ -37,7 +37,7 @@ cKingdomSave::cKingdomSave() : m_nChecksum(0x20070813)
 
 namespace
 {
-// DOL 0x80026a98 -> 0x80026b08: UTF-8 (1..3 byte sequences) to UTF-16, at most `max` - 1 characters + a terminator, written big endian
+// DOL 0x80026a98 [audited] -> 0x80026b08: UTF-8 (1..3 byte sequences) to UTF-16, at most `max` - 1 characters + a terminator, written big endian
 // (the Wii's byte order; the DOL swaps only on a little-endian flag)
 void Utf8ToUtf16Be(byte* dst, uint max, const std::string& src)
 {
@@ -75,7 +75,7 @@ bool CopyTexture(std::uint32_t crc, byte* dst, uint size)
 }
 }
 
-// DOL 0x80022320 (banner part): NANDInitBanner(flag 0, "", ""), the title / comment from RESIDENT_US_SAVE_COMMENT (rows 0 / 1, column 1),
+// DOL 0x80022320 [audited: banner built from the CSV/textures (verified 42nd: WIBN bytes); the rest of the sys ctor is Wii-side] (banner part): NANDInitBanner(flag 0, "", ""), the title / comment from RESIDENT_US_SAVE_COMMENT (rows 0 / 1, column 1),
 // the 192x64 banner from RESIDENT_US_SAVE_BANNER, icons 1..8 from RESIDENT_US_SAVE_ICON_n (CRCs at 0x8038a9b8), every icon speed 1 (fast).
 void cKingdomSave::InitBanner()
 {
@@ -123,7 +123,7 @@ uint cKingdomSave::ComputeChecksum() const
 	return wii::Crc32(m_Data, DATA_SIZE); // FUN_8013ba2c(0, data, 0xe000): plain CRC-32
 }
 
-// DOL 0x80023d1c
+// DOL 0x80023d1c [audited]
 bool cKingdomSave::IsDirty() const
 {
 	return ComputeChecksum() != m_nChecksum;
@@ -150,7 +150,7 @@ bool cKingdomSave::WriteBoth()
 	return WriteFile(MUSEUM_BIN, file, FILE_SIZE) && WriteFile(BANNER_BIN, m_Banner, BANNER_SIZE);
 }
 
-// DOL 0x800226d4
+// DOL 0x800226d4 [audited]
 bool cKingdomSave::Check()
 {
 	if (m_bDisabled)
@@ -165,16 +165,16 @@ bool cKingdomSave::Check()
 		return false;
 	}
 
-	// banner.bin: absent -> "no save" (false, status stays OK); present -> must be BANNER_SIZE bytes
+	// banner.bin: absent -> "no save" (false, status stays OK); present -> must be BANNER_SIZE bytes. An open / length error only makes it "not good":
+	// the DOL goes on and rewrites it (NANDGetType 0x80022814 decides existence, the length read after it never returns)
 	uint len = 0;
 	r = wii::nand::GetLength(BANNER_BIN, len);
-	if (r != wii::nand::OK)
+	if (r == wii::nand::NOEXISTS)
 	{
-		m_nStatus = (r == wii::nand::NOEXISTS) ? (uint)eOK : StatusFromNand(r);
+		m_nStatus = eOK;
 		return false;
 	}
-	m_nStatus = eOK;
-	const bool bannerGood = (len == BANNER_SIZE);
+	const bool bannerGood = (r == wii::nand::OK && len == BANNER_SIZE);
 
 	// museum.bin must exist
 	uint len2 = 0;
@@ -193,7 +193,7 @@ bool cKingdomSave::Check()
 	return WriteFile(BANNER_BIN, m_Banner, BANNER_SIZE); // rewrite a wrong sized banner
 }
 
-// DOL 0x80022af4
+// DOL 0x80022af4 [audited]
 bool cKingdomSave::CheckSpace()
 {
 	if (m_bDisabled)
@@ -225,7 +225,7 @@ bool cKingdomSave::CheckSpace()
 	return WriteBoth();
 }
 
-// DOL 0x800233e8
+// DOL 0x800233e8 [audited]
 bool cKingdomSave::Delete()
 {
 	if (m_bDisabled)
@@ -251,7 +251,7 @@ bool cKingdomSave::Delete()
 	return true;
 }
 
-// DOL 0x800236ec
+// DOL 0x800236ec [audited]
 bool cKingdomSave::Load()
 {
 	if (m_bDisabled)
@@ -265,15 +265,15 @@ bool cKingdomSave::Load()
 	{
 		return false;
 	}
-	static byte file[FILE_SIZE];
+	static byte file[FILE_SIZE + 0x1c]; // 0xe020: the read is larger than the file, so a file of the wrong size in either direction fails below
 	uint got = 0;
-	r = wii::nand::ReadFile(MUSEUM_BIN, file, FILE_SIZE, got);
+	r = wii::nand::ReadFile(MUSEUM_BIN, file, sizeof file, got);
 	if (r != wii::nand::OK)
 	{
 		m_nStatus = StatusFromNand(r);
 		return false;
 	}
-	if (got != FILE_SIZE) // short read
+	if (got != FILE_SIZE) // any other length
 	{
 		m_nStatus = eCORRUPT;
 		return false;
@@ -289,7 +289,7 @@ bool cKingdomSave::Load()
 	return true;
 }
 
-// DOL 0x80023b58
+// DOL 0x80023b58 [audited]
 bool cKingdomSave::Save()
 {
 	if (m_bDisabled)

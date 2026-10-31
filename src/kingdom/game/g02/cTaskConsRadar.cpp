@@ -65,7 +65,7 @@ void FlagPos(kingdom::cTaskModel* g, float& x, float& z)
 }
 }
 
-// DOL 0x80060f54
+// DOL 0x80060f54 [audited]
 cTaskConsRadar::cTaskConsRadar(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pConsole)
 {
 	SetName("g02::cTaskConsRadar");
@@ -105,7 +105,7 @@ cTaskConsRadar::cTaskConsRadar(cTaskConsole* pConsole) : cTaskRallyAnitaBase(pCo
 	m_bDraw = true;
 }
 
-// the radar half of DOL 0x80065db0: anita 0x17 + n starts with anim = the colour (reset); Execute sets the real icon every frame
+// the radar half of DOL 0x80065db0 [audited]: anita 0x17 + n starts with anim = the colour (reset); Execute sets the real icon every frame
 void cTaskConsRadar::AddCar(kingdom::cTaskModel* pCar, int nColour, bool bPlayer)
 {
 	if (m_nCar >= 7) return;   // the DOL does not check (7 entries)
@@ -117,7 +117,7 @@ void cTaskConsRadar::AddCar(kingdom::cTaskModel* pCar, int nColour, bool bPlayer
 	m_nCar++;
 }
 
-// the radar half of DOL 0x800662c8: type 0xb (a plain flag) starts in state 0 with clip 0; types 12 .. 33 (flags 1..20, lucky, special)
+// the radar half of DOL 0x800662c8 [audited]: type 0xb (a plain flag) starts in state 0 with clip 0; types 12 .. 33 (flags 1..20, lucky, special)
 // with clip (type - 12) * 2 + 3 in state 1; other types are not shown. Placed at the gimmick's model position, shown.
 void cTaskConsRadar::AddFlag(kingdom::cTaskModel* pGimmick, int nType)
 {
@@ -140,7 +140,7 @@ void cTaskConsRadar::AddFlag(kingdom::cTaskModel* pGimmick, int nType)
 	m_nFlag++;
 }
 
-// the arrow pick inlined at each warning case (DOL 0x8006b6e8): with the top view (sys view word 2) the arrow is `base`; otherwise it is
+// the arrow pick inlined at each warning case (DOL 0x8006b6e8 [audited]): with the top view (sys view word 2) the arrow is `base`; otherwise it is
 // turned by the player's grid direction (+0x22c). The caller only reaches this with view 2, so the turned picks are dead code in the DOL.
 void cTaskConsRadar::Arrow(int base, int dir, int view)
 {
@@ -415,7 +415,7 @@ bool cTaskConsRadar::Execute(cJetTask* pParam)
 	return cTaskRallyAnitaBase::Execute(pParam);
 }
 
-// DOL 0x8006b6d4
+// DOL 0x8006b6d4 [audited]
 void cTaskConsRadar::Draw(int nStatus, cJetTask* pParam)
 {
 	if (!m_bDraw) return;

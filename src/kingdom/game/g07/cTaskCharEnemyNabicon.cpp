@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g07/cTaskCharEnemyNabicon.hpp"
 #include "kingdom/game/g07/cAppG07MotosGame.hpp"
 #include "kingdom/game/g07/cMotosGameSys.hpp"
@@ -12,6 +13,7 @@
 #include "kingdom/game/g07/cTaskCharEnemyPupaRed.hpp"
 #include "kingdom/game/g07/MO_CHAR_PARAMS.hpp"
 #include "kingdom/game/g07/NET_RF_PACKET.hpp"
+#include "GamePad.hpp"
 #include "KingdomGlobal.hpp"
 #include <Constants.hpp>
 #include <ESEKind.hpp>
@@ -32,6 +34,7 @@ cTaskCharEnemyNabicon::cTaskCharEnemyNabicon()
 	Init();
 }
 
+// DOL 0x800578fc [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyNabicon::InitParam(MO_CHAR_PARAMS* pParam)
 {
 	cTaskChar::InitParam(pParam);
@@ -43,6 +46,7 @@ cTaskCharEnemy* cTaskCharEnemyNabicon::Construct()
 	return new cTaskCharEnemyNabicon();
 }
 
+// DOL 0x80056710 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyNabicon::Init()
 {
 	int num = 0;
@@ -136,12 +140,14 @@ void cTaskCharEnemyNabicon::Init()
 	}
 }
 
+// DOL 0x80056b98 [audited: init flag cleared (DAT_80478f70), then base Term]
 void cTaskCharEnemyNabicon::Term()
 {
 	m_nInitFlag = false;
 	cTaskCharEnemy::Term();
 }
 
+// DOL 0x80056ba4 [audited: model, 3 optional clips, light 2, fog 2, shadow depth vs decomp]
 bool cTaskCharEnemyNabicon::Create(uint no)
 {
 	cKingdomModel* cKingdomModel2 = CreateModel();
@@ -161,6 +167,7 @@ bool cTaskCharEnemyNabicon::Create(uint no)
 	return true;
 }
 
+// DOL 0x80056c88 [audited: constant getter vs disassembly]
 uint cTaskCharEnemyNabicon::Input()
 {
 	return 0u;
@@ -186,6 +193,7 @@ cTaskChar* cTaskCharEnemyNabicon::m_SpawnEnemy(int dir)
 	return cTaskChar2;
 }
 
+// DOL 0x80056c90 [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyNabicon::Status()
 {
 	if (!bTestFlag(16384u) && m_bCrushFlag && !CustomKingdomUtil::IF(m_nHP))
@@ -218,6 +226,7 @@ bool cTaskCharEnemyNabicon::ActionOther()
 	return true;
 }
 
+// DOL 0x80056e2c [audited: per AUDIT_G03_G07 row]
 bool cTaskCharEnemyNabicon::ActionLocal()
 {
 	switch (Step())
@@ -291,7 +300,7 @@ bool cTaskCharEnemyNabicon::ActionLocal()
 			}
 			if (!flag || KingdomGlobal::g_pMotosGame->bMultiPlay())
 			{
-				int dir = Random::Range(0, 4);
+				int dir = kingdom::MslRandRange(0, 4);
 				for (int i = 0; i < 32; i++)
 				{
 					if (CustomKingdomUtil::IF(m_nAcceptDir & (1 << (i & 7))) && !CustomKingdomUtil::IF(dir--))
@@ -310,7 +319,7 @@ bool cTaskCharEnemyNabicon::ActionLocal()
 		}
 		break;
 	}
-	if (!Constants::MOTOS_IS_PAUSE() && m_nVibraTimer != 0)
+	if (!Constants::MOTOS_IS_PAUSE() && (GamePad::Get(0).hold & GamePad::PAD_HOME) == 0 && m_nVibraTimer != 0) // DOL 0x80056e2c also needs pad 0 not holding HOME (0x400)
 	{
 		::Constants::jetGeoVecCopy(vMTrans(), m_vTransTemp);
 		vMTrans()[0] += Constants::MOTOS_RANDRANGEF(-0.1f, 0.1f);
@@ -324,6 +333,7 @@ bool cTaskCharEnemyNabicon::ActionLocal()
 	return true;
 }
 
+// DOL 0x800576d8 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyNabicon::ExecReflect(NET_RF_PACKET* pPacket)
 {
 	cTaskChar* cTaskChar2 = KingdomGlobal::g_pMotosGame->pChars(pPacket->m_nChar[0]);
@@ -335,6 +345,7 @@ void cTaskCharEnemyNabicon::ExecReflect(NET_RF_PACKET* pPacket)
 	}
 }
 
+// DOL 0x80057794 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyNabicon::ExecReflectSub(Vector4 pVec, float hit_power, float charge_pow)
 {
 	if (m_bCrushFlag)
@@ -359,6 +370,7 @@ cTaskChar* cTaskCharEnemyNabicon::m_GetTaikiEnemy()
 	return nullptr;
 }
 
+// DOL 0x800577c0 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyNabicon::SetMMSParam(int para1, int para2, int para3)
 {
 	if (para1 != 0)

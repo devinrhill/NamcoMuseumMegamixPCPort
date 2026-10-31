@@ -60,11 +60,8 @@ private:
 	bool m_bCollision{};
 
 protected:
-	ResNode* m_animRootNode{};
 
-	bool m_isCalcedMtx{};
 
-	bool m_forceUpdateMtx{};
 
 public:
 	cFaceList*& pFaceList();

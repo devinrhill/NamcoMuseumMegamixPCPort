@@ -19,14 +19,14 @@ namespace
 {
 using GamePad::PAD_UP, GamePad::PAD_DOWN, GamePad::PAD_LEFT, GamePad::PAD_RIGHT, GamePad::PAD_2;
 
-// DOL 0x803776d0 (copied to the stack by KeySelect 0x8010d260): {focus, UP target, DOWN target}, terminated by focus -1
+// DOL 0x803776d0 [audited] (copied to the stack by KeySelect 0x8010d260): {focus, UP target, DOWN target}, terminated by focus -1
 const int s_KeyTbl[10][3] = {{0, -1, -1}, {1, 9, 0xc}, {2, 4, 0x11}, {3, 0xc, 4}, {8, 0x12, 9},
                              {9, 8, 1},   {4, 0xc, 2}, {0xc, 1, 4},  {0x11, 2, 0x12}, {0x12, 0x11, 8}};
-// DOL 0x80377758 (copied by DecideCheck 0x8010d748): {focus, state}, terminated by focus -1
+// DOL 0x80377758 [audited] (copied by DecideCheck 0x8010d748): {focus, state}, terminated by focus -1
 const int s_DecideTbl[13][2] = {{0, -1}, {1, 2}, {2, 5}, {3, 6}, {8, 4}, {9, 3}, {4, 0xe}, {0xa, 0xc}, {0xb, 0xd}, {0xd, 7}, {0xf, 8}, {0xe, 9}, {0x10, 0xa}};
 }
 
-// DOL 0x8010cadc. Coming back from the game (0x0c300000) the settings of the last round are kept, otherwise stage 0, 3:00 (time 1), 10 flags (flag 2).
+// DOL 0x8010cadc [audited]. Coming back from the game (0x0c300000) the settings of the last round are kept, otherwise stage 0, 3:00 (time 1), 10 flags (flag 2).
 cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(kingdom::game::cAppGameBaseMenu* pApp)
 	: cTaskConsMenuManBase(pApp)
 {
@@ -102,12 +102,12 @@ cTaskConsMultiMenuMan::cTaskConsMultiMenuMan(kingdom::game::cAppGameBaseMenu* pA
 	AddHitArray();
 }
 
-// DOL 0x8010cff4
+// DOL 0x8010cff4 [audited]
 cTaskConsMultiMenuMan::~cTaskConsMultiMenuMan()
 {
 }
 
-// DOL 0x8010d05c. Coming from the matching (0x0c700000) the stage index restarts at 25 (the first multiplayer stage); all four stages are open.
+// DOL 0x8010d05c [audited]. Coming from the matching (0x0c700000) the stage index restarts at 25 (the first multiplayer stage); all four stages are open.
 void cTaskConsMultiMenuMan::InitStageNo()
 {
 	cG02RallyXSys* sys = KingdomGlobal::RallyXSys;
@@ -116,7 +116,7 @@ void cTaskConsMultiMenuMan::InitStageNo()
 	m_nStageKey = cG02RallyXSysExt::StageInWorldOf(sys->nStageIdx()) - 1;   // sys 0x800c5808(NULL)
 }
 
-// DOL 0x8010d0c0: the pointable consoles by focus number (the controllers of players 1..3 are not pointable)
+// DOL 0x8010d0c0 [audited]: the pointable consoles by focus number (the controllers of players 1..3 are not pointable)
 void cTaskConsMultiMenuMan::AddHitArray()
 {
 	for (auto& p : m_pHitArray) p = nullptr;
@@ -134,7 +134,7 @@ void cTaskConsMultiMenuMan::AddHitArray()
 	m_pHitArray[16] = m_pArrow[5];
 }
 
-// DOL 0x8010d164 (the Bg, the board, the time and the flag consoles are not touched)
+// DOL 0x8010d164 [audited] (the Bg, the board, the time and the flag consoles are not touched)
 void cTaskConsMultiMenuMan::AllWaitState()
 {
 	m_pBack->WaitState();
@@ -148,7 +148,7 @@ void cTaskConsMultiMenuMan::AllWaitState()
 	for (int i = 0; i < 6; i++) m_pArrow[i]->WaitState();
 }
 
-// DOL 0x8010d99c
+// DOL 0x8010d99c [audited]
 void cTaskConsMultiMenuMan::Reset()
 {
 	AllWaitState();
@@ -156,7 +156,7 @@ void cTaskConsMultiMenuMan::Reset()
 	m_nStep[0] = 0;
 }
 
-// DOL 0x8010d260. The arrows count as their row (0xc stage, 0x11 flags, 0x12 time); UP / DOWN follow the table (first match; the DOL has no
+// DOL 0x8010d260 [audited]. The arrows count as their row (0xc stage, 0x11 flags, 0x12 time); UP / DOWN follow the table (first match; the DOL has no
 // skip loop here).
 void cTaskConsMultiMenuMan::KeySelect(uint trig)
 {
@@ -183,7 +183,7 @@ void cTaskConsMultiMenuMan::KeySelect(uint trig)
 	}
 }
 
-// DOL 0x8010d388. TWO focuses Back. The move sound is skipped for the pair sums 0x16 / 0x17 / 0x1e / 0x20 / 0x22 (moving between the arrows of a row).
+// DOL 0x8010d388 [audited]. TWO focuses Back. The move sound is skipped for the pair sums 0x16 / 0x17 / 0x1e / 0x20 / 0x22 (moving between the arrows of a row).
 void cTaskConsMultiMenuMan::PointUpdate(uint trig)
 {
 	int& sel = m_nSelectNow[0];
@@ -241,7 +241,7 @@ void cTaskConsMultiMenuMan::PointUpdate(uint trig)
 	}
 }
 
-// DOL 0x8010d748 (the table loop does not stop at a match, as in the DOL)
+// DOL 0x8010d748 [audited] (the table loop does not stop at a match, as in the DOL)
 void cTaskConsMultiMenuMan::DecideCheck(uint trig)
 {
 	const int sel = m_nSelectNow[0];
@@ -275,7 +275,7 @@ void cTaskConsMultiMenuMan::DecideCheck(uint trig)
 	}
 }
 
-// DOL 0x8010d86c: pad 0's pointer over a console focuses it (the last hit wins), otherwise the keys move; then players 1.. switch their own
+// DOL 0x8010d86c [audited]: pad 0's pointer over a console focuses it (the last hit wins), otherwise the keys move; then players 1.. switch their own
 // control type with A / B / Z of their pad
 void cTaskConsMultiMenuMan::Select()
 {
@@ -304,7 +304,7 @@ void cTaskConsMultiMenuMan::Select()
 	}
 }
 
-// DOL 0x8010daac. Nothing while the main app is paused (KingSys app +0x1b4).
+// DOL 0x8010daac [audited]. Nothing while the main app is paused (KingSys app +0x1b4).
 bool cTaskConsMultiMenuMan::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -530,7 +530,7 @@ bool cTaskConsMultiMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8010e3d8 (the Bg is not appeared here)
+// DOL 0x8010e3d8 [audited] (the Bg is not appeared here)
 void cTaskConsMultiMenuMan::AppearStart()
 {
 	m_pBack->AppearState();
@@ -547,7 +547,7 @@ void cTaskConsMultiMenuMan::AppearStart()
 	for (int i = 0; i < 6; i++) m_pArrow[i]->AppearState();
 }
 
-// DOL 0x8010e534
+// DOL 0x8010e534 [audited]
 bool cTaskConsMultiMenuMan::IsAppearEnd()
 {
 	bool b = m_pBack->IsAppearEndState();
@@ -565,12 +565,12 @@ bool cTaskConsMultiMenuMan::IsAppearEnd()
 	return b;
 }
 
-bool cTaskConsMultiMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }       // DOL 0x8010e6f0
-bool cTaskConsMultiMenuMan::IsStartDecide() { return m_pStart->IsDecideEndState(); }     // DOL 0x8010e704
-bool cTaskConsMultiMenuMan::IsSingleDecide() { return m_pSingle->IsDecideEndState(); }   // DOL 0x8010e718
-bool cTaskConsMultiMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }       // DOL 0x8010e72c
+bool cTaskConsMultiMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }       // DOL 0x8010e6f0 [audited]
+bool cTaskConsMultiMenuMan::IsStartDecide() { return m_pStart->IsDecideEndState(); }     // DOL 0x8010e704 [audited]
+bool cTaskConsMultiMenuMan::IsSingleDecide() { return m_pSingle->IsDecideEndState(); }   // DOL 0x8010e718 [audited]
+bool cTaskConsMultiMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }       // DOL 0x8010e72c [audited]
 
-// DOL 0x8010e740: sys stage index = key + 25, the flag / time choices, every player's control type
+// DOL 0x8010e740 [audited]: sys stage index = key + 25, the flag / time choices, every player's control type
 void cTaskConsMultiMenuMan::ApplySettings()
 {
 	cG02RallyXSys* sys = KingdomGlobal::RallyXSys;
@@ -580,7 +580,7 @@ void cTaskConsMultiMenuMan::ApplySettings()
 	for (int i = 0; i < m_nPlayer; i++) cG02RallyXSysExt::nCtrlType[i] = m_pPlayer[i]->pController()->nType();   // sys 0x800c5b78
 }
 
-// DOL 0x8010e7d8
+// DOL 0x8010e7d8 [audited]
 int cTaskConsMultiMenuMan::nCtrlType()
 {
 	return m_nPlayer > 0 ? m_pPlayer[0]->pController()->nType() : 1;

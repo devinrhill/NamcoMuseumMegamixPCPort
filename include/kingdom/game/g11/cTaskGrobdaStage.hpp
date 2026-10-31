@@ -85,8 +85,9 @@ private:
 	bool m_bPause = false;
 	bool m_bPlay0 = false;             // 'on enter' of the states 0 / 1 (the DOL's +0x1b8 byte)
 	int m_nFrame = 0;                  // +0x1ec
-	int m_nTimeMs = 120000;            // +0x1e8 (UNVERIFIED: initial value from the notes)
+	int m_nTimeMs = 120000;            // +0x1e8 
 	float m_vStart[4][2]{};
+	float m_fStartAngle[4]{};
 	bool m_bStart[4]{};
 };
 }

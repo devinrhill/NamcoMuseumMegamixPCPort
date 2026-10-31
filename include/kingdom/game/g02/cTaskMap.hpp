@@ -99,7 +99,7 @@ private:
 	cTaskConsole* m_pConsole{};        // +0x1ec
 	int m_nPlayer{};                   // +0x1f0: type 0 objects
 	int m_nEnemy{};                    // +0x1f4: type 1 objects
-	std::mt19937 m_Rand{0x20061206u};  // +0x1f8 cKingdomRand (genrand 0x8014146c; UNVERIFIED: = std::mt19937)
+	std::mt19937 m_Rand{0x20061206u};  // +0x1f8 cKingdomRand (init 0x801412b4 + genrand 0x8014146c = standard MT19937)
 	// native: what the map gave the managers (the fallbacks while the W2 hooks are null)
 	std::vector<std::pair<int, int>> m_Spawn[6];   // the multiplayer spawn points by record type (2..5)
 	std::vector<cTaskItemFlag*> m_vFlags;

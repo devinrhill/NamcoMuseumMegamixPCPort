@@ -46,7 +46,7 @@ int cTaskConsMenuMap::nGetMapAnm(uint nState)
 	return (int)((nWorldNo() * 6 + nStageNo()) * 5 + nState);
 }
 
-// DOL 0x8005dda0: pattern 0 of anita 0
+// DOL 0x8005dda0 [audited: described by the 43rd-session pass]: pattern 0 of anita 0
 bool cTaskConsMenuMap::IsDpdHit(float x, float y)
 {
 	return DpdHitPat(x, y, 0);

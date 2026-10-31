@@ -11,32 +11,32 @@
 namespace kingdom::game::g01
 {
 
-// DOL 0x8036fd90 (14 and 15 are swapped in the DOL table)
+// DOL 0x8036fd90 [audited] (14 and 15 are swapped in the DOL table)
 const int cTaskConsMenuBar::s_LayTbl[23] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 14, 16, 17, 18, 19, 20, 21, 22};
 
-// DOL 0x8036fe50
+// DOL 0x8036fe50 [audited]
 const int cTaskConsMenuBar::s_NumberAnmTbl[10][5] = {
 	{0x00, 0x01, -1, -1, 0x02}, {0x03, 0x04, -1, -1, 0x05}, {0x06, 0x07, -1, -1, 0x08}, {0x09, 0x0a, -1, -1, 0x0b},
 	{0x0c, 0x0d, -1, -1, 0x0e}, {0x0f, 0x10, -1, -1, 0x11}, {0x12, 0x13, -1, -1, 0x14}, {0x15, 0x16, -1, -1, 0x17},
 	{0x18, 0x19, -1, -1, 0x1a}, {0x1b, 0x1c, -1, -1, 0x1d}};
 
-// DOL 0x8036ff18
+// DOL 0x8036ff18 [audited]
 const int cTaskConsMenuBar::s_MarkAnmTbl[5] = {0x4f, 0x50, -1, -1, 0x51};
 
-// DOL 0x8036ff30
+// DOL 0x8036ff30 [audited]
 const int cTaskConsMenuBar::s_RankAnmTbl[8][5] = {
 	{0x31, 0x32, -1, -1, 0x33}, {0x34, 0x35, -1, -1, 0x36}, {0x37, 0x38, -1, -1, 0x39}, {0x3a, 0x3b, -1, -1, 0x3c},
 	{0x3d, 0x3e, -1, -1, 0x3f}, {0x40, 0x41, -1, -1, 0x42}, {0x43, 0x44, -1, -1, 0x45}, {0x46, 0x47, -1, -1, 0x48}};
 
-// DOL 0x8036ffd0 / 0x8036ffe4 / 0x8036fff8
+// DOL 0x8036ffd0 [audited] / 0x8036ffe4 / 0x8036fff8
 const int cTaskConsMenuBar::s_Anita14AnmTbl[5] = {0x1e, 0x1f, -1, -1, 0x20};
 const int cTaskConsMenuBar::s_Anita10AnmTbl[5] = {0x21, 0x22, -1, -1, 0x23};
 const int cTaskConsMenuBar::s_Anita15AnmTbl[5] = {0x24, 0x25, -1, -1, 0x26};
 
-// DOL 0x8036fdec
+// DOL 0x8036fdec [audited]
 const int cTaskConsMenuBar::s_FrameAnmTbl[5] = {0x49, 0x4a, -1, -1, 0x4b};
 
-// DOL 0x800bb090: anitas 0 and 24 get ANT_MENU (crc 0xd3a909fe) hidden; anitas 1..23 get ANT_MENU, SetAnimNo(s_NumberAnmTbl[0][1],
+// DOL 0x800bb090 [audited]: anitas 0 and 24 get ANT_MENU (crc 0xd3a909fe) hidden; anitas 1..23 get ANT_MENU, SetAnimNo(s_NumberAnmTbl[0][1],
 // reset = 1), hidden, and their position from layer s_LayTbl[i - 1] of pattern 4 (FUN_80014408 into anita +0x400).
 cTaskConsMenuBar::cTaskConsMenuBar(cTaskConsMenuManBase* const& pConsMan)
 	: cTaskConsMenuBase(pConsMan)
@@ -68,12 +68,12 @@ cTaskConsMenuBar::cTaskConsMenuBar(cTaskConsMenuManBase* const& pConsMan)
 	}
 }
 
-// DOL 0x800bb2d0
+// DOL 0x800bb2d0 [audited]
 cTaskConsMenuBar::~cTaskConsMenuBar()
 {
 }
 
-// DOL 0x800bb328. Four digit groups (unsigned values, digit n = value % 10^(n+1) / 10^n); a digit is hidden when
+// DOL 0x800bb328 [audited]. Four digit groups (unsigned values, digit n = value % 10^(n+1) / 10^n); a digit is hidden when
 // 10^n > value, it is a leading position (n != 0, last group n > 1) and the digit is 0; otherwise it plays its column and is shown.
 void cTaskConsMenuBar::SetNumberAnm(int nAnm)
 {
@@ -124,7 +124,7 @@ void cTaskConsMenuBar::SetNumberAnm(int nAnm)
 	pAnita(15u)->SetAnimNo(s_Anita15AnmTbl[nAnm], false);
 }
 
-// DOL 0x800bbad4
+// DOL 0x800bbad4 [audited]
 void cTaskConsMenuBar::WaitExec()
 {
 	pAnita(0u)->SetAnimNo(s_FrameAnmTbl[eANM_WAIT], false);
@@ -132,7 +132,7 @@ void cTaskConsMenuBar::WaitExec()
 	SetNumberAnm(eANM_WAIT);
 }
 
-// DOL 0x800bbb8c: step 0: the frame (anita 0) appears only if it is not shown yet; rank and anitas 1..23 are shown;
+// DOL 0x800bbb8c [audited]: step 0: the frame (anita 0) appears only if it is not shown yet; rank and anitas 1..23 are shown;
 // step 1: done when anita 0 and anitas 20..24 all ended.
 bool cTaskConsMenuBar::AppearExec()
 {
@@ -166,7 +166,7 @@ bool cTaskConsMenuBar::AppearExec()
 	return false;
 }
 
-// DOL 0x800bbd28: step 0 plays the DELETE column on anitas 1..23 (not on 0 / 24); step 1: done when anitas 20..24 all ended.
+// DOL 0x800bbd28 [audited]: step 0 plays the DELETE column on anitas 1..23 (not on 0 / 24); step 1: done when anitas 20..24 all ended.
 // UNVERIFIED: anita 24 keeps its WAIT / APPEAR anim here, so it only ends if that anim does not loop.
 bool cTaskConsMenuBar::DeleteExec()
 {
@@ -189,7 +189,7 @@ bool cTaskConsMenuBar::DeleteExec()
 	return false;
 }
 
-// DOL 0x800bbdc0. The record is read through a cRecordStageAccess on the stack (vtable 0x803963e8).
+// DOL 0x800bbdc0 [audited]. The record is read through a cRecordStageAccess on the stack (vtable 0x803963e8).
 void cTaskConsMenuBar::SetStage(int nWorldNo, int nStageNo)
 {
 	if (nWorldNo == m_nWorldNo && nStageNo == m_nStageNo)
@@ -212,7 +212,7 @@ void cTaskConsMenuBar::SetStage(int nWorldNo, int nStageNo)
 	m_b1f7 = pRec->n20 == 1;
 }
 
-// DOL 0x800bbedc
+// DOL 0x800bbedc [audited]
 void cTaskConsMenuBar::SetCurrentStageRecord()
 {
 	sStageRecord* pRec = KingdomGlobal::GalagaSys->pStageRecord(cG01GalagaSys::CURRENT);

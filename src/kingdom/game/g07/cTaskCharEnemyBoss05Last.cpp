@@ -31,12 +31,13 @@ void cTaskCharEnemyBoss05Last::Term()
 	cTaskBoss05Last::Term();
 }
 
+// DOL 0x8005416c [audited: per AUDIT_G03_G07 row] (CRC table 0x8036a4b8 compared)
 bool cTaskCharEnemyBoss05Last::Create(uint no)
 {
 	cKingdomModel* array[6] = {};
 	m_flashMatLists.assign(6, {});
 	m_baseMatColorLists.assign(6, {});
-	string array2[6][4] = {{"MDL_CHAR_GHOST_CLYDE", "ANM_CHAR_GHORST_A00", nullptr, nullptr}, {"MDL_CHAR_GHOST_INKY", "ANM_CHAR_GHORST_A01", nullptr, nullptr}, {"MDL_CHAR_GHOST_BLINKY", "ANM_CHAR_GHORST_A02", nullptr, nullptr}, {"MDL_CHAR_GHOST_PINKY", "ANM_CHAR_GHORST_A03", nullptr, nullptr}, {"MDL_CHAR_BOSS_TUNO", nullptr, nullptr, nullptr}, {"MDL_CHAR_BOSS_5_LAST", "ANM_CHAR_BOSS_5_A09", nullptr, nullptr}};
+	string array2[6][4] = {{"MDL_CHAR_GHOST_CLYDE", "ANM_CHAR_GHORST_A00", "", ""}, {"MDL_CHAR_GHOST_INKY", "ANM_CHAR_GHORST_A01", "", ""}, {"MDL_CHAR_GHOST_BLINKY", "ANM_CHAR_GHORST_A02", "", ""}, {"MDL_CHAR_GHOST_PINKY", "ANM_CHAR_GHORST_A03", "", ""}, {"MDL_CHAR_BOSS_TUNO", "", "", ""}, {"MDL_CHAR_BOSS_5_LAST", "ANM_CHAR_BOSS_5_A09", "", ""}};
 	for (uint num = 0u; num < 6; num++)
 	{
 		array[num] = CreateModel(num);
@@ -76,14 +77,10 @@ bool cTaskCharEnemyBoss05Last::Create(uint no)
 		::Constants::jetGeoVecCopy(pModel(num3)->vTrans(), vMTrans());
 		::Constants::jetGeoVecCopy(pModel(num3)->vRotate(), vRotate());
 	}
-	m_glassNode = pModel(5u)->GetLocalNode("glass");
-	for (int k = 0; k < (int)std::size(node_name); k++)
-	{
-		m_ghostNode[k] = pModel(5u)->GetLocalNode(node_name[k]);
-	}
 	return true;
 }
 
+// DOL 0x80054370 [audited: per AUDIT_G03_G07 row]
 void cTaskCharEnemyBoss05Last::UpdateMatrix()
 {
 	if (GetMode() == 1)
@@ -96,12 +93,12 @@ void cTaskCharEnemyBoss05Last::UpdateMatrix()
 		::Constants::jetGeoVecCopy(pModel(num)->vRotate(), vRotate());
 	}
 	Vector4 vector = Vector4();
-	// TODO(unity): vector = m_glassNode.localPosition;
+	pModel(5u)->GetLocalNodeTrans(vector, "glass"); // DOL FUN_8001dd54 on model 5 (the Unity transform lookup left (0,0,0))
 	::Constants::jetGeoVecAdd(pModel(4u)->vTrans(), vector, vMTrans());
 	for (uint num2 = 0u; (long)num2 < (long)(int)std::size(node_name); num2++)
 	{
 		uint idx = num2;
-		// TODO(unity): vector = m_ghostNode[num2].localPosition;
+		pModel(5u)->GetLocalNodeTrans(vector, node_name[num2]);
 		::Constants::jetGeoVecRotY(vector, vector, pModel(idx)->vRotate()[1]);
 		::Constants::jetGeoVecAdd(pModel(idx)->vTrans(), vector, vMTrans());
 	}

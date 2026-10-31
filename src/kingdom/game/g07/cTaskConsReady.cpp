@@ -44,6 +44,7 @@ void cTaskConsReady::Term()
 {
 }
 
+// DOL 0x80103aec [audited: per AUDIT_G03_G07 row] (compared 2026-10-30)
 bool cTaskConsReady::Execute(cJetTask* pParam)
 {
 	if (KingdomGlobal::g_pMotosGame->nStep(0) == 7)

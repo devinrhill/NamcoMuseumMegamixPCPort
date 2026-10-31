@@ -220,7 +220,6 @@ protected:
 
 	GameObject* m_hSndPiyori{};
 
-	Transform* m_headNode{};
 
 	static constexpr float MOVE_SPEED_DELTA = 0.0009f;
 

@@ -34,7 +34,7 @@ private:
 		eANM_NORMAL_STAGE_MAX = eANM_HINT1
 	};
 
-	static const float aHeight[3];
+	static const float aHeight[4];
 
 	static const int nTikiAnm[4];
 

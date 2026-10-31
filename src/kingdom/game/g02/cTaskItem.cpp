@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g02/cTaskItem.hpp"
 
 #include <cmath>
@@ -39,14 +40,14 @@ bool IsBoss() { return KingdomGlobal::RallyXSys != nullptr && KingdomGlobal::Ral
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // items
 
-// DOL 0x8007113c / 0x80071028 / 0x80070f14 / 0x80070e00 (the item part of the factory entries, after the cTaskGimmick head)
+// DOL 0x8007113c [audited] / 0x80071028 / 0x80070f14 / 0x80070e00 (the item part of the factory entries, after the cTaskGimmick head)
 cTaskItem::cTaskItem(const char* key)
 {
 	SetName("g02::cTaskItem");
 	SetupModel(0, key, "ITEM_ANI_OTHER", true);   // + ITEM_ANI_OTHER 0x3bff28c2, SHADOW_CIRCLE on "shadow"
 }
 
-// DOL 0x80075684 (identical: 0x80074fc0 / 0x8007489c / 0x800741d8)
+// DOL 0x80075684 [audited] (identical: 0x80074fc0 / 0x8007489c / 0x800741d8)
 bool cTaskItem::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -59,7 +60,7 @@ bool cTaskItem::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800752f8 (identical: 0x80074bd4 / 0x80074510 / 0x80073dec)
+// DOL 0x800752f8 [audited] (identical: 0x80074bd4 / 0x80074510 / 0x80073dec)
 bool cTaskItem::OnHit(cTaskUnit* pUnit)
 {
 	if (IsCollector(pUnit))   // FUN_800b1dd0
@@ -82,14 +83,14 @@ cRallyUnitHost* ItemHost()
 }
 }
 
-// DOL 0x80070c5c .. 0x80070708 (after the single player item part): +0x1e4 = +0x1e8 = 0 (FLOAT_8047a980)
+// DOL 0x80070c5c [audited] .. 0x80070708 (after the single player item part): +0x1e4 = +0x1e8 = 0 (FLOAT_8047a980)
 cTaskItemMulti::cTaskItemMulti(const char* key, int nKind) : cTaskItem(key), m_nKind(nKind)
 {
 	m_fTimer = 0.0f;
 	m_fPeriod = 0.0f;
 }
 
-// DOL 0x800754c4 (identical: 0x80074e00 / 0x800746dc / 0x80074018): in game state 4 the timer counts down and a finished timer relocates the item; the
+// DOL 0x800754c4 [audited] (identical: 0x80074e00 / 0x800746dc / 0x80074018): in game state 4 the timer counts down and a finished timer relocates the item; the
 // rest is the single player Execute
 bool cTaskItemMulti::Execute(cJetTask* pParam)
 {
@@ -98,7 +99,7 @@ bool cTaskItemMulti::Execute(cJetTask* pParam)
 	return cTaskItem::Execute(pParam);
 }
 
-// DOL 0x800751c0 (0x80074a9c / 0x800743d8 / 0x80073cb4): the collector's relocation time first
+// DOL 0x800751c0 [audited] (0x80074a9c / 0x800743d8 / 0x80073cb4): the collector's relocation time first
 bool cTaskItemMulti::OnHit(cTaskUnit* pUnit)
 {
 	m_fPeriod = pUnit != nullptr ? pUnit->fRelocation(m_nKind) : 0.0f;
@@ -112,7 +113,7 @@ namespace
 int SpawnList(int nKind) { return nKind == 2 ? 2 : (nKind == 0 ? 3 : (nKind == 1 ? 4 : 5)); }
 }
 
-// DOL 0x80075414 (fuel) / 0x8007462c (smoke): an inactive item shows again at a random spawn point
+// DOL 0x80075414 [audited] (fuel) / 0x8007462c (smoke): an inactive item shows again at a random spawn point
 bool cTaskItemMulti::Respawn()
 {
 	if (IsActive()) return false;
@@ -121,12 +122,12 @@ bool cTaskItemMulti::Respawn()
 	if (map == nullptr) return false;
 	if (kingdom::cKingdomModel* m = pModel(0)) m->Visible();   // FUN_8001a1f4
 	const int n = map->nSpawnCount(SpawnList(m_nKind));
-	if (n > 0) map->SpawnCell(SpawnList(m_nKind), std::rand() % n, pCell());
+	if (n > 0) map->SpawnCell(SpawnList(m_nKind), kingdom::MslRand() % n, pCell());
 	Enable();   // vtable +0x58
 	return true;
 }
 
-// DOL 0x80074cf0: the paint waits while a player has the chameleon effect or another paint item is out
+// DOL 0x80074cf0 [audited]: the paint waits while a player has the chameleon effect or another paint item is out
 bool cTaskItemMultiChameleonPaint::Respawn()
 {
 	if (IsActive()) return false;
@@ -139,7 +140,7 @@ bool cTaskItemMultiChameleonPaint::Respawn()
 	return cTaskItemMulti::Respawn();
 }
 
-// DOL 0x80073f08: the armor waits while a player has armor left or another armor item is out
+// DOL 0x80073f08 [audited]: the armor waits while a player has armor left or another armor item is out
 bool cTaskItemMultiSpecialArmor::Respawn()
 {
 	if (IsActive()) return false;
@@ -162,7 +163,7 @@ cTaskItemFlag::cTaskItemFlag()
 	InitFlag();   // vtable +0x3c with the cTaskItemFlag vtable
 }
 
-// DOL 0x800b28c0
+// DOL 0x800b28c0 [audited: boss stage model word +0x290 = 1 not ported]
 void cTaskItemFlag::InitFlag()
 {
 	m_bTaken = false;
@@ -178,14 +179,14 @@ void cTaskItemFlag::InitFlag()
 	m_bFlying = false;
 }
 
-// DOL 0x800b2a20 (this, 1, key)
+// DOL 0x800b2a20 [audited: boss stage model word +0x290 = 1 not ported] (this, 1, key)
 void cTaskItemFlag::SetupFlag(const char* key)
 {
 	SetupModel(1, key, "ITEM_ANI_FLAG", true);
 	// boss stage: models 0 / 1 +0x290 = 1: NOT PORTED (see InitFlag)
 }
 
-// DOL 0x800b2b3c
+// DOL 0x800b2b3c [audited: the sound actor following model 1 not ported, no cue plays on it]
 bool cTaskItemFlag::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -231,7 +232,7 @@ bool cTaskItemFlag::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800b2f38
+// DOL 0x800b2f38 [audited]
 bool cTaskItemFlag::OnHit(cTaskUnit* pUnit)
 {
 	if (IsCollector(pUnit))   // FUN_800b1dd0
@@ -245,14 +246,14 @@ bool cTaskItemFlag::OnHit(cTaskUnit* pUnit)
 	return cTaskGimmick::OnHit(pUnit);   // FUN_800b1d4c
 }
 
-// DOL 0x800b31e0
+// DOL 0x800b31e0 [audited]
 void cTaskItemFlag::Enable()
 {
 	Show(pModel(m_bTaken ? 0u : 1u), true);
 	cTaskGimmick::Enable();   // FUN_800b1d60
 }
 
-// DOL 0x800b30ac
+// DOL 0x800b30ac [audited]
 bool cTaskItemFlag::Drop(const float pTo[4], const float pFrom[4])
 {
 	if (IsActive() || m_bFlying) return false;
@@ -269,42 +270,42 @@ bool cTaskItemFlag::Drop(const float pTo[4], const float pFrom[4])
 	return true;
 }
 
-// DOL 0x800b3238
+// DOL 0x800b3238 [audited]
 void cTaskItemFlag::HideModels()
 {
 	for (uint i = 0; i < 2; i++) Show(pModel(i), false);
 }
 
-// DOL 0x80072ca0
+// DOL 0x80072ca0 [audited]
 cTaskItemFlagNormal::cTaskItemFlagNormal()
 {
 	SetName("g02::cTaskItemFlagNormal");
 	SetupFlag("ITEM_FLAG");   // 0x9cc79e8a
 }
 
-// DOL 0x80076948
+// DOL 0x80076948 [audited]
 void cTaskItemFlagNormal::Disable()
 {
 	HideModels();
 	cTaskGimmick::Disable();   // FUN_800b1d54
 }
 
-// DOL 0x80071250
+// DOL 0x80071250 [audited]
 cTaskItemFlagSpecial::cTaskItemFlagSpecial()
 {
 	SetName("g02::cTaskItemFlagSpecial");
 	SetupFlag("ITEM_FLAG_SP");   // 0x643c81b1
 }
 
-// DOL 0x80071414
+// DOL 0x80071414 [audited]
 cTaskItemFlagLucky::cTaskItemFlagLucky()
 {
 	SetName("g02::cTaskItemFlagLucky");
 	SetupFlag("ITEM_FLAG_LUCKY");   // 0x90a224ba
 }
 
-// DOL 0x80072b20 / 0x800729f4 / 0x800728c8 / 0x8007279c / 0x80072670 / 0x80072544 / 0x80072418 / 0x800722ec / 0x800721c0 / 0x80072094
-// DOL 0x80071f68 / 0x80071e3c / 0x80071d10 / 0x80071be4 / 0x80071ab8 / 0x8007198c / 0x80071860 / 0x80071734 / 0x80071608 / 0x800714d8
+// DOL 0x80072b20 [audited] / 0x800729f4 / 0x800728c8 / 0x8007279c / 0x80072670 / 0x80072544 / 0x80072418 / 0x800722ec / 0x800721c0 / 0x80072094
+// DOL 0x80071f68 [audited] / 0x80071e3c / 0x80071d10 / 0x80071be4 / 0x80071ab8 / 0x8007198c / 0x80071860 / 0x80071734 / 0x80071608 / 0x800714d8
 // (numbers 01..20: the factory table 0x80391f48 entries 12..31)
 cTaskItemFlagNumber::cTaskItemFlagNumber(int n)
 	: m_nNumber(n < 1 ? 1 : (n > 20 ? 20 : n))
@@ -320,8 +321,8 @@ cTaskItemFlagNumber::cTaskItemFlagNumber(int n)
 	if (m_nNumber == 1) Enable();   // vtable +0x58 (only FUN_80072b20 calls it)
 }
 
-// DOL 0x80076704 / 0x80076640 / 0x8007657c / 0x800764b8 / 0x800763f4 / 0x80076330 / 0x8007626c / 0x800761a8 / 0x800760e4 / 0x80076020
-// DOL 0x80075f5c / 0x80075e98 / 0x80075dd4 / 0x80075d10 / 0x80075c4c / 0x80075b88 / 0x80075ac4 / 0x80075a00 / 0x8007593c / 0x80075878
+// DOL 0x80076704 [audited] / 0x80076640 / 0x8007657c / 0x800764b8 / 0x800763f4 / 0x80076330 / 0x8007626c / 0x800761a8 / 0x800760e4 / 0x80076020
+// DOL 0x80075f5c [audited] / 0x80075e98 / 0x80075dd4 / 0x80075d10 / 0x80075c4c / 0x80075b88 / 0x80075ac4 / 0x80075a00 / 0x8007593c / 0x80075878
 // (numbers 01..20)
 const char* cTaskItemFlagNumber::GetName() const
 {
@@ -332,7 +333,7 @@ const char* cTaskItemFlagNumber::GetName() const
 	return s;
 }
 
-// DOL 0x80072c60
+// DOL 0x80072c60 [audited]
 void cTaskItemFlagNumber::Enable()
 {
 	if (kingdom::cKingdomModel* m = pModel(1)) m->ReleaseAnmTexPat(0u);   // FUN_8001b1bc(model 1, 0)

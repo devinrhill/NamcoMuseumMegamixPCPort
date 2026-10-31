@@ -15,13 +15,13 @@ cParamCamera::cParamCamera()
 	Init();
 }
 
-// DOL 0x801281a0 (the empty Term 0x80128234, then the cJetCSV base)
+// DOL 0x801281a0 [audited] (the empty Term 0x80128234, then the cJetCSV base)
 cParamCamera::~cParamCamera()
 {
 	Term();
 }
 
-// DOL 0x801280b0: memset +0x20 0xc0 (the six entries), then 0 into the scalars; +0xf4 / +0xf8 / +0x104 / +0x108 are left alone
+// DOL 0x801280b0 [audited]: memset +0x20 0xc0 (the six entries), then 0 into the scalars; +0xf4 / +0xf8 / +0x104 / +0x108 are left alone
 void cParamCamera::Init()
 {
 	for (Entry& e : m_Entry) e = Entry{};
@@ -33,7 +33,7 @@ void cParamCamera::Init()
 	m_bLoaded = false;
 }
 
-// DOL 0x80128234
+// DOL 0x80128234 [audited]
 void cParamCamera::Term()
 {
 }

@@ -19,7 +19,7 @@ namespace kingdom::game::g02
 
 namespace
 {
-// DOL 0x80378820: the cursor's {idle anim, press anim} (only the first pair is used: one cursor)
+// DOL 0x80378820 [audited]: the cursor's {idle anim, press anim} (only the first pair is used: one cursor)
 const int s_CursorAnm[2] = {0, 1};
 
 // m02bgm_Select (PTR 0x8047bf8c), played through a temporary cKingdomSndHnd (FUN_80025988) that lets go at once: the BGM keeps playing
@@ -29,13 +29,13 @@ const int s_CursorAnm[2] = {0, 1};
 
 WiiSnd::Handle g_RallyXMenuBgm;
 
-// DOL 0x800c6504 (job 194, 0x0c200000)
+// DOL 0x800c6504 [audited] (job 194, 0x0c200000)
 void cAppG02RallyXMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG02RallyXMenu());
 }
 
-// DOL 0x80121bbc
+// DOL 0x80121bbc [audited]
 cAppG02RallyXMenu::cAppG02RallyXMenu()
 {
 	SetName("cAppG02RallyXMenu");
@@ -78,20 +78,20 @@ void cAppG02RallyXMenu::Free()
 	cAppGameBaseMenu::Free();
 }
 
-// DOL 0x80121f28: every console appears; the "new stage" sound when a stage was just opened (sys 0x800c5c78)
+// DOL 0x80121f28 [audited]: every console appears; the "new stage" sound when a stage was just opened (sys 0x800c5c78)
 void cAppG02RallyXMenu::FadeInEndCallBack()
 {
 	m_pConsMan->AppearStart();
 	if (cG02RallyXSysExt::bNewStageApear) PlaySndSe("m00se_09Newstage", 0);   // PTR 0x8047bf88
 }
 
-// DOL 0x80121f84
+// DOL 0x80121f84 [audited]
 void cAppG02RallyXMenu::TutorialOutCallBack()
 {
 	m_pConsMan->Reset();
 }
 
-// DOL 0x80121f8c: type 1 (remote only) -> the motion pages, 2 (Nunchuk) -> the control pages (into the base menu's tutorial +0x29c)
+// DOL 0x80121f8c [audited]: type 1 (remote only) -> the motion pages, 2 (Nunchuk) -> the control pages (into the base menu's tutorial +0x29c)
 void cAppG02RallyXMenu::SelectTutorial()
 {
 	const int type = m_pConsMan->nCtrlType();
@@ -101,13 +101,19 @@ void cAppG02RallyXMenu::SelectTutorial()
 		pTaskTutorial() = m_pCtlTutorial;
 }
 
+// DOL 0x8005cfe8 (vtable +0x64) [audited]: m00se_02Kettei / 03Cancel / 08NG through 0x80025b6c (TV + the remote of player ctrl), any other cue 0x80025988
 void cAppG02RallyXMenu::PlaySndSe(const string& pSndName, int ctrl)
 {
-	(void)ctrl;
+	if (pSndName == "m00se_02Kettei" || pSndName == "m00se_03Cancel" || pSndName == "m00se_08NG")
+	{
+		WiiSnd::Handle h;
+		WiiSnd::PlayRemote(h, ctrl, pSndName.c_str());
+		return;
+	}
 	snd::Play(pSndName.c_str());
 }
 
-// DOL 0x80121fe0. FUN_8000d844 (KingSys, -> Kingdom_SetJobNo(0x0cf00000)) always returns 0 in this build: left out (as in Galaga's menu).
+// DOL 0x80121fe0 [audited]. FUN_8000d844 (KingSys, -> Kingdom_SetJobNo(0x0cf00000)) always returns 0 in this build: left out (as in Galaga's menu).
 // Mode 0: wait until every console has appeared, then all wait; mode 1: the selection.
 void cAppG02RallyXMenu::MainExec()
 {

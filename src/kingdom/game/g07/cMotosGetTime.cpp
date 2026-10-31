@@ -5,18 +5,25 @@
 namespace kingdom::game::g07
 {
 
-uint cMotosGetTime::GetTime()
+namespace
 {
-	// C# DateTime.Now.Ticks (100 ns units): the elapsed ticks since the previous call
-	const long now = (long)std::chrono::duration_cast<std::chrono::duration<long long, std::ratio<1, 10000000>>>(std::chrono::system_clock::now().time_since_epoch()).count();
-	m_nNowTime = now;   // (as in the C#: the second read is taken right after the first, the result is ~0; callers ignore it)
-	const long now2 = (long)std::chrono::duration_cast<std::chrono::duration<long long, std::ratio<1, 10000000>>>(std::chrono::system_clock::now().time_since_epoch()).count();
-	return (uint)(now2 - m_nNowTime);
+long NowMicro()
+{
+	return (long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 }
 
+// DOL 0x800a9520 [audited: the debug name argument is dropped]: stores OSGetTime (the stand-in is a microsecond clock), returns the difference to a second read (callers ignore it)
+uint cMotosGetTime::GetTime()
+{
+	m_nNowTime = NowMicro();
+	return (uint)(NowMicro() - m_nNowTime);
+}
+
+// DOL 0x800a9594 [audited]: OSGetTime - the time stored by the last GetTime, in milliseconds (ticks / (bus clock / 4 / 1000))
 uint cMotosGetTime::GetMilliSeconds()
 {
-	return (uint)(Time::deltaTime * 1000.0f);
+	return (uint)((NowMicro() - m_nNowTime) / 1000);
 }
 
 }

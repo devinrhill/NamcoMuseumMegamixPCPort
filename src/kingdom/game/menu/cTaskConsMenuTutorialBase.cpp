@@ -128,7 +128,7 @@ void cTaskConsMenuTutorialBase::RegistData(string CommonKey, sTutorialData* pTut
 	pAnita(2u)->GetLayerPos(pAnita(2u)->vTrans(), PAGE_SET_LAY[0], 0);
 	pAnita(3u)->GetLayerPos(pAnita(3u)->vTrans(), PAGE_SET_LAY[1], 0);
 	pAnita(4u)->GetLayerPos(pAnita(4u)->vTrans(), 1u, 0);
-	// DOL 0x80145f64 / 0x80145f80: where the page text goes (anita 0, layer 0, pattern 1 for the first page, pattern 2 for the others)
+	// DOL 0x80145f64 [audited: anim tables verified against 0x80379a30/0x80379a44; Unity UI objects (UnityUIButton/Image/Text) are native extras] / 0x80145f80: where the page text goes (anita 0, layer 0, pattern 1 for the first page, pattern 2 for the others)
 	pAnita(0u)->GetLayerPos(m_vFontPos[0], 0u, 1);
 	pAnita(0u)->GetLayerPos(m_vFontPos[1], 0u, 2);
 	for (uint num2 = 0u; num2 < nMaxPageNo(); num2++)
@@ -157,7 +157,7 @@ void cTaskConsMenuTutorialBase::AllWaitState()
 	pAnita(17u)->SetAnimNo(PREV_ANM_LIST[1]);
 }
 
-// DOL 0x80146058 (virtual slot 19): the pointer (cursor slot 26 = GetPointer; its "valid" result is ignored, an invalid pointer reads as (0, 0)) is tested
+// DOL 0x80146058 [audited: pointer test compared; select cue UNVERIFIED] (virtual slot 19): the pointer (cursor slot 26 = GetPointer; its "valid" result is ignored, an invalid pointer reads as (0, 0)) is tested
 // against the hit pattern of the close (anita 16, pattern 3), previous (anita 17, pattern 5) and next button (anita 18, pattern 4), in that order;
 // the last hit wins the highlight. A press (trig & 0x860) on a hit button leaves the page: close -> state 4, previous -> 3, next -> 2.
 // The buttons then play their normal (table index 1) or highlighted (index 2) animation without resetting; a new highlight plays the select cue.
@@ -215,7 +215,7 @@ void cTaskConsMenuTutorialBase::KeySelect()
 	}
 }
 
-// DOL 0x801465a4 (vtable +0x58; the owner calls it every frame: g04 console 0x801b1434 mode 2)
+// DOL 0x801465a4 [audited] (vtable +0x58; the owner calls it every frame: g04 console 0x801b1434 mode 2)
 void cTaskConsMenuTutorialBase::Select()
 {
 	if (m_nState == 1 && !DpdSelect())
@@ -224,6 +224,7 @@ void cTaskConsMenuTutorialBase::Select()
 	}
 }
 
+// DOL 0x80146604 [audited: state machine compared (states 0..6, anim numbers 37/35/18/20/30/25/42, nav-button visibility); remote sound (PlayRemote) not ported]
 bool cTaskConsMenuTutorialBase::Execute(cJetTask* pParam)
 {
 	switch (m_nState)
@@ -786,6 +787,7 @@ bool cTaskConsMenuTutorialBase::Execute(cJetTask* pParam)
 	return cTaskAnita::Execute(pParam);
 }
 
+// DOL 0x801477a4 [audited]
 void cTaskConsMenuTutorialBase::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskAnita::Draw(nStatus, pParam);

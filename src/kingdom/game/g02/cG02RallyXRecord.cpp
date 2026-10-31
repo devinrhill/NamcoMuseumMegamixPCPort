@@ -33,7 +33,7 @@ int cG02RallyXSysExt::nMatchNum = 0;
 uint cG02RallyXSysExt::nMatchCtrl[4] = {};
 string cG02RallyXSysExt::szMatchName[4];
 
-// the sys ctor (DOL 0x800c54e0): +0xc = 1, per player {+0x14 = 2, +0x1c = i}, +0x1b8 = 0
+// the sys ctor (DOL 0x800c54e0 [audited]): +0xc = 1, per player {+0x14 = 2, +0x1c = i}, +0x1b8 = 0
 void cG02RallyXSysExt::Reset()
 {
 	nPlayer = 1;
@@ -56,7 +56,7 @@ void cG02RallyXSysExt::SetMatching(const kingdom::sMatchingData& m)
 	}
 }
 
-// DOL 0x800c5e3c (called by the multiplayer menu app's ctor 0x80122254 unless it comes from the debug menu): the player count (+0x0c) and every
+// DOL 0x800c5e3c [audited] (called by the multiplayer menu app's ctor 0x80122254 unless it comes from the debug menu): the player count (+0x0c) and every
 // player's pad (+0x1c + 0x14 i = the matching info's nCtrl at info +0x4c; natively mapped to the remote's channel) from the matching block
 void cG02RallyXSysExt::ApplyMatching()
 {
@@ -69,7 +69,7 @@ void cG02RallyXSysExt::ApplyMatching()
 	for (int i = 0; i < nPlayer; i++) nPadNo[i] = InGamePadManager::GetPadNum((int)nMatchCtrl[i]);
 }
 
-// DOL 0x800c5e90 (the debug menu's entry, no matching ran): one player per connected pad (4 when at most one is), names "Galaga" / "RallyX" /
+// DOL 0x800c5e90 [audited] (the debug menu's entry, no matching ran): one player per connected pad (4 when at most one is), names "Galaga" / "RallyX" /
 // "PacnRoll" / "Motos" (table 0x803711a8), pad i; then the same tail as ApplyMatching
 void cG02RallyXSysExt::DebugMatching()
 {
@@ -87,19 +87,19 @@ void cG02RallyXSysExt::DebugMatching()
 	ApplyMatching();
 }
 
-// DOL 0x800c5b24
+// DOL 0x800c5b24 [audited]
 void cG02RallyXSysExt::AttachMenuArc()
 {
 	KingdomGlobal::KingSys->AttachArcData("g02_rallyx/g02menu.lzs", true);   // PTR 0x8047b2e0
 }
 
-// DOL 0x800c5b50
+// DOL 0x800c5b50 [audited]
 void cG02RallyXSysExt::DetachMenuArc()
 {
 	KingdomGlobal::KingSys->DetachArcData("g02_rallyx/g02menu.lzs");
 }
 
-// DOL 0x800c5788
+// DOL 0x800c5788 [audited]
 int cG02RallyXSysExt::WorldOf(int i)
 {
 	if (i >= 0x13) return i >= 0x1d ? 0 : (i >= 0x19 ? 0xb : 4);
@@ -107,19 +107,19 @@ int cG02RallyXSysExt::WorldOf(int i)
 	return i >= 1 ? 1 : 0;
 }
 
-// DOL 0x800c5808
+// DOL 0x800c5808 [audited]
 int cG02RallyXSysExt::StageInWorldOf(int idx)
 {
 	return idx == 0 ? 0 : (idx - 1) % 6 + 1;
 }
 
-// DOL 0x800c5bf8
+// DOL 0x800c5bf8 [audited]
 bool cG02RallyXSysExt::IsBossStageOf(int idx)
 {
 	return StageInWorldOf(idx) == 6;
 }
 
-// DOL 0x800c5858
+// DOL 0x800c5858 [audited]
 int cG02RallyXSysExt::StageIdxOf(int world, int stage)
 {
 	if (world == 0) return 0;
@@ -155,7 +155,7 @@ void cG02RallyXRecord::Load()
 	if (m_nValid == 0u || m_nVersion != VERSION) Reset();
 }
 
-// DOL 0x800c5ff0
+// DOL 0x800c5ff0 [audited]
 void cG02RallyXRecord::Save() const
 {
 	if (devtools::PreviewAll()) return; // devtools: --preview-all never persists (not 1:1)
@@ -175,7 +175,7 @@ void cG02RallyXRecord::Save() const
 	KingdomGlobal::KingSys->SaveGameData(1u, be, sizeof be);
 }
 
-// DOL 0x800c6024. Stages 1..24 take CSV_RECORD (cParamDefaultRecord, DAT_80479018; row = (i - 1) + (i - 1) / 6 + 1: one header row per
+// DOL 0x800c6024 [audited]. Stages 1..24 take CSV_RECORD (cParamDefaultRecord, DAT_80479018; row = (i - 1) + (i - 1) / 6 + 1: one header row per
 // world): column 1 score, columns 2 / 3 / 4 = minutes / seconds / ms. Index 0 and the multiplayer stages 25..28: time (u32)3599999.0f
 // (FLOAT_8047b2d0), score 10000. Then stage 1 and stage 25 open (DAT_804844c0 / DAT_804846a0).
 void cG02RallyXRecord::Reset()
@@ -219,7 +219,7 @@ void cG02RallyXRecord::Reset()
 	m_nVersion = VERSION;
 }
 
-// DOL 0x800c6320: stage indexes 1..23; the boss stages (stage in world 6) are skipped; the result is the last open stage before the first
+// DOL 0x800c6320 [audited]: stage indexes 1..23; the boss stages (stage in world 6) are skipped; the result is the last open stage before the first
 // closed one (0 when stage 1 is closed)
 int cG02RallyXRecord::GetFreeStage() const
 {
@@ -235,26 +235,26 @@ int cG02RallyXRecord::GetFreeStage() const
 	return nFree;
 }
 
-// DOL 0x800c61f4
+// DOL 0x800c61f4 [audited]
 bool cG02RallyXRecord::IsOpen(int idx) const
 {
 	if (devtools::PreviewAll() && Ok(idx)) return true; // devtools: --preview-all (not 1:1)
 	return Ok(idx) && m_Stage[idx].nOpen != 0;
 }
 
-// DOL 0x800c63f0
+// DOL 0x800c63f0 [audited]
 void cG02RallyXRecord::SetOpen(int idx)
 {
 	if (Ok(idx)) m_Stage[idx].nOpen = 1u;
 }
 
-// DOL 0x800c6410
+// DOL 0x800c6410 [audited]
 void cG02RallyXRecord::SetAllClear()
 {
 	m_nAllClear = 1u;
 }
 
-// DOL 0x800c6218
+// DOL 0x800c6218 [audited]
 bool cG02RallyXRecord::SetRecord(int idx, u32 score, u32 time)
 {
 	if (!Ok(idx)) return false;
@@ -271,7 +271,7 @@ bool cG02RallyXRecord::SetRecord(int idx, u32 score, u32 time)
 	return true;
 }
 
-// DOL 0x800c6274
+// DOL 0x800c6274 [audited]
 bool cG02RallyXRecord::SetTime(int idx, u32 time)
 {
 	if (!Ok(idx) || m_Stage[idx].nTime < time) return false;

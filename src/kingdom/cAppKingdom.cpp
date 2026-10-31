@@ -80,7 +80,7 @@ void cAppKingdom::StopWatchReset(uint n)
 	m_StopWatchs[n].nTotal = 0L;
 }
 
-// DOL 0x80096b6c. The fields keep the DOL's meaning: nStart = time base value the elapsed time is measured from,
+// DOL 0x80096b6c [audited]. The fields keep the DOL's meaning: nStart = time base value the elapsed time is measured from,
 // nTotal = last sampled time (while stopped, elapsed = nTotal - nStart). Both in OSGetTime() ticks.
 void cAppKingdom::StopWatchStart(uint n)
 {
@@ -99,7 +99,7 @@ void cAppKingdom::StopWatchStart(uint n)
 	m_StopWatchs[n].bRunning = true;
 }
 
-// DOL 0x80096c0c
+// DOL 0x80096c0c [audited]
 void cAppKingdom::StopWatchStop(uint n)
 {
 	CustomKingdomUtil::Assert((long)n < (long)::Constants::ARRAY_SIZE(m_StopWatchs), "idx error");
@@ -110,7 +110,7 @@ void cAppKingdom::StopWatchStop(uint n)
 	m_StopWatchs[n].bRunning = false;
 }
 
-// DOL 0x80096c6c: elapsed milliseconds
+// DOL 0x80096c6c [audited]: elapsed milliseconds
 uint cAppKingdom::StopWatchCheck(uint n)
 {
 	CustomKingdomUtil::Assert((long)n < (long)::Constants::ARRAY_SIZE(m_StopWatchs), "idx error");

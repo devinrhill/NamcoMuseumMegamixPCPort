@@ -202,7 +202,7 @@ void cKingdomModel::DrawNative(const float eye[3])
 
 void cKingdomModel::DrawNativeAt(const float world[16], const float eye[3])
 {
-	DrawNativeModel(m_native, world, GetLightSetIdx());
+	DrawNativeModel(m_native, world, GetLightSetIdx(), GetFogIdx());
 	if (!m_bUpdateExpand) return;
 	for (int i = 0; i < (int)std::size(m_ExpandObjs); i++)
 	{

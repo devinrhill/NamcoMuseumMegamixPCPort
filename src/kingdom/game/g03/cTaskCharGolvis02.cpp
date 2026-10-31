@@ -20,6 +20,7 @@ cTaskCharGolvis02::cTaskCharGolvis02(cJetTask* pParent)
 	Init();
 }
 
+// DOL 0x8011ae74 [audited]
 void cTaskCharGolvis02::Init()
 {
 	m_pAI = new cGolvisAIArea(this, KingdomGlobal::PacnRollSys->nRound());
@@ -27,12 +28,18 @@ void cTaskCharGolvis02::Init()
 	Setting(false);
 }
 
+// DOL 0x8011af10 [audited]
 void cTaskCharGolvis02::Term()
 {
-	m_pAI = nullptr;
-	cTaskCharGolvis::Term();
+	// DOL: delete the AI (vtable dtor, flag 1); the base Term runs from the dtor chain (cTaskCharGolvis::ReleaseTerm)
+	if (m_pAI != nullptr)
+	{
+		delete m_pAI;
+		m_pAI = nullptr;
+	}
 }
 
+// DOL 0x8011af68 [audited: same constants as Golvis01 0x8011a10c]
 bool cTaskCharGolvis02::IsNearAttack()
 {
 	float num = ::Constants::fabs(Constants::PACMAN_OBJ()->vTrans(0) - vTrans(0));
@@ -45,11 +52,13 @@ bool cTaskCharGolvis02::IsNearAttack()
 	return false;
 }
 
+// DOL 0x8011b050 [audited]
 bool cTaskCharGolvis02::IsForceAttack()
 {
 	return IsNearAttack();
 }
 
+// DOL 0x8011b060 [audited]
 bool cTaskCharGolvis02::ChangeToAttack(int iAttackKind)
 {
 	::Constants::fabs(Constants::PACMAN_OBJ()->vTrans(0) - vTrans(0));
@@ -61,6 +70,7 @@ bool cTaskCharGolvis02::ChangeToAttack(int iAttackKind)
 	return cTaskCharGolvis::ChangeToAttack(iAttackKind);
 }
 
+// DOL 0x8011b0d4 [audited]
 bool cTaskCharGolvis02::Execute(cJetTask* pParam)
 {
 	if (!Constants::IS_PAC_PAUSE() && !Constants::PACMAN_OBJ()->IsMiss())
@@ -72,11 +82,13 @@ bool cTaskCharGolvis02::Execute(cJetTask* pParam)
 	return cTaskCharGolvis::Execute(pParam);
 }
 
+// DOL 0x8011b190 [audited]
 void cTaskCharGolvis02::Draw(int nStatus, cJetTask* pParam)
 {
 	cTaskCharGolvis::Draw(nStatus, pParam);
 }
 
+// DOL 0x8011b194 [audited]
 void cTaskCharGolvis02::Setting(bool bRelocate)
 {
 	cTaskCharGolvis::Setting(bRelocate);
@@ -85,6 +97,7 @@ void cTaskCharGolvis02::Setting(bool bRelocate)
 	InitStateFirst();
 }
 
+// DOL 0x8011b1e4 [audited]
 void cTaskCharGolvis02::InitStateFirst()
 {
 	ChangeToAppear();
@@ -92,12 +105,14 @@ void cTaskCharGolvis02::InitStateFirst()
 	vRotate()[1] += ::Constants::JET_DEG2RAD(90.0f);
 }
 
+// DOL 0x8011b234 [audited]
 void cTaskCharGolvis02::InitStateStart()
 {
 	m_iAIMode = 2;
 	m_iState = cTaskCharGolvis02::gmEMonsterStateGolvisArea::STATE_GOLVISAREA_PURSUIT;
 }
 
+// DOL 0x8011b248 [audited]
 void cTaskCharGolvis02::MonsterFrameMove_PreProcess()
 {
 	if (vTrans()[1] < 0.0f)
@@ -106,6 +121,7 @@ void cTaskCharGolvis02::MonsterFrameMove_PreProcess()
 	}
 }
 
+// DOL 0x8011b260 [audited: state switch, SetKind(2|3, 0, 180), speeds vs decomp]
 void cTaskCharGolvis02::MonsterFrameMove_Free()
 {
 	Vector4 v;
@@ -175,11 +191,13 @@ void cTaskCharGolvis02::MonsterFrameMove_Free()
 	}
 }
 
+// DOL 0x8011b528 [audited]
 void cTaskCharGolvis02::MonsterFrameMove_Escape()
 {
 	MonsterFrameMove_Free();
 }
 
+// DOL 0x8011b538 [audited]
 Constants::gmSGolvisAttack* cTaskCharGolvis02::GetAttackKind(uint nEatNum, uint nIjikeLevel, int nNum)
 {
 	return cTaskCharGolvis::GetAttackKind(nEatNum, nIjikeLevel, nNum);

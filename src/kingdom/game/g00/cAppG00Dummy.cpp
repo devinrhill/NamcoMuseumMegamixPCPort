@@ -1,3 +1,4 @@
+#include "kingdom/MslRand.hpp"
 #include "kingdom/game/g00/cAppG00Dummy.hpp"
 
 #include "GamePad.hpp"
@@ -22,24 +23,18 @@ void Pointer(int& x, int& y)
 	y = (int)(256.0f * p.pointerY + 200.0f);
 }
 
-// libc rand() as the DOL uses it (0x80211048: next = next * 0x41c64e6d + 0x3039, (next >> 16) & 0x7fff). Natively its own state (the DOL
-// shares one with the particles), seeded 1
-int Rand()
-{
-	static unsigned next = 1u;
-	next = next * 0x41c64e6du + 0x3039u;
-	return (int)((next >> 16) & 0x7fffu);
-}
+// libc rand() 0x80211048: the one global state, shared with the particles
+int Rand() { return kingdom::MslRand(); }
 }
 
-// DOL 0x800c6fc0
+// DOL 0x800c6fc0 [audited]
 void cG00DummySys::JobInit()
 {
 	g_bSys = true;
 	Kingdom_SetJobNo(job::DUMMY_161, false, 0);
 }
 
-// DOL 0x800c7010
+// DOL 0x800c7010 [audited]
 void cG00DummySys::JobEnd()
 {
 	g_bSys = false;
@@ -48,13 +43,13 @@ void cG00DummySys::JobEnd()
 
 // ---- cAppG00DummyMenu ---------------------------------------------------------------------------------------------------------
 
-// DOL 0x800c706c
+// DOL 0x800c706c [audited]
 void cAppG00DummyMenu::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG00DummyMenu());
 }
 
-// DOL 0x801915a0
+// DOL 0x801915a0 [audited]
 cAppG00DummyMenu::cAppG00DummyMenu()
 {
 	SetName("g00::cAppG00DummyMenu");
@@ -63,7 +58,7 @@ cAppG00DummyMenu::cAppG00DummyMenu()
 	m_nCount = 0;
 }
 
-// DOL 0x801915b4 (pad 0 trig: A 0x20, B 0x40, 2 0x80)
+// DOL 0x801915b4 [audited] (pad 0 trig: A 0x20, B 0x40, 2 0x80)
 bool cAppG00DummyMenu::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -105,7 +100,7 @@ bool cAppG00DummyMenu::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80191844
+// DOL 0x80191844 [audited]
 void cAppG00DummyMenu::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus;
@@ -154,19 +149,19 @@ void cAppG00DummyMenu::Draw(int nStatus, cJetTask* pParam)
 
 // ---- cAppG00DummyGame ---------------------------------------------------------------------------------------------------------
 
-// DOL 0x800c7194
+// DOL 0x800c7194 [audited]
 void cAppG00DummyGame::JobInit()
 {
 	KingdomGlobal::SysCore->RegistMainTask(new cAppG00DummyGame());
 }
 
-// DOL 0x800c72bc (the member initialisers zero the rest: +0x2a8 0x180 bytes, +0x428 0x100 bytes)
+// DOL 0x800c72bc [audited] (the member initialisers zero the rest: +0x2a8 0x180 bytes, +0x428 0x100 bytes)
 cAppG00DummyGame::cAppG00DummyGame()
 {
 	SetName("g00::cAppG00DummyGame");
 }
 
-// DOL 0x800c7320: 0 count 31 frames -> 1 play -> 2 count 31 frames -> job 0x0af00000
+// DOL 0x800c7320 [audited]: 0 count 31 frames -> 1 play -> 2 count 31 frames -> job 0x0af00000
 bool cAppG00DummyGame::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -198,7 +193,7 @@ bool cAppG00DummyGame::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x800c76e0: from the 22nd frame on, every frame up to rand() % 4 targets start (the loop stops once the count is used up, at the
+// DOL 0x800c76e0 [audited]: from the 22nd frame on, every frame up to rand() % 4 targets start (the loop stops once the count is used up, at the
 // first slot already when it is 0); a target enters at the left (x -64) or right (x 640, flying left) edge, y 20 + rand() % 380, speed
 // 2 + rand() % 8, vertical speed (rand() % 8) * 0.5 toward the middle (200)
 void cAppG00DummyGame::Spawn()
@@ -225,7 +220,7 @@ void cAppG00DummyGame::Spawn()
 	}
 }
 
-// DOL 0x800c7944: flying targets move and vanish outside (-64 .. 656) x (-16 .. 416); hit ones vanish after 61 frames
+// DOL 0x800c7944 [audited]: flying targets move and vanish outside (-64 .. 656) x (-16 .. 416); hit ones vanish after 61 frames
 void cAppG00DummyGame::Move()
 {
 	for (Target& t : m_Target)
@@ -241,7 +236,7 @@ void cAppG00DummyGame::Move()
 	}
 }
 
-// DOL 0x800c7ba4: B pressed (pad trig 0x40), or A held with B repeating (+0x8), fires: one more shot, a burst at the pointer (first free
+// DOL 0x800c7ba4 [audited]: B pressed (pad trig 0x40), or A held with B repeating (+0x8), fires: one more shot, a burst at the pointer (first free
 // slot), and every flying target with 0 > x - pointer x > -96 and 0 > y - pointer y > -16 is hit (+10)
 void cAppG00DummyGame::Shoot()
 {
@@ -270,7 +265,7 @@ void cAppG00DummyGame::Shoot()
 	}
 }
 
-// DOL 0x800c7a6c: flying "\(^o^)/"; hit "/(^o^)\" green blinking (hidden every 4th frame) for 20 frames, then red blinking (every 2nd)
+// DOL 0x800c7a6c [audited]: flying "\(^o^)/"; hit "/(^o^)\" green blinking (hidden every 4th frame) for 20 frames, then red blinking (every 2nd)
 // until 40, then gone
 void cAppG00DummyGame::DrawTargets()
 {
@@ -302,7 +297,7 @@ void cAppG00DummyGame::DrawTargets()
 	}
 }
 
-// DOL 0x800c7480 (the bursts advance here, in Draw, as in the DOL)
+// DOL 0x800c7480 [audited] (the bursts advance here, in Draw, as in the DOL)
 void cAppG00DummyGame::Draw(int nStatus, cJetTask* pParam)
 {
 	(void)nStatus;

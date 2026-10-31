@@ -34,7 +34,7 @@ int cTaskConsMenuBase::nGetId()
 	return nId();
 }
 
-// DOL 0x801456e4
+// DOL 0x801456e4 [audited]
 void cTaskConsMenuBase::RestartAnim()
 {
 	pAnita(0u)->SetAnimNo(pAnita(0u)->GetAnimNo(), true, 0.0f);
@@ -108,6 +108,7 @@ bool cTaskConsMenuBase::IsDeleteEndState()
 	return nState() == 8;
 }
 
+// DOL 0x80145474 [audited]
 cTaskConsMenuBase::cTaskConsMenuBase(cTaskConsMenuManBase* const& pConsMan)
 {
 	pTaskConsMenuMan() = pConsMan;

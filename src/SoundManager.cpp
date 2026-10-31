@@ -197,6 +197,7 @@ const char* BgmCue(EBGMKind kind)
 	case EBGMKind::GALAGA_SND_BGM05_BOSS1: return "m01bgm_Boss1";
 	case EBGMKind::GALAGA_SND_BGM06_BOSS2: return "m01bgm_Boss2";
 	case EBGMKind::GALAGA_SND_BGM07_ENDING: return "m01bgm_Ending";
+	case EBGMKind::RALLYX_SND_BGM_ENDING: return "m02bgm_Ending";
 	default: return nullptr;
 	}
 }
@@ -212,7 +213,7 @@ void SoundBgm::Play(EBGMKind kind, float, bool, bool, bool checkSameAudioPlaying
 	m_kind = kind;
 }
 
-// DOL 0x80026394 (BasicSound::SetVolume on the handle's sound)
+// DOL 0x80026394 [audited: handle pair = native id; fade-time argument ignored where unsupported] (BasicSound::SetVolume on the handle's sound)
 void SoundBgm::SetVolume(float volume, float fadeSeconds)
 {
 	if (m_voice >= 0) snd::SetVolume(m_voice, volume, (int)(fadeSeconds * 1000.0f));
@@ -403,6 +404,14 @@ int SoundSeBank::PlayActor(const char* cue, const void* actor, const Vector3& po
 	return v.id;
 }
 
+GameObject* SoundSeBank::PlayActor(ESEKind kind, const void* actor, const Vector3& pos)
+{
+	const char* cue = SeCue(kind);
+	if (cue == nullptr) return nullptr;
+	const int id = PlayActor(cue, actor, pos);
+	return id < 0 ? nullptr : reinterpret_cast<GameObject*>(static_cast<std::uintptr_t>(id) + 1u);
+}
+
 // DOL 0x80026620 (Sound3DActor::SetPosition): the actor's playing sounds follow
 void SoundSeBank::SetActorPosition(const void* actor, const Vector3& pos)
 {
@@ -450,7 +459,7 @@ void SoundSeBank::Stop(GameObject* handle, float fadeSeconds)
 	m_voices.erase(std::remove_if(m_voices.begin(), m_voices.end(), [id](const Voice& v) { return v.id == id; }), m_voices.end());
 }
 
-// DOL 0x80026424
+// DOL 0x80026424 [audited: handle validity/fade test is the native IsPlaying]
 bool SoundSeBank::IsPlaying(GameObject* handle)
 {
 	if (handle == nullptr) return false;

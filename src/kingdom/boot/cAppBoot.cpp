@@ -43,12 +43,12 @@ cAppBoot::cAppBoot()
 	Init();
 }
 
-// DOL 0x8009e024: attach boot.lzs and load the layouts (7 x FUN_8000bca0 key lookup + FUN_80141708 = cJetAnita::SetData)
+// DOL 0x8009e024 [audited]: attach boot.lzs and load the layouts (7 x FUN_8000bca0 key lookup + FUN_80141708 = cJetAnita::SetData)
 void cAppBoot::Init()
 {
 	cKingdomSys* sys = KingdomGlobal::KingSys;
-	sys->SetObjA50Flags(false, true); // 0x8009e054: FUN_8009dc08(KingSys[0xa50], 0, 1)
-	sys->AttachArcData("boot.lzs", true);
+	sys->SetObjA50Flags(true, false); // 0x8009e054: FUN_8009dc08(KingSys[0xa50], 1, 0); state 3's leave step sets (0, 1)
+	sys->AttachArcData("boot.lzs", false); // r5 = 0: no cKingdomLoading indicator
 
 	// keys 0x962634df, 0x962634df, 0xe8f2e177, 0xe8f2e177, 0x9076f6de, 0xc5778ce6, 0xc5778ce6 (crc32 of the names)
 	static const char* const kLayout[7] = {"ANITA_STRAP", "ANITA_STRAP", "ANITA_LOGO", "ANITA_LOGO",
@@ -66,7 +66,7 @@ void cAppBoot::Init()
 	}
 }
 
-// DOL 0x8009e2cc. The usual mode/step flow: state S (+0x34), previous state O (+0x3c), step P (+0x40):
+// DOL 0x8009e2cc [audited+dolphin]. The usual mode/step flow: state S (+0x34), previous state O (+0x3c), step P (+0x40):
 // step 0 enters, step 1 runs, step 2 leaves (and always ends back at step 0).
 bool cAppBoot::Execute(cJetTask* pParam)
 {
@@ -191,7 +191,7 @@ bool cAppBoot::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8009f5c4: 2D projection (the game's 640 x 480 screen, handled by the gfx layer) then the seven layouts
+// DOL 0x8009f5c4 [audited]: 2D projection (the game's 640 x 480 screen, handled by the gfx layer) then the seven layouts
 void cAppBoot::Draw(int nStatus, cJetTask* pParam)
 {
 	m_Anita.Draw();

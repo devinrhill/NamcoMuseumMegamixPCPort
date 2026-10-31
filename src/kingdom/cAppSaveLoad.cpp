@@ -1,6 +1,7 @@
 #include "kingdom/cAppSaveLoad.hpp"
 #include "gfx/FontWriter.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstdio>
 
@@ -19,23 +20,22 @@ constexpr uint ANIM_END = 0x10000;     // cJetAnita state bit: animation finishe
 constexpr uint ANITA_SHOW = 1;         // cJetAnita state bit: drawn
 
 constexpr uint FADE_IN = 2;            // Fade(2, 500): from black
-constexpr uint FADE_OUT = 0x10001;     // Fade(0x10001, 500)
+constexpr uint FADE_OUT = 0x10002;     // Fade(0x10002, 500): to black (0x80009278)
 constexpr int FADE_MSEC = 500;
 
 constexpr uint KEY_B = 0x0400;         // held B freezes the whole app (0x8000789c)
-// FUN_80009598: any of these in pad word 1 (trig) decides; 0x8 / 0x4 are the upright "up" / "down" bits, i.e. LEFT / RIGHT on the
-// sideways Wiimote the game is played with (first option = left, second = right)
+// FUN_80009598: any of these in pad word 1 (trig) decides. Game pad bits (table 0x80444ce0): 0x4 LEFT = first option, 0x8 RIGHT = second
 constexpr uint TRIG_DECIDE = 0x860;
-constexpr uint TRIG_UP = 0x8;   // cursor to the first option (left)
-constexpr uint TRIG_DOWN = 0x4; // cursor to the second option (right)
+constexpr uint TRIG_LEFT = 0x4;  // cursor to the first option
+constexpr uint TRIG_RIGHT = 0x8; // cursor to the second option
 
-// The dialog icons are animations of RESIDENT_ANITA_FRAME picked by the game kind in cKingdomSys + 0xa44
-// (1, 2, 4, 5, 6, 7; anything else uses the default). `alt` is the highlighted variant (+1).
+// The dialog icons are animations of RESIDENT_ANITA_FRAME picked by the language in cKingdomSys + 0xa44 (0 EN = default, 1 JA, 2 DE,
+// 4 ES, 5 FR, 6 IT, 7 KO: the columns of RESIDENT_MSG_NAND_ERROR). `alt` is the highlighted variant (+1).
 // Two families: "delete" dialog (state 8) and "continue" dialogs (states 11, 14).
 struct IconSet
 {
 	int dflt;
-	int byKind[8]; // index = kind; unused kinds (0, 3) = -1
+	int byKind[8]; // index = language; unused (0, 3) = -1
 };
 int IconAnim(const IconSet& set, uint kind, bool alt)
 {
@@ -63,7 +63,7 @@ cAppSaveLoad::cAppSaveLoad(bool force)
 	Init();
 }
 
-// DOL 0x80006fa0
+// DOL 0x80006fa0 [audited]
 void cAppSaveLoad::Init()
 {
 	// layers 0-3 all hold the same frame layout, loaded hidden
@@ -86,9 +86,9 @@ void cAppSaveLoad::Init()
 	KingdomGlobal::KingSys->SetObjA50Flags(true, !KingdomGlobal::KingSys->bUnkA95());
 }
 
-// DOL 0x800097ec (FUN_80014408 / FUN_80016f28 / FUN_80016fc8 / FUN_801394b4): the message text (RESIDENT_MSG_NAND_ERROR row index + 1, FUN_801394b4) is centred on the position of layer 3's first layer
+// DOL 0x800097ec [audited] (FUN_80014408 / FUN_80016f28 / FUN_80016fc8 / FUN_801394b4): the message text (RESIDENT_MSG_NAND_ERROR row index + 1, FUN_801394b4) is centred on the position of layer 3's first layer
 // record (FUN_80014408 (pat 0, layer 0): px, py), converted to screen pixels as (320 + px, 240 - py). The game hands it to the font writer at
-// +0x294 (queue FUN_80016f28 / FUN_80016fc8, flag word 3). UNVERIFIED: flag 3 is read as "centred" and the font as RESIDENT_FONT_FRAME with scale 1.
+// +0x294 (queue FUN_80016f28 / FUN_80016fc8, flag word 3 = 0x111). UNVERIFIED: the font at KingSys+0xa64 is taken as RESIDENT_FONT_FRAME.
 void cAppSaveLoad::ShowMessage(int index)
 {
 	if (!m_msgsLoaded) m_msgsLoaded = m_msgs.Load("RESIDENT_MSG_NAND_ERROR");
@@ -105,7 +105,7 @@ void cAppSaveLoad::ShowMessage(int index)
 	}
 }
 
-// DOL 0x80009414: where each save status leads. Returns false when the caller should simply try the operation again
+// DOL 0x80009414 [audited]: where each save status leads. Returns false when the caller should simply try the operation again
 // (status 2 for the first three attempts, and statuses the router does not know).
 bool cAppSaveLoad::RouteError(uint status)
 {
@@ -137,7 +137,7 @@ bool cAppSaveLoad::RouteError(uint status)
 	}
 }
 
-// DOL 0x80009598: cursor and decision for the two-option dialogs
+// DOL 0x80009598 [audited+dolphin]: cursor and decision for the two-option dialogs
 void cAppSaveLoad::MenuInput()
 {
 	const GamePad::State& pad = GamePad::Get(0);
@@ -147,17 +147,17 @@ void cAppSaveLoad::MenuInput()
 	{
 		if (m_nCursor == 0)
 		{
-			WiiSnd::Play(se, SND_NG); // nothing highlighted yet
+			WiiSnd::PlayRemote(se, 0, SND_NG); // nothing highlighted yet; FUN_80025b6c = the remote speaker
 		}
 		else
 		{
 			m_nChoice = (m_nCursor == 1) ? 1 : 2;
-			WiiSnd::Play(se, SND_DECIDE);
+			WiiSnd::PlayRemote(se, 0, SND_DECIDE);
 		}
 	}
-	else if (pad.trig & (TRIG_UP | TRIG_DOWN))
+	else if (pad.trig & (TRIG_LEFT | TRIG_RIGHT))
 	{
-		m_nCursor = (pad.trig & TRIG_DOWN) ? 2 : 1;
+		m_nCursor = (pad.trig & TRIG_LEFT) ? 1 : 2; // 0x80009634: bit 0x4 wins
 	}
 	if (m_nCursor != before)
 	{
@@ -165,7 +165,7 @@ void cAppSaveLoad::MenuInput()
 	}
 }
 
-// DOL 0x8000786c. State S (+0x34), previous O (+0x3c), step P (+0x40) as everywhere; `go` = state change + clear modeproc.
+// DOL 0x8000786c [audited+dolphin] (run in Dolphin: states 1, 2, 3, 11, 14, 19, 20; the rest static only). State S (+0x34), previous O (+0x3c), step P (+0x40) as everywhere; `go` = state change + clear modeproc.
 bool cAppSaveLoad::Execute(cJetTask* pParam)
 {
 	cKingdomSys* sys = KingdomGlobal::KingSys;
@@ -222,7 +222,7 @@ bool cAppSaveLoad::Execute(cJetTask* pParam)
 		play(2, IconAnim(l2, kind, m_nCursor == 2), false);
 	};
 	auto hideDialog = [&]() { show(1, false); show(2, false); };
-	auto resetMenu = [&]() { m_nChoice = 0; m_nCursor = 0; m_nRetry = 0; };
+	auto resetMenu = [&]() { m_nChoice = 0; m_nCursor = 0; };
 
 	if (S < STATE_COUNT)
 	{
@@ -246,7 +246,7 @@ bool cAppSaveLoad::Execute(cJetTask* pParam)
 			case 5: restartTimer(); m_bOk = save->Save(); break;
 			case 6: restartTimer(); break;
 			case 7: restartTimer(); m_bOk = save->CheckSpace(); break;
-			case 8: dialogIcons(kDeleteL1, kDeleteL2); resetMenu(); break;
+			case 8: dialogIcons(kDeleteL1, kDeleteL2); resetMenu(); m_nRetry = 0; break;
 			case 9:
 			case 10:
 				if (!sys->bUnkA95()) sys->SetObjA50Flags(false, false);
@@ -414,9 +414,18 @@ bool cAppSaveLoad::Execute(cJetTask* pParam)
 			P = 0;
 			switch (O)
 			{
-			case 8: case 11: case 14:
+			case 8:
+				m_nErrState = 8;
 				hideDialog();
-				if (O == 14 && !sys->bUnkA95()) sys->SetObjA50Flags(true, true);
+				break;
+			case 11:
+				m_nErrState = 11;
+				hideDialog();
+				break;
+			case 14:
+				m_nErrState = 0x15;
+				hideDialog();
+				sys->SetObjA50Flags(true, !sys->bUnkA95());
 				break;
 			case 9:
 			case 10:
@@ -433,14 +442,14 @@ bool cAppSaveLoad::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x8000970c
+// DOL 0x8000970c [audited]
 void cAppSaveLoad::Draw(int nStatus, cJetTask* pParam)
 {
 	m_Anita.Draw(); // DOL 0x8000970c: 2D projection then the four frame layers
 	if (m_msgPos && !m_msgText.empty())
 	{
 		gfx::TextStyle st;
-		st.scaleX = st.scaleY = 0.5f;   // UNVERIFIED size: the dialog pane is far smaller than the font's 40 px
+		st.scaleX = st.scaleY = 23.0f / (float)std::max(1, gfx::FontHeight(st.font)); // 0x80479c0c = 23.0: Init's writer size, nw4r SetFontSize = size / height
 		st.vorigin = gfx::TextStyle::VOrigin::Middle;   // writer mode 3 = flags 0x111 (nw4r VERTICAL_ORIGIN_MIDDLE)
 		gfx::DrawText(m_msgX, m_msgY, m_msgText, st, gfx::TextAlign::Center);
 	}

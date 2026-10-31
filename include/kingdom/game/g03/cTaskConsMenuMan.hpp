@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "kingdom/game/cTaskConsMenuManBase.hpp"
-#include "MotosUIRollHome.hpp"
 #include "cJetTask.hpp"
 #include "kingdom/game/cAppGameBaseMenu.hpp"
 #include "kingdom/game/cTaskConsMenuBase.hpp"
@@ -119,7 +118,6 @@ private:
 	cTaskConsMenuBase* m_pHitArray[13]{};
 
 public:
-	MotosUIRollHome* UnityUI{};
 
 protected:
 	int& nState();

@@ -36,7 +36,7 @@ void cTaskBgGimmickPillar::Init()
 	IsDrawShadowDepth(true);
 	Constants::PACN_APP();
 	ResMdl* resMdl = pFaceList()->pResMdl();
-	// DOL 0x801517dc: every node of the hit model by its index (nw4r ResMdl::GetResNode(i), i < GetResNodeNumEntries). The converted loop only
+	// DOL 0x801517dc [audited: per AUDIT_G03_G07 row]: every node of the hit model by its index (nw4r ResMdl::GetResNode(i), i < GetResNodeNumEntries). The converted loop only
 	// looked at the children of the first child, missed effect1_1 / effect1_2 (x +-5 in m03o_42_wo02_h) and kept the default half width 2:
 	// the long w4s2 logs hurt only in their middle. (The port's ResMdl::GetResNode(int) counts root children, so the node table is read here.)
 	const int nodeNum = resMdl->Mdl != nullptr ? (int)resMdl->Mdl->nodes.size() : 0;
@@ -65,7 +65,7 @@ void cTaskBgGimmickPillar::Term()
 	cTaskBgGimmick::Term();
 }
 
-// DOL 0x801519f0
+// DOL 0x801519f0 [audited: per AUDIT_G03_G07 row]
 bool cTaskBgGimmickPillar::Execute(cJetTask* pParam)
 {
 	cTaskCharPacman* cTaskCharPacman2 = Constants::PACN_APP()->pTaskCharPacman();

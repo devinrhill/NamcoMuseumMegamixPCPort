@@ -4,6 +4,7 @@
 #include <iterator>
 
 #include "cJetTask.hpp"
+#include "GamePad.hpp"
 #include "CustomKingdomUtil.hpp"
 #include "kingdom/cKingdomModel.hpp"
 #include "kingdom/cKingdomPtkHnd.hpp"
@@ -30,6 +31,8 @@ uint& cTaskBG::nStageIdx()
 	return m_nWorldIdx;
 }
 
+// DOL 0x801e0cd4 [audited: described by the 43rd-session pass]: CSV_BG rows 1..4 (trans, rotate in degrees, scale, frame rate default 1), MDL_BG_n + its TSA / CLA / CHA when present,
+// light set 0, fog 0, then PtkInit (vtable +0x44)
 void cTaskBG::Init()
 {
 	m_nWorldIdx = KingdomGlobal::MotosSys->nWorld();
@@ -74,6 +77,8 @@ void cTaskBG::Term()
 	cTaskModel::Term();
 }
 
+// DOL 0x801e1270 [audited: described by the 43rd-session pass]: the BG effect manager (8 kinds BG_PTK01..08), then per world the emitters at the children of the named nodes of BG model 3
+// (only when model 3 exists); then 20 pre-roll steps, each skipped while pad 0 holds HOME. The C# left the world cases empty (no BG particles)
 void cTaskBG::PtkInit()
 {
 	for (int i = 0; i < (int)std::size(m_hPtk); i++)
@@ -82,44 +87,49 @@ void cTaskBG::PtkInit()
 	}
 	CustomKingdomUtil::Assert(m_pTaskBGEffect == nullptr, "multiple init");
 	ConnectChild(m_pTaskBGEffect = new cTaskBGEffect());
-	Vector4 v = Vector4::zero;
-	::Constants::jetGeoVecUnit(v);
-	cKingdomModel* cKingdomModel2 = pModel(3u);
+	const bool bModel3 = pModel(3u) != nullptr;
 	switch (m_nWorldIdx)
 	{
 	case 2u:
-		if (cKingdomModel2 == nullptr)
+		if (bModel3)
 		{
+			PtkSet("ef_water01", 0u, 3u);
+			PtkSet("ef_bird01", 1u, 3u);
+			PtkSet("ef_rain01", 7u, 3u);
 		}
 		break;
 	case 3u:
-		if (cKingdomModel2 == nullptr)
+		if (bModel3)
 		{
+			m_nStagePtk = PtkSet("ef_bolon01", 3u, 3u);
 		}
 		break;
 	case 4u:
-		if (cKingdomModel2 == nullptr)
+		if (bModel3)
 		{
+			PtkSet("ef_fire01", 4u, 3u);
 		}
 		break;
 	case 5u:
-		if (cKingdomModel2 == nullptr)
+		if (bModel3)
 		{
+			PtkSet("ef_star01", 5u, 3u);
 		}
 		break;
 	default:
-		CustomKingdomUtil::Assert("error");
-		break;
-	case 0u:
-	case 1u:
 		break;
 	}
 	for (uint num = 0u; num < 20; num++)
 	{
-		m_pTaskBGEffect->get_KingdomPtkMan()->UpdateFrame();
+		if ((GamePad::Get(0).hold & GamePad::PAD_HOME) == 0)
+		{
+			m_pTaskBGEffect->get_KingdomPtkMan()->UpdateFrame(1.0f);
+		}
 	}
 }
 
+// DOL 0x801e17ac [audited: described by the 43rd-session pass]: one emitter per child of node `name` (first child +0x60, then siblings +0x64) at the child's local translate (ResNodeData
+// +0x38, as stored: ResNode::GetTranslate mirrors X for Unity) + BG model 3's position; returns the first handle index, -1 when the node is missing
 int cTaskBG::PtkSet(const string& name, uint nKind, uint ModelNo)
 {
 	cKingdomModel* cKingdomModel2 = pModel(ModelNo);
@@ -146,8 +156,8 @@ int cTaskBG::PtkSet(const string& name, uint nKind, uint ModelNo)
 	int nUseNum = m_nUseNum;
 	do
 	{
-		Vector4 v;
-		::Constants::jetGeoVecCopy(v, childNode->GetTranslate());
+		const float* tr = childNode->Mdl->nodes[childNode->Idx].translate;
+		Vector4 v(tr[0], tr[1], tr[2], 1.0f);
 		if (pModel(3u) != nullptr)
 		{
 			::Constants::jetGeoVecAdd(v, v, pModel(3u)->vTrans());
@@ -164,26 +174,41 @@ int cTaskBG::PtkSet(const string& name, uint nKind, uint ModelNo)
 	return nUseNum;
 }
 
+// DOL 0x801e1a9c [audited: described by the 43rd-session pass]: the local translate of the first child of node `name` (copied to +0xbe0), nothing when the model / node / child is missing
 Nullable<Vector4> cTaskBG::pModelNodeTrans(const string& name, uint ModelNo)
 {
-	return nullptr;
+	cKingdomModel* cKingdomModel2 = pModel(ModelNo);
+	if (cKingdomModel2 == nullptr)
+	{
+		return nullptr;
+	}
+	ResMdl* resMdl = new ResMdl(cKingdomModel2->pScnMdl());
+	if (!resMdl->IsValid())
+	{
+		return nullptr;
+	}
+	ResNode* resNode = resMdl->GetResNode(name);
+	if (!resNode->IsValid())
+	{
+		return nullptr;
+	}
+	ResNode* childNode = resNode->GetChildNode(0);
+	if (!childNode->IsValid())
+	{
+		return nullptr;
+	}
+	const float* tr = childNode->Mdl->nodes[childNode->Idx].translate;
+	m_vNodeTrans = Vector4(tr[0], tr[1], tr[2], 1.0f);
+	return m_vNodeTrans;
 }
 
+// DOL 0x801e1c14 [audited: blr]: empty
 void cTaskBG::PtkExecute()
 {
-	switch (m_nWorldIdx)
-	{
-	case 0u:
-	case 1u:
-	case 2u:
-	case 3u:
-	case 4u:
-	case 5u:
-		return;
-	}
-	CustomKingdomUtil::Assert("error");
 }
 
+// DOL 0x801e1c18 [audited: described by the 43rd-session pass]: PtkExecute, then the model animations unless paused / HOME (SYSTEM_IS_PAUSE) or game step 1. Draw = cTaskModel::Draw (0x801e1c90 is
+// a copy of 0x8009a650)
 bool cTaskBG::Execute(cJetTask* pParam)
 {
 	PtkExecute();

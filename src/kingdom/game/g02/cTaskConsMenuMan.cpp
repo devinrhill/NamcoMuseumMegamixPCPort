@@ -24,10 +24,10 @@ namespace
 {
 using GamePad::PAD_UP, GamePad::PAD_DOWN, GamePad::PAD_LEFT, GamePad::PAD_RIGHT, GamePad::PAD_2;
 
-// DOL 0x80376c38 (copied to the stack by KeySelect 0x80108a4c): {focus, UP target, DOWN target}, terminated by focus -1
+// DOL 0x80376c38 [audited] (copied to the stack by KeySelect 0x80108a4c): {focus, UP target, DOWN target}, terminated by focus -1
 const int s_KeyTbl[14][3] = {{0, -1, -1}, {1, 4, 14}, {2, 3, 6}, {4, 6, 1},  {3, 14, 2}, {5, 1, 2},  {6, 2, 9},
                              {7, 2, 10},  {8, 2, 11}, {9, 6, 4}, {10, 7, 4}, {11, 8, 4}, {14, 1, 3}, {-1, -1, -1}};
-// DOL 0x80376ce0 (copied by DecideCheck 0x8010912c): {focus, state}, terminated by focus -1
+// DOL 0x80376ce0 [audited] (copied by DecideCheck 0x8010912c): {focus, state}, terminated by focus -1
 const int s_DecideTbl[15][2] = {{0, -1}, {1, 2}, {4, 3}, {2, 4}, {5, 5}, {6, 8}, {7, 8}, {8, 8}, {9, 8}, {10, 8}, {11, 8}, {3, 9}, {12, 6}, {13, 7}, {-1, -1}};
 
 // the light manager of the ctor (FUN_80018dd0 / FUN_800195c4): the SCN0 light of `sca` into light set `set`
@@ -71,7 +71,7 @@ void cTaskConsMenuMan::SetupScene()
 	SetupMenuScene();
 }
 
-// DOL 0x80108074
+// DOL 0x80108074 [audited]
 cTaskConsMenuMan::cTaskConsMenuMan(kingdom::game::cAppGameBaseMenu* pApp)
 	: cTaskConsMenuManBase(pApp)
 {
@@ -129,13 +129,13 @@ cTaskConsMenuMan::cTaskConsMenuMan(kingdom::game::cAppGameBaseMenu* pApp)
 	AddHitArray();
 }
 
-// DOL 0x801085bc: deletes the light manager (+0x1d8), clears the sys' "new stage" flag (0x800c5c70)
+// DOL 0x801085bc [audited]: deletes the light manager (+0x1d8), clears the sys' "new stage" flag (0x800c5c70)
 cTaskConsMenuMan::~cTaskConsMenuMan()
 {
 	cG02RallyXSysExt::bNewStageApear = false;
 }
 
-// DOL 0x80108674. The newest open stage (record 0x800c6320) gives the max world / stage. Back from the debug menu (0x08600000) or the
+// DOL 0x80108674 [audited]. The newest open stage (record 0x800c6320) gives the max world / stage. Back from the debug menu (0x08600000) or the
 // stage (0x0c300000): the current sys stage, or the newest one when a stage was just opened. Otherwise the newest one, unless everything
 // was cleared (record 0x800c61d8): then stage 1 (sys 0x800c5850).
 void cTaskConsMenuMan::InitStageNo()
@@ -171,7 +171,7 @@ void cTaskConsMenuMan::InitStageNo()
 	}
 }
 
-// DOL 0x80108798
+// DOL 0x80108798 [audited]
 void cTaskConsMenuMan::AddHitArray()
 {
 	m_pHitArray[0] = nullptr;
@@ -186,7 +186,7 @@ void cTaskConsMenuMan::AddHitArray()
 	m_pHitArray[13] = m_pArrow[1];
 }
 
-// DOL 0x80108830 (the Bg and the car are not touched)
+// DOL 0x80108830 [audited] (the Bg and the car are not touched)
 void cTaskConsMenuMan::AllWaitState()
 {
 	m_pBack->WaitState();
@@ -201,7 +201,7 @@ void cTaskConsMenuMan::AllWaitState()
 	for (int i = 0; i < 2; i++) m_pArrow[i]->WaitState();
 }
 
-// DOL 0x8010895c: a stage button focused -> it becomes the current stage (the map and the Bar follow)
+// DOL 0x8010895c [audited]: a stage button focused -> it becomes the current stage (the map and the Bar follow)
 void cTaskConsMenuMan::FreeStageCheck()
 {
 	const uint n = (uint)(m_nSelectNow - 6);
@@ -223,7 +223,7 @@ bool cTaskConsMenuMan::IsSelectable(int focus) const
 	return true;
 }
 
-// DOL 0x80108a4c. UP / DOWN follow the table; LEFT / RIGHT move inside the stage row of the focus (6..8 or 9..11, wrapping).
+// DOL 0x80108a4c [audited]. UP / DOWN follow the table; LEFT / RIGHT move inside the stage row of the focus (6..8 or 9..11, wrapping).
 void cTaskConsMenuMan::KeySelect(uint trig)
 {
 	if ((uint)(m_nSelectNow - 12) < 2) m_nSelectNow = 14;
@@ -268,7 +268,7 @@ void cTaskConsMenuMan::KeySelect(uint trig)
 	}
 }
 
-// DOL 0x80108f74
+// DOL 0x80108f74 [audited]
 void cTaskConsMenuMan::PointUpdate(uint trig)
 {
 	if (trig & PAD_2) m_nSelectNow = 1;
@@ -309,7 +309,7 @@ void cTaskConsMenuMan::PointUpdate(uint trig)
 	}
 }
 
-// DOL 0x8010912c (the table loop does not stop at a match, as in the DOL)
+// DOL 0x8010912c [audited] (the table loop does not stop at a match, as in the DOL)
 void cTaskConsMenuMan::DecideCheck(uint trig)
 {
 	if (m_nSelectNow == 0) return;
@@ -332,7 +332,7 @@ void cTaskConsMenuMan::DecideCheck(uint trig)
 	}
 }
 
-// DOL 0x80109200: only while choosing (state 0). The pad 0 pointer over a console focuses it (the last hit wins), otherwise the keys move.
+// DOL 0x80109200 [audited]: only while choosing (state 0). The pad 0 pointer over a console focuses it (the last hit wins), otherwise the keys move.
 void cTaskConsMenuMan::Select()
 {
 	if (m_nState != 0) return;
@@ -354,7 +354,7 @@ void cTaskConsMenuMan::Select()
 	m_nSelectOld = m_nSelectNow;
 }
 
-// DOL 0x801092d8
+// DOL 0x801092d8 [audited]
 void cTaskConsMenuMan::Reset()
 {
 	AllWaitState();
@@ -362,7 +362,7 @@ void cTaskConsMenuMan::Reset()
 	m_nStep = 0;
 }
 
-// DOL 0x80109310. Nothing while the main app is paused (KingSys app +0x1b4).
+// DOL 0x80109310 [audited]. Nothing while the main app is paused (KingSys app +0x1b4).
 bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 {
 	(void)pParam;
@@ -510,7 +510,7 @@ bool cTaskConsMenuMan::Execute(cJetTask* pParam)
 	return true;
 }
 
-// DOL 0x80109a2c (the Bg is not appeared here; the car through its vtable +0x48)
+// DOL 0x80109a2c [audited] (the Bg is not appeared here; the car through its vtable +0x48)
 void cTaskConsMenuMan::AppearStart()
 {
 	m_pBack->AppearState();
@@ -526,7 +526,7 @@ void cTaskConsMenuMan::AppearStart()
 	for (int i = 0; i < 2; i++) m_pArrow[i]->AppearState();
 }
 
-// DOL 0x80109b6c
+// DOL 0x80109b6c [audited]
 bool cTaskConsMenuMan::IsAppearEnd()
 {
 	bool b = m_pBack->IsAppearEndState();
@@ -543,12 +543,12 @@ bool cTaskConsMenuMan::IsAppearEnd()
 	return b;
 }
 
-bool cTaskConsMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }                 // DOL 0x80109d0c
-bool cTaskConsMenuMan::IsMultiDecide() { return m_pMulti->IsDecideEndState(); }               // DOL 0x80109d20
-bool cTaskConsMenuMan::IsStageDecide() { return m_pStage[m_nStageNo]->IsDecideEndState(); }   // DOL 0x80109d34
-bool cTaskConsMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }                 // DOL 0x80109d54
+bool cTaskConsMenuMan::IsBackDecide() { return m_pBack->IsDecideEndState(); }                 // DOL 0x80109d0c [audited]
+bool cTaskConsMenuMan::IsMultiDecide() { return m_pMulti->IsDecideEndState(); }               // DOL 0x80109d20 [audited]
+bool cTaskConsMenuMan::IsStageDecide() { return m_pStage[m_nStageNo]->IsDecideEndState(); }   // DOL 0x80109d34 [audited]
+bool cTaskConsMenuMan::IsRuleDecide() { return m_pRule->IsDecideEndState(); }                 // DOL 0x80109d54 [audited]
 
-// DOL 0x80109d68: sys +0x08 = stage index, sys 0x800c5c60(1) (+0x0c players), sys 0x800c5b78(0, type) (+0x14 player 0's control type)
+// DOL 0x80109d68 [audited]: sys +0x08 = stage index, sys 0x800c5c60(1) (+0x0c players), sys 0x800c5b78(0, type) (+0x14 player 0's control type)
 void cTaskConsMenuMan::SetStage()
 {
 	KingdomGlobal::RallyXSys->nStageIdx(m_nStageNo + m_nWorldNo * 6 + 1);
@@ -556,7 +556,7 @@ void cTaskConsMenuMan::SetStage()
 	cG02RallyXSysExt::nCtrlType[0] = m_pController->nType();
 }
 
-// DOL 0x80109dcc
+// DOL 0x80109dcc [audited]
 int cTaskConsMenuMan::nCtrlType()
 {
 	return m_pController->nType();
